@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <utility>
 #include <vector>
 #include "game.hpp"
@@ -22,6 +23,10 @@ inline std::size_t longestPartialSpeakerPrefix(
 
     for (const auto& token : tokens) {
         if (token.first.empty())
+            continue;
+
+        unsigned char firstChar = static_cast<unsigned char>(token.first.front());
+        if (!std::isalpha(firstChar))
             continue;
 
         std::size_t maxLength = std::min(token.first.size(), text.size());
@@ -119,7 +124,7 @@ inline std::vector<ColoredTextSegment> buildColoredSegments(const std::string& t
     return segments;
 }
 
-inline void drawColoredSegments(
+inline sf::Vector2f drawColoredSegments(
     sf::RenderTarget& target,
     const sf::Font& font,
     const std::vector<ColoredTextSegment>& segments,
@@ -127,7 +132,7 @@ inline void drawColoredSegments(
     unsigned int characterSize
 ) {
     if (segments.empty())
-        return;
+        return startPos;
 
     const float baseLineStartX = startPos.x;
     sf::Vector2f cursor = startPos;
@@ -163,6 +168,8 @@ inline void drawColoredSegments(
             cursor.y += lineSpacing;
         }
     }
+
+    return cursor;
 }
 
 inline void renderDialogue(Game& game) {
@@ -209,15 +216,53 @@ inline void renderDialogue(Game& game) {
     }
 
     auto segments = buildColoredSegments(textToDraw);
-    drawColoredSegments(game.window, game.font, segments, basePos, 28);
+    auto cursorPos = drawColoredSegments(game.window, game.font, segments, basePos, 28);
+
+    bool canPressEnter = false;
+    if (game.askingName) {
+        canPressEnter = !game.nameInput.empty();
+    } else {
+        if (game.charIndex < fullText.size()) {
+            canPressEnter = true;
+        } else if (game.currentDialogue && game.dialogueIndex + 1 < game.currentDialogue->size()) {
+            canPressEnter = true;
+        }
+    }
 
     if (game.askingName) {
+        if (game.cursorBlinkClock.getElapsedTime().asSeconds() >= game.cursorBlinkInterval) {
+            game.cursorVisible = !game.cursorVisible;
+            game.cursorBlinkClock.restart();
+        }
+
+        sf::Vector2f inputPos{ textPos.x + 20.f, textPos.y + 60.f };
+
         sf::Text inputText{game.font, "", 28};
         inputText.setFillColor(sf::Color::White);
         inputText.setString(game.nameInput);
 
-        sf::Vector2f inputPos{ textPos.x + 20.f, textPos.y + 60.f };
+        std::string nameWithCursor = game.nameInput;
+        nameWithCursor.push_back(' ');
+        inputText.setString(nameWithCursor);
+
         inputText.setPosition(inputPos);
         game.window.draw(inputText);
+
+        if (game.cursorVisible) {
+            sf::Text cursorText{game.font, "_", 28};
+            cursorText.setFillColor(sf::Color::White);
+            auto cursorPos = inputText.findCharacterPos(game.nameInput.size());
+            cursorText.setPosition(cursorPos);
+            game.window.draw(cursorText);
+        }
+    }
+
+    if (canPressEnter) {
+        sf::Text indicator{game.font, "↵", 28};
+        indicator.setFillColor(sf::Color(160, 160, 160));
+        sf::Vector2f indicatorPos = cursorPos;
+        indicatorPos.x += 8.f;
+        indicator.setPosition(indicatorPos);
+        game.window.draw(indicator);
     }
 }

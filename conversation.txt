@@ -1,0 +1,14 @@
+=== Intro Screen ===
+IMPORTANT! PLEASE READ!
+To navigate through the game, you will mostly only need to press the ENTERkey.
+However, there will be times when you will be asked to make a choice.
+In those cases, you will be given a list of options to choose from.
+You can select an option by typing the corresponding key and pressing ENTER.
+Please wait for the lines to finish printing before pressing ENTER
+There's no way to jump lines or skip text...
+If you press ENTERtoo early, the game will not work as intended.
+Thank you for your understanding! And happy gaming!
+
+Press ENTER to continue.
+
+=== Greeting to a new world ===

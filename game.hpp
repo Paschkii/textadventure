@@ -42,5 +42,9 @@ class Game {
         std::string nameInput;
         bool askingName = false;
 
+        sf::Clock cursorBlinkClock;
+        bool cursorVisible = true;
+        float cursorBlinkInterval = 0.5f;
+
         std::string currentProcessedLine;
 };
