@@ -12,18 +12,18 @@ enum class Speaker { Narrator, StoryTeller, NoNameNPC, Player, FireDragon, Water
 inline const sf::Color purpleblue{ 180, 180, 255 };
 inline const sf::Color brown{ 139, 69, 19 };
 
-inline std::string characterColoredNames(Speaker s) {
-    switch (s) {
-        case Speaker::StoryTeller:  return "<purple>Tory Tailor</>";
-        case Speaker::NoNameNPC:    return "<purple>?????</>";
-        case Speaker::AirDragon:    return "<green>Gustavo Windimaess</>";
-        case Speaker::EarthDragon:  return "<brown>Grounded Claymore</>";
-        case Speaker::FireDragon:   return "<red>Rowsted Sheacane</>";
-        case Speaker::WaterDragon:  return "<blue>Flawtin Seamen</blue>";
-        case Speaker::Player:       return "<cyan>{player}</>";
-        default:                    return "";
-    }
-}
+// inline std::string characterColoredNames(Speaker s) {
+//     switch (s) {
+//         case Speaker::StoryTeller:  return "<purple>Tory Tailor</>";
+//         case Speaker::NoNameNPC:    return "<purple>?????</>";
+//         case Speaker::AirDragon:    return "<green>Gustavo Windimaess</>";
+//         case Speaker::EarthDragon:  return "<brown>Grounded Claymore</>";
+//         case Speaker::FireDragon:   return "<red>Rowsted Sheacane</>";
+//         case Speaker::WaterDragon:  return "<blue>Flawtin Seamen</blue>";
+//         case Speaker::Player:       return "<cyan>{player}</>";
+//         default:                    return "";
+//     }
+// }
 
 // Funktion, um Speakern Namen zuzuweisen
 inline std::string speakerToName(Speaker s) {

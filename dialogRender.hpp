@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <algorithm>
 #include <array>
 #include <utility>
 #include <vector>
@@ -11,6 +12,34 @@ struct ColoredTextSegment {
     std::string text;
     sf::Color color = sf::Color::White;
 };
+
+inline std::size_t longestPartialSpeakerPrefix(
+    const std::string& text,
+    const std::vector<std::pair<std::string, sf::Color>>& tokens,
+    sf::Color& outColor
+) {
+    std::size_t bestLength = 0;
+
+    for (const auto& token : tokens) {
+        if (token.first.empty())
+            continue;
+
+        std::size_t maxLength = std::min(token.first.size(), text.size());
+        if (maxLength == 0)
+            continue;
+
+        for (std::size_t len = 1; len < token.first.size() && len <= maxLength; ++len) {
+            if (text.compare(text.size() - len, len, token.first, 0, len) == 0) {
+                if (len > bestLength) {
+                    bestLength = len;
+                    outColor = token.second;
+                }
+            }
+        }
+    }
+
+    return bestLength;
+}
 
 inline std::vector<ColoredTextSegment> buildColoredSegments(const std::string& text) {
     std::vector<ColoredTextSegment> segments;
@@ -66,6 +95,26 @@ inline std::vector<ColoredTextSegment> buildColoredSegments(const std::string& t
 
     if (segments.empty())
         segments.push_back({ text, sf::Color::White });
+
+    sf::Color partialColor = sf::Color::White;
+    std::size_t partialLength = longestPartialSpeakerPrefix(text, tokens, partialColor);
+    if (partialLength > 0) {
+        std::string trailing = text.substr(text.size() - partialLength);
+        std::size_t remaining = partialLength;
+
+        while (remaining > 0 && !segments.empty()) {
+            auto& last = segments.back();
+            if (last.text.size() <= remaining) {
+                remaining -= last.text.size();
+                segments.pop_back();
+            } else {
+                last.text.erase(last.text.size() - remaining);
+                remaining = 0;
+            }
+        }
+
+        segments.push_back({ trailing, partialColor });
+    }
 
     return segments;
 }
@@ -152,7 +201,23 @@ inline void renderDialogue(Game& game) {
     auto textPos = game.textBox.getPosition();
     sf::Vector2f basePos{ textPos.x + 20.f, textPos.y + 20.f };
 
-    auto segments = buildColoredSegments(game.visibleText);
+    std::string textToDraw = game.visibleText;
+    if (game.askingName) {
+        auto newlinePos = textToDraw.find('\n');
+        if (newlinePos != std::string::npos)
+            textToDraw = textToDraw.substr(0, newlinePos + 1);
+    }
+
+    auto segments = buildColoredSegments(textToDraw);
     drawColoredSegments(game.window, game.font, segments, basePos, 28);
 
+    if (game.askingName) {
+        sf::Text inputText{game.font, "", 28};
+        inputText.setFillColor(sf::Color::White);
+        inputText.setString(game.nameInput);
+
+        sf::Vector2f inputPos{ textPos.x + 20.f, textPos.y + 60.f };
+        inputText.setPosition(inputPos);
+        game.window.draw(inputText);
+    }
 }
