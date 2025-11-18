@@ -1,8 +1,120 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <array>
+#include <utility>
+#include <vector>
 #include "game.hpp"
 #include "speaker.hpp"
 #include "storyIntro.hpp"
+
+struct ColoredTextSegment {
+    std::string text;
+    sf::Color color = sf::Color::White;
+};
+
+inline std::vector<ColoredTextSegment> buildColoredSegments(const std::string& text) {
+    std::vector<ColoredTextSegment> segments;
+
+    if (text.empty())
+        return segments;
+
+    const std::array<Speaker, 7> speakersToColor{
+        Speaker::StoryTeller,
+        Speaker::NoNameNPC,
+        Speaker::Player,
+        Speaker::FireDragon,
+        Speaker::WaterDragon,
+        Speaker::AirDragon,
+        Speaker::EarthDragon
+    };
+
+    std::vector<std::pair<std::string, sf::Color>> tokens;
+    tokens.reserve(speakersToColor.size());
+    for (Speaker speaker : speakersToColor) {
+        std::string name = speakerToName(speaker);
+        if (!name.empty())
+            tokens.emplace_back(name, colorForSpeaker(speaker));
+    }
+
+    std::size_t cursor = 0;
+    while (cursor < text.size()) {
+        std::size_t matchPos = std::string::npos;
+        int matchIndex = -1;
+
+        for (std::size_t i = 0; i < tokens.size(); ++i) {
+            const auto& token = tokens[i];
+            std::size_t pos = text.find(token.first, cursor);
+            if (pos != std::string::npos && (matchIndex == -1 || pos < matchPos)) {
+                matchPos = pos;
+                matchIndex = static_cast<int>(i);
+            }
+        }
+
+        if (matchIndex == -1)
+            break;
+
+        if (matchPos > cursor)
+            segments.push_back({ text.substr(cursor, matchPos - cursor), sf::Color::White });
+
+        const auto& token = tokens[matchIndex];
+        segments.push_back({ token.first, token.second });
+        cursor = matchPos + token.first.size();
+    }
+
+    if (cursor < text.size())
+        segments.push_back({ text.substr(cursor), sf::Color::White });
+
+    if (segments.empty())
+        segments.push_back({ text, sf::Color::White });
+
+    return segments;
+}
+
+inline void drawColoredSegments(
+    sf::RenderTarget& target,
+    const sf::Font& font,
+    const std::vector<ColoredTextSegment>& segments,
+    sf::Vector2f startPos,
+    unsigned int characterSize
+) {
+    if (segments.empty())
+        return;
+
+    const float baseLineStartX = startPos.x;
+    sf::Vector2f cursor = startPos;
+    sf::Text metrics(font, sf::String(), characterSize);
+    metrics.setString("Hg");
+    float lineSpacing = metrics.getLineSpacing();
+
+    for (const auto& segment : segments) {
+        if (segment.text.empty())
+            continue;
+
+        std::size_t offset = 0;
+        while (offset <= segment.text.size()) {
+            std::size_t newlinePos = segment.text.find('\n', offset);
+            std::string part = (newlinePos == std::string::npos)
+                ? segment.text.substr(offset)
+                : segment.text.substr(offset, newlinePos - offset);
+
+            if (!part.empty()) {
+                sf::Text drawable(font, sf::String(), characterSize);
+                drawable.setFillColor(segment.color);
+                drawable.setString(part);
+                drawable.setPosition(cursor);
+                target.draw(drawable);
+                cursor.x += drawable.getLocalBounds().size.x;
+            }
+
+            if (newlinePos == std::string::npos)
+                break;
+
+            offset = newlinePos + 1;
+            cursor.x = baseLineStartX;
+            cursor.y += lineSpacing;
+        }
+    }
+}
 
 inline void renderDialogue(Game& game) {
     game.window.draw(game.nameBox);
@@ -13,14 +125,7 @@ inline void renderDialogue(Game& game) {
     
     const auto& line = (*game.currentDialogue)[game.dialogueIndex];
 
-    std::string fullText = line.text;
-
-    if (game.currentDialogue == &intro
-        && game.dialogueIndex == 4         // die „Ahhhh, so your name is “-Zeile
-        && !game.playerName.empty()) {
-
-        fullText += game.playerName + "!";
-    }
+    std::string fullText = injectSpeakerNames(line.text, game);
 
     float delay = 0.02f;
     if (!game.askingName && game.charIndex < fullText.size()) {
@@ -33,11 +138,7 @@ inline void renderDialogue(Game& game) {
 
     auto info = getSpeakerInfo(line.speaker);
 
-    std::string processed = injectSpeakerNames(game.visibleText, game);
-
     sf::Text nameText{game.font, "", 28};
-    sf::Text dialogText{game.font, "", 28};
-    sf::Text inputText{game.font, "", 28};
 
     if (!info.name.empty()) {
         nameText.setFillColor(info.color);
@@ -48,56 +149,10 @@ inline void renderDialogue(Game& game) {
         game.window.draw(nameText);
     }
 
-    dialogText.setFillColor(sf::Color::White);
-    dialogText.setString(processed);
-
     auto textPos = game.textBox.getPosition();
     sf::Vector2f basePos{ textPos.x + 20.f, textPos.y + 20.f };
 
-    const std::string& name = game.playerName;
+    auto segments = buildColoredSegments(game.visibleText);
+    drawColoredSegments(game.window, game.font, segments, basePos, 28);
 
-    // Wenn kein Name oder im Text (noch) nicht vorhanden → alles weiß
-    if (name.empty()) {
-        sf::Text t{ game.font, processed, 28 };
-        t.setFillColor(sf::Color::White);
-        t.setPosition(basePos);
-        game.window.draw(t);
-    } else {
-        std::size_t pos = processed.find(name);
-        if (pos == std::string::npos) {
-            // Name noch nicht komplett in visibleText → einfach weiß
-            sf::Text t{ game.font, processed, 28 };
-            t.setFillColor(sf::Color::White);
-            t.setPosition(basePos);
-            game.window.draw(t);
-        } else {
-            std::string before = processed.substr(0, pos);
-            std::string middle = processed.substr(pos, name.size());
-            std::string after  = processed.substr(pos + name.size());
-
-            // 1) Text vor dem Namen (weiß)
-            sf::Text tBefore{ game.font, before, 28 };
-            tBefore.setFillColor(sf::Color::White);
-            tBefore.setPosition(basePos);
-            game.window.draw(tBefore);
-
-            auto bBefore = tBefore.getLocalBounds();
-            basePos.x += bBefore.size.x; // „width“ in SFML 3
-
-            // 2) Name farbig (Speaker::Player-Farbe)
-            sf::Text tName{ game.font, middle, 28 };
-            tName.setFillColor(colorForSpeaker(Speaker::Player)); // speaker.hpp
-            tName.setPosition(basePos);
-            game.window.draw(tName);
-
-            auto bName = tName.getLocalBounds();
-            basePos.x += bName.size.x;
-
-            // 3) Rest wieder weiß
-            sf::Text tAfter{ game.font, after, 28 };
-            tAfter.setFillColor(sf::Color::White);
-            tAfter.setPosition(basePos);
-            game.window.draw(tAfter);
-        }
-    }
 }

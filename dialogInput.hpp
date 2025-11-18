@@ -15,7 +15,8 @@ inline EnterAction processEnter(
     const DialogueLine& currentLine,
     std::size_t dialogueIndex,
     std::size_t dialogueCount,
-    std::size_t charIndex
+    std::size_t charIndex,
+    std::size_t processedLength
 ) {
     EnterAction action;
 
@@ -25,7 +26,7 @@ inline EnterAction processEnter(
         return action;
     }
 
-    if (charIndex < currentLine.text.size()) {
+    if (charIndex < processedLength) {
         action.skipToEnd = true;
         return action;
     }
@@ -40,7 +41,7 @@ inline EnterAction processEnter(
 inline void waitForEnter(Game& game, const DialogueLine& line) {
     auto* dialog = game.currentDialogue;
     std::size_t count = dialog ? dialog->size() : 0;
-    std::string processed = line.text;
+    std::string processed = injectSpeakerNames(line.text, game);
 
     EnterAction action = processEnter(
         game.askingName,
@@ -48,7 +49,8 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
         line,
         game.dialogueIndex,
         count,
-        game.charIndex
+        game.charIndex,
+        processed.size()
     );
 
     if (action.confirmName) {
@@ -63,8 +65,8 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
     }
 
     if (action.skipToEnd) {
-        game.visibleText = line.text;
-        game.charIndex = line.text.size();
+        game.visibleText = processed;
+        game.charIndex = processed.size();
         return;
     }
 
@@ -82,10 +84,6 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
         return;
     }
 
-    if(processed.find("{player}") != std::string::npos) {
-        processed.replace(processed.find("{player}"), 8, game.playerName);
-    }
-
     game.visibleText = "";
     game.charIndex = 0;
     game.currentProcessedLine = processed;
@@ -94,14 +92,19 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
 inline std::string injectSpeakerNames(const std::string& text, const Game& game) {
     std::string out = text;
 
-    if (!game.playerName.empty()) {
-        const std::string token = "{player}";
+    auto replaceToken = [&](const std::string& token, const std::string& value) {
+        if (value.empty())
+            return;
+
         std::size_t pos = 0;
         while ((pos = out.find(token, pos)) != std::string::npos) {
-            out.replace(pos, token.size(), game.playerName);
-            pos += game.playerName.size();
+            out.replace(pos, token.size(), value);
+            pos += value.size();
         }
-    }
+    };
+
+    replaceToken("{player}", game.playerName);
+    replaceToken("{playerName}", game.playerName);
 
     return out;
 }
