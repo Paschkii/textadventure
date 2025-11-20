@@ -24,12 +24,18 @@ class Game {
         const std::vector<DialogueLine> *currentDialogue = &intro;
 
     private:
+        void startTypingSound();
+        void stopTypingSound();
+
         sf::RenderWindow window;
 
         sf::Font font;
 
-        sf::SoundBuffer buffer;
-        sf::Sound sound;
+        sf::SoundBuffer enterBuffer;
+        sf::Sound enterSound;
+
+        sf::SoundBuffer textBlipBuffer;
+        sf::Sound textBlipSound;
 
         sf::RectangleShape nameBox;
         sf::RectangleShape textBox;

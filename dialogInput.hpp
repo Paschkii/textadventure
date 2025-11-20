@@ -54,6 +54,7 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
     );
 
     if (action.confirmName) {
+        game.stopTypingSound();
         game.playerName = game.nameInput;
         playerDisplayName = game.playerName;
         game.askingName = false;
@@ -65,6 +66,7 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
     }
 
     if (action.skipToEnd) {
+        game.stopTypingSound();
         game.visibleText = processed;
         game.charIndex = processed.size();
         return;
@@ -77,6 +79,7 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
     }
 
     if (action.nextLine) {
+        game.stopTypingSound();
         game.dialogueIndex++;
         game.visibleText.clear();
         game.charIndex = 0;
@@ -84,6 +87,7 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
         return;
     }
 
+    game.stopTypingSound();
     game.visibleText = "";
     game.charIndex = 0;
     game.currentProcessedLine = processed;

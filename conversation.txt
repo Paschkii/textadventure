@@ -1,14 +1,156 @@
 === Intro Screen ===
 IMPORTANT! PLEASE READ!
-To navigate through the game, you will mostly only need to press the ENTERkey.
+To navigate through the game, you will mostly only need to press the ENTER-Key.
 However, there will be times when you will be asked to make a choice.
 In those cases, you will be given a list of options to choose from.
 You can select an option by typing the corresponding key and pressing ENTER.
 Please wait for the lines to finish printing before pressing ENTER
 There's no way to jump lines or skip text...
-If you press ENTERtoo early, the game will not work as intended.
+If you press ENTER too early, the game will not work as intended.
 Thank you for your understanding! And happy gaming!
 
 Press ENTER to continue.
 
 === Greeting to a new world ===
+Welcome to this tiny fictional adventure (Press ENTER)
+I am Tory Tailor your guide and storyteller. (Press ENTER)
+I will help you on your journey and tell you the story of your adventure. (Press ENTER)
+The (ENTER) Command wont be shown anymore, so please wait for the lines to finish printing.
+
+=== Name Request ===
+Tell me your name first: (Press ENTER)
+Your name must be between 4 and 20 characters long. Please try again.
+So your name is (name)? (y/n)
+Alright (name), let's get started!
+You will now step into the world of Glandular.
+This is a world of magic, dragons, and adventure.
+You are a Dragonborn, a hero destined to save the world from evil.
+You will face many challenges and make important choices along the way.
+But fear not, for you are not alone. You will have allies to help you on your journey.
+
+=== Title as ASCII Art ===
+            ____ _                 _       _               ____ _                     _      _             
+           / ___| | __ _ _ __   __| |_   _| | __ _ _ __   / ___| |__  _ __ ___  _ __ (_) ___| | ___  ___   
+          | |  _| |/ _` | '_ \ / _` | | | | |/ _` | '__| | |   | '_ \| '__/ _ \| '_ \| |/ __| |/ _ \/ __|  
+          | |_| | | (_| | | | | (_| | |_| | | (_| | |    | |___| | | | | | (_) | | | | | (__| |  __/\\__\  
+           \____|_|\__,_|_| |_|\__,_|\__,_|_|\__,_|_|     \____|_| |_|_|  \___/|_| |_|_|\___|_|\___||___/  
+                   |_   _| |__   ___  |  _ \ _ __ __ _  __ _  ___  _ __ | |__   ___  _ __ _ __             
+                     | | | '_ \ / _ \ | | | | '__/ _` |/ _` |/ _ \| '_ \| '_ \ / _ \| '__| '_ \            
+                     | | | | | |  __/ | |_| | | | (_| | (_| | (_) | | | | |_) | (_) | |  | | | |           
+                     |_| |_| |_|\___| |____/|_|  \__,_|\__, |\___/|_| |_|_.__/ \___/|_|  |_| |_|           
+                                                       |___/                                    
+
+=== Landing in Gonad ===
+......................................................
+Hey, (name). Are you awake?
+You have been asleep for a long time.
+I was starting to worry about you.
+You are in a small village called Gonad.
+I am Noah Lott, the Elder of this village.
+How I know you? (name), you are a Dragonborn!
+Your skin is covered in Dragon Scales!
+And you are the only Dragonborn, that hasnt been captured by Master Bates, yet...
+So it was an easy guess for me!
+
+=== Introduction to the 4 dragons ===
+You have to ask the dragons for their help. These are the 4 dragons:
+Rowsted Sheacane - The Fire Dragon
+Flawtin Seamen - The Water Dragon
+Grounded Claymore - The Earth Dragon
+Gustavo Windimaess - The Air Dragon
+
+=== Weapon Request ===
+Which is your weapon?
+1 = Kattkavar - Sword and Shield
+2 = Stiggedin - Daggers
+3 = Swishoosh - Longbow
+
+=== Destination Loop ===
+You are all set now. It is up to you to choose your first destination.
+Which dragon do you want to visit first?
+1 = Fire
+2 = Water
+3 = Earth
+4 = Air
+
+=== Destination Cases ===
+1 - Fire:
+Rowsted Sheacane the Fire Dragon is probably already awaiting your arrival!
+You will find him in the Fire Mountain, which is located in the East.
+2. Water:
+Flawtin Seamen the Water Dragon is probably already awaiting your arrival!
+You will find him in the Water Mountain, which is located in the North.
+3. Earth:
+Grounded Claymore the Earth Dragon is probably already awaiting your arrival!
+You will find him in the Earth Mountain, which is located in the West.
+4. Air:
+Gustavo Windimaess the Air Dragon is probably already awaiting your arrival!
+You will find him in the Air Mountain, which is located in the South
+
+=== Reaching Destination ===
+You find yourself in a (feeling) cave. This must be the (destination).
+Who dares to step into my cave without permission?!
+I am (name), the Dragonborn. I have come to seek your help.
+I know who you are. I was just joking! You are probably looking for my Dragon Stone.
+I can give you my Dragon Stone, but you have to proove your worth first.
+You have to defeat me in a duel.
+A duel? But I am not ready for a duel!
+I was just joking! It is very boring in here. He He He!
+I will give you my Dragon Stone, if you can answer my question.
+What is my name? (Type in your answer)
+WRONG! Try again.
+You are correct! My name is (dragonname)!
+You are smart! Now take my Dragon Stone and leave my cave!
+Thank you, (dragonname)! I will not forget this!
+
+=== Receiving Dragon Stone ===
+You have received the Dragon Stone of the (dragonelement)!
+You now have (dragonstonecount) Dragon Stone(s)!
+Your Dragon Scales grow even stronger!
+Your weapon has been upgraded! It can now use the power of the (dragonelement).
+You will now be teleported back to (village).
+
+=== Welcome back to Gonad ===
+Welcome back, (name)!
+You have successfully retrieved the Dragon Stone of the (dragonelement)!
+You can now choose your next destination.
+
+=== Player collected all Dragon Stones ===
+You have retrieved all the Dragon Stones! 
+You should now go to (evil)'s Chamber and defeat him!
+Now step on this magic portal and you will be teleported to (evil)'s Chamber.
+Good luck, (name)! Until we meet again!
+
+=== Master Bates Destination ===
+So you have finally come, (name)! I see you have retrieved all the Dragon Stones!
+But you are too late! I have already absorbed the power of your Dragonborn siblings!
+Now I will defeat you and absorb your power and the power of the Dragon Stones, too!
+I will not let you do that, (evil)! I will defeat you and free my siblings!
+You are a fool, (name)! You will never defeat me!
+Dragon Stones, lend me your power!
+The Dragon Stones glow and the power of the (dragonelement), (dragonelement), (dragonelement) and (dragonelement) is absorbed into your weapon!
+Eat this, (evil)! This is for my siblings!
+You attack (evil) with the power of the Dragon Stones (evil) is defeated!
+Noooooo! How can this be?! I came so far!
+(npcvillage)?! You are (evil)?! You are the one who kidnapped my siblings?!
+Please, (name), don't kill me! We can reign this world together!
+
+=== Master Bates Request ===
+You have to pay for what you have done!
+1. Kill
+The world is a better place without you!
+You are using (weapon) to kill (evil)!
+You have saved the world from (evil)!
+2. Spare
+You will die soon anyways! I wont dirty my hands with your blood!
+You have let (evil) survive... Your (weapon) is glowing!
+Your siblings have been freed!
+3. Absorb
+I will absorb your power and thus the power of my siblings!
+You are using (weapon) to absorb (evil)!
+You have been corrupted by the power of (evil)!
+You have become the new (evil)!
+
+=== End Screen ===
+Thank you (name) for playing my very first text adventure game!
+I hope you enjoyed it!

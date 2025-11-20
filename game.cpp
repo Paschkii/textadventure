@@ -13,9 +13,26 @@ constexpr unsigned int fpsLimit = 60;
 Game::Game()
 : window(sf::VideoMode({windowWidth, windowHeight}), "Glandular", sf::Style::Titlebar | sf::Style::Close)
 , font("assets/fonts/test.ttf")
-, buffer("assets/audio/enterkey.wav")
-, sound(buffer)
+, enterBuffer("assets/audio/enterkey.wav")
+, enterSound(enterBuffer)
+, textBlipBuffer("assets/audio/textblip.mp3")
+, textBlipSound(textBlipBuffer)
 {
+    if (!enterBuffer.loadFromFile("assets/audio/enterkey.wav")) {
+        std::cerr << "Failed to load enter sound." << std::endl;
+    }
+    else {
+        enterSound.setBuffer(enterBuffer);
+    }
+
+    if (!textBlipBuffer.loadFromFile("assets/audio/textblip.mp3")) {
+        std::cerr << "Failed to load text blip sound." << std::endl;
+    }
+    else {
+        textBlipSound.setBuffer(textBlipBuffer);
+        textBlipSound.setLooping(true);
+    }
+    
     // === Framerate limitieren ===
     window.setFramerateLimit(fpsLimit);
     // === NameBox Style setzen ===
@@ -80,8 +97,8 @@ void Game::run() {
             if (auto key = event->getIf<sf::Event::KeyReleased>()) {
                 if (key->scancode == sf::Keyboard::Scan::Enter) {
 
-                    sound.stop();
-                    sound.play();
+                    enterSound.stop();
+                    enterSound.play();
 
                     waitForEnter(*this, (*currentDialogue)[dialogueIndex]);
                 }
@@ -96,5 +113,19 @@ void Game::run() {
         window.clear();
         renderDialogue(*this);
         window.display();
+    }
+}
+
+void Game::startTypingSound() {
+    if (textBlipSound.getStatus() != sf::Sound::Status::Playing) {
+        std::cout << "start on " << this << " / sound " << &textBlipSound << "\n";
+        textBlipSound.play();
+    }
+}
+
+void Game::stopTypingSound() {
+    if (textBlipSound.getStatus() == sf::Sound::Status::Playing) {
+        std::cout << "end on " << this << " / sound " << &textBlipSound << "\n";
+        textBlipSound.stop();
     }
 }

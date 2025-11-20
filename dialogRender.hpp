@@ -184,12 +184,18 @@ inline void renderDialogue(Game& game) {
     std::string fullText = injectSpeakerNames(line.text, game);
 
     float delay = 0.02f;
-    if (!game.askingName && game.charIndex < fullText.size()) {
+    bool isTyping = !game.askingName && game.charIndex < fullText.size();
+
+    if (isTyping) {
+        game.startTypingSound();
         if (game.typewriterClock.getElapsedTime().asSeconds() >= delay) {
             game.visibleText += fullText[game.charIndex];
             game.charIndex++;
             game.typewriterClock.restart();
         }
+    }
+    else {
+        game.stopTypingSound();
     }
 
     auto info = getSpeakerInfo(line.speaker);
