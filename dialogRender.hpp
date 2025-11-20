@@ -193,12 +193,53 @@ inline sf::Vector2f drawColoredSegments(
                         target.draw(drawable);
                         cursor.x += tokenWidth;
                     } else {
-                        std::string currentChunk;
+                        auto drawSplitToken = [&](const std::string& word) {
+                            std::string currentChunk;
 
-                        for (char c : token) {
-                            std::string nextChunk = currentChunk + c;
-                            drawable.setString(nextChunk);
-                            float chunkWidth = drawable.getLocalBounds().size.x;
+                            for (char c : word) {
+                                std::string nextChunk = currentChunk + c;
+                                drawable.setString(nextChunk);
+                                float chunkWidth = drawable.getLocalBounds().size.x;
+
+                                float availableWidth = wrapLimit - cursor.x;
+                                if (availableWidth <= 0.f) {
+                                    cursor.x = baseLineStartX;
+                                    cursor.y += lineAdvance;
+                                    availableWidth = wrapLimit - cursor.x;
+                                }
+
+                                if (chunkWidth > availableWidth && !currentChunk.empty()) {
+                                    drawable.setString(currentChunk);
+                                    drawable.setPosition(cursor);
+                                    target.draw(drawable);
+                                    cursor.x += drawable.getLocalBounds().size.x;
+                                    cursor.x = baseLineStartX;
+                                    cursor.y += lineAdvance;
+                                    currentChunk.clear();
+                                    drawable.setString(nextChunk = std::string(1, c));
+                                    chunkWidth = drawable.getLocalBounds().size.x;
+                                }
+
+                                if (cursor.x + chunkWidth > wrapLimit && currentChunk.empty()) {
+                                    drawable.setPosition(cursor);
+                                    target.draw(drawable);
+                                    cursor.x += chunkWidth;
+                                    continue;
+                                }
+
+                                currentChunk = nextChunk;
+                            }
+
+                            if (!currentChunk.empty()) {
+                                drawable.setString(currentChunk);
+                                drawable.setPosition(cursor);
+                                target.draw(drawable);
+                                cursor.x += drawable.getLocalBounds().size.x;
+                            }
+                        };
+
+                            drawable.setString(token);
+                            float tokenWidth = drawable.getLocalBounds().size.x;
 
                             float availableWidth = wrapLimit - cursor.x;
                             if (availableWidth <= 0.f) {
@@ -207,33 +248,18 @@ inline sf::Vector2f drawColoredSegments(
                                 availableWidth = wrapLimit - cursor.x;
                             }
 
-                            if (chunkWidth > availableWidth && !currentChunk.empty()) {
-                                drawable.setString(currentChunk);
-                                drawable.setPosition(cursor);
-                                target.draw(drawable);
-                                cursor.x += drawable.getLocalBounds().size.x;
-                                cursor.x = baseLineStartX;
-                                cursor.y += lineAdvance;
-                                currentChunk.clear();
-                                drawable.setString(nextChunk = std::string(1, c));
-                                chunkWidth = drawable.getLocalBounds().size.x;
-                            }
-
-                            if (cursor.x + chunkWidth > wrapLimit && currentChunk.empty()) {
-                                drawable.setPosition(cursor);
-                                target.draw(drawable);
-                                cursor.x += chunkWidth;
-                                continue;
-                            }
-
-                            currentChunk = nextChunk;
-                        }
-
-                        if (!currentChunk.empty()) {
-                            drawable.setString(currentChunk);
+                        if (tokenWidth <= availableWidth) {
                             drawable.setPosition(cursor);
                             target.draw(drawable);
-                            cursor.x += drawable.getLocalBounds().size.x;
+                            cursor.x += tokenWidth;
+                        } else if (tokenWidth <= maxWidth) {
+                            cursor.x = baseLineStartX;
+                            cursor.y += lineAdvance;
+                            drawable.setPosition(cursor);
+                            target.draw(drawable);
+                            cursor.x += tokenWidth;
+                        } else {
+                            drawSplitToken(token);
                         }
                     }
                 }
