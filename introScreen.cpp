@@ -1,6 +1,8 @@
 #include "introScreen.hpp"
 #include "game.hpp"
 #include <algorithm>
+#include <sstream>
+#include <vector>
 
 void renderIntroScreen(Game& game) {
     const std::string titleText = "IMPORTANT! PLEASE READ!";
@@ -29,19 +31,34 @@ void renderIntroScreen(Game& game) {
     float fadeProgress = std::min(1.f, game.introClock.getElapsedTime().asSeconds() / game.introFadeDuration);
     std::uint8_t alpha = static_cast<std::uint8_t>(255.f * fadeProgress);
 
-    sf::Text title{ game.font, titleText, 56 };
+    sf::Text title{ game.font, titleText, 36 };
     sf::Color titleColor = sf::Color::Red;
     titleColor.a = alpha;
     title.setFillColor(titleColor);
     centerText(title, windowWidth / 2.f, windowHeight * 0.18f);
     game.window.draw(title);
 
+    std::stringstream bodyStream(bodyText);
+    std::string bodyLineText;
+    std::vector<std::string> bodyLines;
+    while (std::getline(bodyStream, bodyLineText)) {
+        bodyLines.push_back(bodyLineText);
+    }
+
     sf::Text body{ game.font, bodyText, 28 };
     sf::Color bodyColor = sf::Color::White;
     bodyColor.a = alpha;
     body.setFillColor(bodyColor);
-    centerText(body, windowWidth / 2.f, windowHeight * 0.48f);
-    game.window.draw(body);
+    const float lineSpacing = static_cast<float>(body.getCharacterSize()) * 1.4f;
+    const float bodyCenterY = windowHeight * 0.48f;
+    const float totalHeight = lineSpacing * static_cast<float>(bodyLines.size() > 0 ? bodyLines.size() - 1 : 0);
+    const float startY = bodyCenterY - totalHeight / 2.f;
+
+    for (std::size_t i = 0; i < bodyLines.size(); i++) {
+        body.setString(bodyLines[i]);
+        centerText(body, windowWidth / 2.f, startY + lineSpacing * static_cast<float>(i));
+        game.window.draw(body);
+    }
 
     sf::Text prompt{ game.font, promptText, 28 };
     sf::Color promptColor = sf::Color(200, 200, 200);

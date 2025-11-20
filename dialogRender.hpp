@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 #include "game.hpp"
-#include "introScreen.cpp"
+#include "introScreen.hpp"
 #include "speaker.hpp"
 #include "storyIntro.hpp"
 
