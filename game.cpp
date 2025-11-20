@@ -100,7 +100,15 @@ void Game::run() {
                     enterSound.stop();
                     enterSound.play();
 
-                    waitForEnter(*this, (*currentDialogue)[dialogueIndex]);
+                    if (showingIntroScreen) {
+                        showingIntroScreen = false;
+                        visibleText.clear();
+                        charIndex = 0;
+                        typewriterClock.restart();
+                    }
+                    else {
+                        waitForEnter(*this, (*currentDialogue)[dialogueIndex]);
+                    }
                 }
             }
 

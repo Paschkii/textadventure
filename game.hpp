@@ -17,6 +17,7 @@ class Game {
         friend void waitForEnter(Game& game, const DialogueLine& line);
         friend void renderDialogue(Game& game);
         friend std::string injectSpeakerNames(const std::string& text, const Game& game);
+        friend void renderIntroScreen(Game& game);
 
         void changeState(std::unique_ptr<State> newState);
         // === Dialogues ===
@@ -48,9 +49,14 @@ class Game {
         std::string nameInput;
         bool askingName = false;
 
+        bool showingIntroScreen = true;
+
         sf::Clock cursorBlinkClock;
         bool cursorVisible = true;
         float cursorBlinkInterval = 0.5f;
 
         std::string currentProcessedLine;
+
+        sf::Clock introClock;
+        float introFadeDuration = 1.0f;
 };

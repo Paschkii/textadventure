@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 #include "game.hpp"
+#include "introScreen.cpp"
 #include "speaker.hpp"
 #include "storyIntro.hpp"
 
@@ -173,6 +174,11 @@ inline sf::Vector2f drawColoredSegments(
 }
 
 inline void renderDialogue(Game& game) {
+    if (game.showingIntroScreen) {
+        renderIntroScreen(game);
+        return;
+    }
+    
     game.window.draw(game.nameBox);
     game.window.draw(game.textBox);
 

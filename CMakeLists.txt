@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(textadventure
     main.cpp
     game.cpp
+    introScreen.cpp
     # ui.cpp
     # audiomanager.cpp
 )
