@@ -29,6 +29,19 @@ void renderIntroScreen(Game& game) {
     };
 
     float fadeProgress = std::min(1.f, game.introClock.getElapsedTime().asSeconds() / game.introFadeDuration);
+    if (game.introFadeOutActive) {
+        float fadeOutProgress = std::min(1.f, game.introClock.getElapsedTime().asSeconds() / game.introFadeOutDuration);
+        fadeProgress = 1.f - fadeOutProgress;
+
+        if (fadeOutProgress >= 1.f) {
+            game.showingIntroScreen = false;
+            game.introFadeOutActive = false;
+            game.visibleText.clear();
+            game.charIndex = 0;
+            game.typewriterClock.restart();
+            return;
+        }
+    }
     std::uint8_t alpha = static_cast<std::uint8_t>(255.f * fadeProgress);
 
     sf::Text title{ game.font, titleText, 36 };

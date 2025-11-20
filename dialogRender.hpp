@@ -130,16 +130,19 @@ inline sf::Vector2f drawColoredSegments(
     const sf::Font& font,
     const std::vector<ColoredTextSegment>& segments,
     sf::Vector2f startPos,
-    unsigned int characterSize
+    unsigned int characterSize,
+    float maxWidth
 ) {
     if (segments.empty())
         return startPos;
 
     const float baseLineStartX = startPos.x;
+    const float wrapLimit = baseLineStartX + std::max(0.f, maxWidth);
     sf::Vector2f cursor = startPos;
     sf::Text metrics(font, sf::String(), characterSize);
     metrics.setString("Hg");
     float lineSpacing = metrics.getLineSpacing();
+    const float lineAdvance = lineSpacing * 40.f;
 
     for (const auto& segment : segments) {
         if (segment.text.empty())
@@ -155,10 +158,85 @@ inline sf::Vector2f drawColoredSegments(
             if (!part.empty()) {
                 sf::Text drawable(font, sf::String(), characterSize);
                 drawable.setFillColor(segment.color);
-                drawable.setString(part);
-                drawable.setPosition(cursor);
-                target.draw(drawable);
-                cursor.x += drawable.getLocalBounds().size.x;
+                
+                std::size_t partIndex = 0;
+                while (partIndex < part.size()) {
+                    bool isSpace = std::isspace(static_cast<unsigned char>(part[partIndex]));
+                    std::string token;
+
+                    while (partIndex < part.size()) {
+                        char c = part[partIndex];
+                        bool currentIsSpace = std::isspace(static_cast<unsigned char>(c));
+                        if (currentIsSpace != isSpace)
+                            break;
+                        token.push_back(c);
+                        ++partIndex;
+                    }
+
+                    if (token.empty())
+                        continue;
+
+                    if (isSpace) {
+                        drawable.setString(token);
+                        float tokenWidth = drawable.getLocalBounds().size.x;
+
+                        if (cursor.x == baseLineStartX)
+                            continue;
+
+                        if (cursor.x + tokenWidth > wrapLimit) {
+                            cursor.x = baseLineStartX;
+                            cursor.y += lineAdvance;
+                            continue;
+                        }
+
+                        drawable.setPosition(cursor);
+                        target.draw(drawable);
+                        cursor.x += tokenWidth;
+                    } else {
+                        std::string currentChunk;
+
+                        for (char c : token) {
+                            std::string nextChunk = currentChunk + c;
+                            drawable.setString(nextChunk);
+                            float chunkWidth = drawable.getLocalBounds().size.x;
+
+                            float availableWidth = wrapLimit - cursor.x;
+                            if (availableWidth <= 0.f) {
+                                cursor.x = baseLineStartX;
+                                cursor.y += lineAdvance;
+                                availableWidth = wrapLimit - cursor.x;
+                            }
+
+                            if (chunkWidth > availableWidth && !currentChunk.empty()) {
+                                drawable.setString(currentChunk);
+                                drawable.setPosition(cursor);
+                                target.draw(drawable);
+                                cursor.x += drawable.getLocalBounds().size.x;
+                                cursor.x = baseLineStartX;
+                                cursor.y += lineAdvance;
+                                currentChunk.clear();
+                                drawable.setString(nextChunk = std::string(1, c));
+                                chunkWidth = drawable.getLocalBounds().size.x;
+                            }
+
+                            if (cursor.x + chunkWidth > wrapLimit && currentChunk.empty()) {
+                                drawable.setPosition(cursor);
+                                target.draw(drawable);
+                                cursor.x += chunkWidth;
+                                continue;
+                            }
+
+                            currentChunk = nextChunk;
+                        }
+
+                        if (!currentChunk.empty()) {
+                            drawable.setString(currentChunk);
+                            drawable.setPosition(cursor);
+                            target.draw(drawable);
+                            cursor.x += drawable.getLocalBounds().size.x;
+                        }
+                    }
+                }
             }
 
             if (newlinePos == std::string::npos)
@@ -166,7 +244,7 @@ inline sf::Vector2f drawColoredSegments(
 
             offset = newlinePos + 1;
             cursor.x = baseLineStartX;
-            cursor.y += lineSpacing;
+            cursor.y += lineAdvance;
         }
     }
 
@@ -228,7 +306,8 @@ inline void renderDialogue(Game& game) {
     }
 
     auto segments = buildColoredSegments(textToDraw);
-    auto cursorPos = drawColoredSegments(game.window, game.font, segments, basePos, 28);
+    float maxWidth = game.textBox.getSize().x - 40.f;
+    auto cursorPos = drawColoredSegments(game.window, game.font, segments, basePos, 28, maxWidth);
 
     bool canPressEnter = false;
     if (game.askingName) {

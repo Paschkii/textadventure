@@ -101,10 +101,10 @@ void Game::run() {
                     enterSound.play();
 
                     if (showingIntroScreen) {
-                        showingIntroScreen = false;
-                        visibleText.clear();
-                        charIndex = 0;
-                        typewriterClock.restart();
+                        if (!introFadeOutActive) {
+                            introFadeOutActive = true;
+                            introClock.restart();
+                        }
                     }
                     else {
                         waitForEnter(*this, (*currentDialogue)[dialogueIndex]);

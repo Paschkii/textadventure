@@ -59,4 +59,6 @@ class Game {
 
         sf::Clock introClock;
         float introFadeDuration = 1.0f;
+        bool introFadeOutActive = false;
+        float introFadeOutDuration = 3.0f;
 };
