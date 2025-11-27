@@ -374,12 +374,21 @@ inline void renderDialogue(Game& game) {
         }
     }
 
-    if (canPressEnter) {
-        sf::Text indicator{game.font, "↵", 28};
-        indicator.setFillColor(sf::Color(160, 160, 160));
-        sf::Vector2f indicatorPos = cursorPos;
-        indicatorPos.x += 8.f;
-        indicator.setPosition(indicatorPos);
-        game.window.draw(indicator);
+    if (!isTyping) {
+        float returnPosWidth = game.textBox.getSize().x + 300.f;
+        float returnPosHeight = game.textBox.getSize().y + 450.f;
+        game.returnSprite.setPosition({returnPosWidth, returnPosHeight});
+        if (game.returnBlinkClock.getElapsedTime().asSeconds() >= game.returnBlinkInterval) {
+            game.returnVisible = !game.returnVisible;
+            game.returnBlinkClock.restart();
+        }
+        if (game.returnVisible) {
+            sf::Color c = game.returnSprite.getColor();
+            c.a = 0;
+            game.returnSprite.setColor(c);
+            c.a = 255;
+            game.returnSprite.setColor(c);
+            game.window.draw(game.returnSprite);
+        }
     }
 }

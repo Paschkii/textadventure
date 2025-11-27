@@ -12,11 +12,15 @@ constexpr unsigned int fpsLimit = 60;
 
 Game::Game()
 : window(sf::VideoMode({windowWidth, windowHeight}), "Glandular", sf::Style::Titlebar | sf::Style::Close)
-, font("assets/fonts/test.ttf")
+, font("assets/fonts/712_serif.ttf")
+, fontSymbol("assets/fonts/Helvetica.ttc")
+, introFont("assets/fonts/intro.ttf")
 , enterBuffer("assets/audio/enterkey.wav")
 , enterSound(enterBuffer)
 , textBlipBuffer("assets/audio/textblip.mp3")
 , textBlipSound(textBlipBuffer)
+, returnSymbol("assets/textures/returnSymbol.png")
+, returnSprite(returnSymbol)
 {
     if (!enterBuffer.loadFromFile("assets/audio/enterkey.wav")) {
         std::cerr << "Failed to load enter sound." << std::endl;
@@ -33,6 +37,7 @@ Game::Game()
         textBlipSound.setLooping(true);
     }
     
+    returnSprite.setColor(sf::Color(160, 160, 160));
     // === Framerate limitieren ===
     window.setFramerateLimit(fpsLimit);
     // === NameBox Style setzen ===
@@ -115,6 +120,8 @@ void Game::run() {
             if (event->is<sf::Event::Closed>())
                 window.close();
         }
+
+        // sf::Sprite returnSprite(returnSymbol);
 
         updateLayout();
 

@@ -31,12 +31,17 @@ class Game {
         sf::RenderWindow window;
 
         sf::Font font;
+        sf::Font fontSymbol;
+        sf::Font introFont;
 
         sf::SoundBuffer enterBuffer;
         sf::Sound enterSound;
 
         sf::SoundBuffer textBlipBuffer;
         sf::Sound textBlipSound;
+
+        sf::Texture returnSymbol;
+        sf::Sprite returnSprite;
 
         sf::RectangleShape nameBox;
         sf::RectangleShape textBox;
@@ -54,6 +59,10 @@ class Game {
         sf::Clock cursorBlinkClock;
         bool cursorVisible = true;
         float cursorBlinkInterval = 0.5f;
+
+        sf::Clock returnBlinkClock;
+        bool returnVisible = true;
+        float returnBlinkInterval = 0.4f;
 
         std::string currentProcessedLine;
 
