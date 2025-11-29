@@ -283,8 +283,14 @@ inline void renderDialogue(Game& game) {
         return;
     }
     
-    game.window.draw(game.nameBox);
-    game.window.draw(game.textBox);
+    sf::Color glow = ColorHelper::alpha(ColorHelper::UI::PanelBlueLight, 120);
+
+    game.uiFrame.drawScaled(game.window, game.textBox.getPosition(), game.textBox.getSize(),
+                        ColorHelper::alpha(ColorHelper::UI::White80, 90),4.f);
+    game.uiFrame.drawScaled(game.window, game.nameBox.getPosition(), game.nameBox.getSize(),
+                        ColorHelper::alpha(ColorHelper::UI::White80, 90), 4.f);
+    game.uiFrame.draw(game.window, game.nameBox);
+    game.uiFrame.draw(game.window, game.textBox);
 
     if (!game.currentDialogue || game.dialogueIndex >= game.currentDialogue->size())
         return;

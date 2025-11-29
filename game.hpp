@@ -5,6 +5,7 @@
 #include <SFML/Window.hpp>
 #include <memory>
 #include "storyIntro.hpp"
+#include "nineSliceBox.hpp"
 
 class State;
 
@@ -45,6 +46,7 @@ class Game {
 
         sf::RectangleShape nameBox;
         sf::RectangleShape textBox;
+        NineSliceBox uiFrame{12};
 
         std::string visibleText;
         std::size_t charIndex = 0;

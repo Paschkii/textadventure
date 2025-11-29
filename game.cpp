@@ -77,6 +77,9 @@ void Game::updateLayout() {
         marginX + nameBox.getSize().x + (marginX / 2),
         h - boxHeight - marginY
     });
+
+    // === 9-Slice-Textur laden ===
+    uiFrame.load("assets/textures/boxborder.png");
 }
 
 
