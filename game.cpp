@@ -136,14 +136,14 @@ void Game::run() {
 
 void Game::startTypingSound() {
     if (textBlipSound.getStatus() != sf::Sound::Status::Playing) {
-        std::cout << "start on " << this << " / sound " << &textBlipSound << "\n";
+        // std::cout << "start on " << this << " / sound " << &textBlipSound << "\n";
         textBlipSound.play();
     }
 }
 
 void Game::stopTypingSound() {
     if (textBlipSound.getStatus() == sf::Sound::Status::Playing) {
-        std::cout << "end on " << this << " / sound " << &textBlipSound << "\n";
+        // std::cout << "end on " << this << " / sound " << &textBlipSound << "\n";
         textBlipSound.stop();
     }
 }

@@ -2,8 +2,10 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>
+#include <SFML/System/Clock.hpp>
 #include <SFML/Window.hpp>
 #include <memory>
+#include <cmath>
 #include "storyIntro.hpp"
 #include "nineSliceBox.hpp"
 
@@ -51,6 +53,7 @@ class Game {
         std::string visibleText;
         std::size_t charIndex = 0;
         sf::Clock typewriterClock;
+        sf::Clock uiGlowClock;
 
         std::string playerName;
         std::string nameInput;

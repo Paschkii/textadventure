@@ -17,15 +17,15 @@ class NineSliceBox {
 
     void draw(  sf::RenderTarget& target
         , const sf::RectangleShape& box
-        , sf::Color color = sf::Color::White) const {
-        draw(target, box.getPosition(), box.getSize());
+        , sf::Color color = ColorHelper::UI::PanelBlueDark) const {
+        draw(target, box.getPosition(), box.getSize(), color);
     }
     // pos = Top Left Corner
     // size = Targeted size of the box inside the winwow
     void draw(sf::RenderTarget& target
             , sf::Vector2f pos
             , sf::Vector2f size
-            , sf::Color color = sf::Color::White) const {
+            , sf::Color color = ColorHelper::UI::PanelBlueDark) const {
         if (texSize.x == 0 || texSize.y == 0) return;
 
         const float x = pos.x;
@@ -46,32 +46,27 @@ class NineSliceBox {
         sprite.setScale({1.f, 1.f});
         sprite.setTextureRect(sf::IntRect({0, 0}, {border, border}));
         sprite.setPosition({x, y});
-        sprite.setColor(ColorHelper::UI::PanelBlue);
         target.draw(sprite);
 
         // Top Right
         sprite.setTextureRect(sf::IntRect({texW - border, 0}, {border, border}));
         sprite.setPosition({x + w - border, y});
-        sprite.setColor(ColorHelper::UI::PanelBlue);
         target.draw(sprite);
 
         // Bottom Left
         sprite.setTextureRect(sf::IntRect({0, texH - border}, {border, border}));
         sprite.setPosition({x, y + h - border});
-        sprite.setColor(ColorHelper::UI::PanelBlue);
         target.draw(sprite);
 
         // Bottom Right
         sprite.setTextureRect(sf::IntRect({texW - border, texH - border}, {border, border}));
         sprite.setPosition({x + w - border, y + h - border});
-        sprite.setColor(ColorHelper::UI::PanelBlue);
         target.draw(sprite);
 
         // === Edges ===
         // Top
         sprite.setTextureRect(sf::IntRect({border, 0}, {innerW, border}));
         sprite.setPosition({x + border, y});
-        sprite.setColor(ColorHelper::UI::PanelBlue);
         {
             float scaleX = (w - 2.f * border) / static_cast<float>(innerW);
             sprite.setScale({scaleX, 1.f});
@@ -81,7 +76,6 @@ class NineSliceBox {
         // Bottom
         sprite.setTextureRect(sf::IntRect({border, texH - border}, {innerW, border}));
         sprite.setPosition({x + border, y + h - border});
-        sprite.setColor(ColorHelper::UI::PanelBlue);
         {
             float scaleX = (w - 2.f * border) / static_cast<float>(innerW);
             sprite.setScale({scaleX, 1.f});
@@ -91,7 +85,6 @@ class NineSliceBox {
         // Left
         sprite.setTextureRect(sf::IntRect({0, border}, {border, innerH}));
         sprite.setPosition({x, y + border});
-        sprite.setColor(ColorHelper::UI::PanelBlue);
         {
             float scaleY = (h - 2.f * border) / static_cast<float>(innerH);
             sprite.setScale({1.f, scaleY});
@@ -101,7 +94,6 @@ class NineSliceBox {
         // Right
         sprite.setTextureRect(sf::IntRect({texW - border, border}, {border, innerH}));
         sprite.setPosition({x + w - border, y + border});
-        sprite.setColor(ColorHelper::UI::PanelBlue);
         {
             float scaleY = (h - 2.f * border) / static_cast<float>(innerH);
             sprite.setScale({1.f, scaleY});

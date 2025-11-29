@@ -282,13 +282,46 @@ inline void renderDialogue(Game& game) {
         renderIntroScreen(game);
         return;
     }
-    
-    sf::Color glow = ColorHelper::alpha(ColorHelper::UI::PanelBlueLight, 120);
 
-    game.uiFrame.drawScaled(game.window, game.textBox.getPosition(), game.textBox.getSize(),
-                        ColorHelper::alpha(ColorHelper::UI::White80, 90),4.f);
-    game.uiFrame.drawScaled(game.window, game.nameBox.getPosition(), game.nameBox.getSize(),
-                        ColorHelper::alpha(ColorHelper::UI::White80, 90), 4.f);
+    float t = game.uiGlowClock.getElapsedTime().asSeconds();
+    // float pulse = (std::sin(t * 3.f) + 1.f) * 0.5f; // 0..1
+    float flicker = (std::sin(t * 25.f) + std::sin(t * 41.f)) * 0.25f; 
+
+    float alpha = 140.f + flicker * 30.f;   // 140 ± 15 → 125..155
+
+    sf::Color glowColor = ColorHelper::UI::PanelBlueLight;
+    glowColor.a = static_cast<std::uint8_t>(std::clamp(alpha, 0.f, 255.f));
+
+    sf::Vector2f pos  = game.textBox.getPosition();
+    sf::Vector2f size = game.textBox.getSize();
+
+    // float baseMargin = 6.f;
+    // float sizePulse = pulse * 2.f;
+
+    // sf::RectangleShape glow;
+    // glow.setPosition(pos - sf::Vector2f(baseMargin + sizePulse, baseMargin + sizePulse));
+    // glow.setSize(size + sf::Vector2f((baseMargin + sizePulse) * 2.f, (baseMargin + sizePulse) * 2.f));
+    // glow.setFillColor(glowColor);
+
+    // 1. Glow
+    // float glowOffset = 2.f + pulse * 1.5f; // zwischen 2px und 3.5px
+
+    game.uiFrame.drawScaled(
+        game.window,
+        game.textBox.getPosition(),
+        game.textBox.getSize(),
+        glowColor,
+        2.f
+    );
+
+    game.uiFrame.drawScaled(
+        game.window,
+        game.nameBox.getPosition(),
+        game.nameBox.getSize(),
+        glowColor,
+        2.f
+    );
+
     game.uiFrame.draw(game.window, game.nameBox);
     game.uiFrame.draw(game.window, game.textBox);
 
