@@ -6,7 +6,7 @@
 inline std::string playerDisplayName;
 
 // Speaker Class
-enum class Speaker { Narrator, StoryTeller, NoNameNPC, Player, FireDragon, WaterDragon, AirDragon, EarthDragon };
+enum class Speaker { VillageNPC, StoryTeller, NoNameNPC, Player, FireDragon, WaterDragon, AirDragon, EarthDragon };
 
 // Farben, die nicht per Standard in sf::Color:: vorhanden sind
 inline const sf::Color purpleblue{ 180, 180, 255 };
@@ -35,7 +35,7 @@ inline std::string speakerToName(Speaker s) {
         case Speaker::FireDragon:   return "Rowsted Sheacane";
         case Speaker::WaterDragon:  return "Flawtin Seamen";
         case Speaker::Player:       return playerDisplayName;
-        case Speaker::Narrator:     return "";
+        case Speaker::VillageNPC:   return "Noah Lott";
         default:                    return "";
     }
 }
@@ -50,6 +50,7 @@ inline sf::Color colorForSpeaker(Speaker s) {
         case Speaker::WaterDragon:  return sf::Color::Blue;
         case Speaker::AirDragon:    return sf::Color::Green;
         case Speaker::EarthDragon:  return brown;
+        case Speaker::VillageNPC:   return purpleblue;
         default:                    return sf::Color::White;
     }
 }

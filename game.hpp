@@ -36,6 +36,8 @@ class Game {
         sf::Font font;
         sf::Font fontSymbol;
         sf::Font introFont;
+        sf::Font titleFont;
+        sf::Font titleFontExtrude;
 
         sf::SoundBuffer enterBuffer;
         sf::Sound enterSound;
@@ -45,6 +47,9 @@ class Game {
 
         sf::Texture returnSymbol;
         sf::Sprite returnSprite;
+
+        sf::Texture storyBackground;
+        sf::Sprite background;
 
         sf::RectangleShape nameBox;
         sf::RectangleShape textBox;

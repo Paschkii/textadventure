@@ -15,12 +15,16 @@ Game::Game()
 , font("assets/fonts/712_serif.ttf")
 , fontSymbol("assets/fonts/Helvetica.ttc")
 , introFont("assets/fonts/intro.ttf")
+, titleFont("assets/fonts/Pixel Game.otf")
+, titleFontExtrude("assets/fonts/Pixel Game Extrude.otf")
 , enterBuffer("assets/audio/enterkey.wav")
 , enterSound(enterBuffer)
 , textBlipBuffer("assets/audio/textblip.mp3")
 , textBlipSound(textBlipBuffer)
 , returnSymbol("assets/textures/returnSymbol.png")
 , returnSprite(returnSymbol)
+, storyBackground("assets/textures/storyBegin.png")
+, background(storyBackground)
 {
     if (!enterBuffer.loadFromFile("assets/audio/enterkey.wav")) {
         std::cerr << "Failed to load enter sound." << std::endl;

@@ -103,6 +103,70 @@ You are correct! My name is (dragonname)!
 You are smart! Now take my Dragon Stone and leave my cave!
 Thank you, (dragonname)! I will not forget this!
 
+
+=== Destination - Fire Dragon ===
+Who dares to step into my cayyve vithout perMEEESHON?!
+
+I know vho you ahre. I vas just yoking! You ahre probably looking for my DRRAGON STONE.
+I can give you my DRRAGON STONE, but you must prooof your VORTH first.
+You must defeat me in glorious duel!
+
+I vas just yoking again! Is so booooring in here. Heh heh heh!
+I vill give you my DRRAGON STONE if you can ansvehr my qvestion.
+Vhat is my name? (Type in your ansvehr)
+
+VRRONG! Try again.
+Da! You ahre korrect! My name is Rowsted Sheacane!
+You ahre smart! Now take my DRRAGON STONE and leave my cayyve!
+
+
+=== Destination - Water Dragon ===
+Hu dares to step into mein hole vizout permission?!
+
+I know vho you are. I vas only joking! You are probably looking for mein DRAGON STONE.
+I can give you mein DRAGON STONE, but first you must proove your VORTH.
+You must defeat me in a duel. Din-Norm regulated, ja!
+
+Sis was nur Fun, ja! It is sehr langweilig hier. Heh heh heh!
+I vill give you mein DRAGON STONE if you can answer mein QVESTION.
+Vhat is mein name? (Type in your answer)
+
+VRONG! Nochmal.
+Jawoll! You are correct! Mein name is Flawtin Seamen!
+You are very smart! Now take mein DRAGON STONE and leave mein hole!
+
+
+=== Destination - Earth Dragon ===
+Whooo the heck steps into MAH CAVE without even askin’?!
+
+Aw yeah, I know who ya are! I’m just messin’ with ya! Yer probably lookin’ for my DRAGON STONE.
+I can hand it over, sure — but ya gotta prooove yer WORTH first.
+Yer gonna hafta defeat me in a duel, partner.
+
+Ha! I’m just foolin’ with ya again! It gets real dang borin’ in here. Heh heh heh!
+I’ll give ya my DRAGON STONE if ya answer mah QUESTION right.
+What’s mah name? (Type yer answer)
+
+Nope! That’s wronger than a snake wearin’ socks! Try again!
+YEEHAW! That’s right! Mah name is Grounded Claymore!
+Yer a smart lil’ tumbleweed! Now grab the DRAGON STONE and git outta mah cave!
+
+
+=== Destination - Air Dragon ===
+Who-a dares to step into-a MY CAVE without-a PERMISSIONE?!
+
+Aaaah, I know-a who you are! I was-a just joking! You come for my DRAGON STONE, sì sì!
+I can-a give you my DRAGON STONE, but first you must-a prooove your Valore!
+You must defeat-a me in a duel — molto dramatico!
+
+I was-a only joking again! It is SO BORING in here! Heh heh heh-a!
+I will-a give you my DRAGON STONE if you can answer mio QUESTIONE!
+What-a is my name? (Type-a your answer)
+
+NOOO! Sbagliata! Try-a again!
+BRAVISSIMO! You are correct-a! My name is Gustavo Windimaess!
+You are molto smart-a! Now take-a my DRAGON STONE and leave-a my cave!
+
 === Receiving Dragon Stone ===
 You have received the Dragon Stone of the (dragonelement)!
 You now have (dragonstonecount) Dragon Stone(s)!
