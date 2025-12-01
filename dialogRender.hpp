@@ -131,7 +131,8 @@ inline sf::Vector2f drawColoredSegments(
     const std::vector<ColoredTextSegment>& segments,
     sf::Vector2f startPos,
     unsigned int characterSize,
-    float maxWidth
+    float maxWidth,
+    float alphaFactor = 1.f
 ) {
     if (segments.empty())
         return startPos;
@@ -157,7 +158,9 @@ inline sf::Vector2f drawColoredSegments(
 
             if (!part.empty()) {
                 sf::Text drawable(font, sf::String(), characterSize);
-                drawable.setFillColor(segment.color);
+                sf::Color drawableColor = segment.color;
+                drawableColor.a = static_cast<std::uint8_t>(static_cast<float>(drawableColor.a) * alphaFactor);
+                drawable.setFillColor(drawableColor);
                 
                 std::size_t partIndex = 0;
                 while (partIndex < part.size()) {
@@ -283,14 +286,70 @@ inline void renderDialogue(Game& game) {
         return;
     }
 
+   auto applyAlpha = [](sf::Color color, float factor) {
+        color.a = static_cast<std::uint8_t>(static_cast<float>(color.a) * factor);
+        return color;
+    };
+
+    float uiAlphaFactor = 1.f;
+    bool hideUI = false;
+
+    if (game.introDialogueFinished) {
+        if (game.uiFadeOutActive) {
+            float fadeProgress = std::min(1.f, game.uiFadeClock.getElapsedTime().asSeconds() / game.uiFadeOutDuration);
+            uiAlphaFactor = 1.f - fadeProgress;
+
+            if (fadeProgress >= 1.f) {
+                game.uiFadeOutActive = false;
+                hideUI = true;
+                if (!game.backgroundFadeInActive && !game.backgroundVisible) {
+                    game.backgroundFadeInActive = true;
+                    game.backgroundFadeClock.restart();
+                }
+            }
+        } else {
+            hideUI = true;
+        }
+    }
+
+    bool backgroundActive = game.backgroundFadeInActive || game.backgroundVisible;
+    if (backgroundActive) {
+        float fadeProgress = 1.f;
+        if (game.backgroundFadeInActive) {
+            fadeProgress = std::min(1.f, game.backgroundFadeClock.getElapsedTime().asSeconds() / game.introFadeDuration);
+            if (fadeProgress >= 1.f) {
+                game.backgroundFadeInActive = false;
+                game.backgroundVisible = true;
+            }
+        }
+
+        auto texSize = game.storyBackground.getSize();
+        if (texSize.x > 0 && texSize.y > 0) {
+            float scaleX = static_cast<float>(game.window.getSize().x) / static_cast<float>(texSize.x);
+            float scaleY = static_cast<float>(game.window.getSize().y) / static_cast<float>(texSize.y);
+            float scale = std::max(scaleX, scaleY);
+            game.background.setScale(sf::Vector2f{scale, scale});
+            game.background.setPosition({0.f, 0.f});
+        }
+
+        sf::Color bgColor = game.background.getColor();
+        bgColor.a = static_cast<std::uint8_t>(255.f * fadeProgress);
+        game.background.setColor(bgColor);
+        game.window.draw(game.background);
+    }
+
+    if (hideUI)
+        return;
+
     float t = game.uiGlowClock.getElapsedTime().asSeconds();
     // float pulse = (std::sin(t * 3.f) + 1.f) * 0.5f; // 0..1
-    float flicker = (std::sin(t * 25.f) + std::sin(t * 41.f)) * 0.25f; 
+    float flicker = (std::sin(t * 25.f) + std::sin(t * 41.f)) * 0.25f;
 
     float alpha = 140.f + flicker * 30.f;   // 140 ± 15 → 125..155
 
     sf::Color glowColor = ColorHelper::UI::PanelBlueLight;
     glowColor.a = static_cast<std::uint8_t>(std::clamp(alpha, 0.f, 255.f));
+    glowColor = applyAlpha(glowColor, uiAlphaFactor);
 
     sf::Vector2f pos  = game.textBox.getPosition();
     sf::Vector2f size = game.textBox.getSize();
@@ -322,8 +381,9 @@ inline void renderDialogue(Game& game) {
         2.f
     );
 
-    game.uiFrame.draw(game.window, game.nameBox);
-    game.uiFrame.draw(game.window, game.textBox);
+    sf::Color frameColor = applyAlpha(ColorHelper::UI::PanelBlueDark, uiAlphaFactor);
+    game.uiFrame.draw(game.window, game.nameBox, frameColor);
+    game.uiFrame.draw(game.window, game.textBox, frameColor);
 
     if (!game.currentDialogue || game.dialogueIndex >= game.currentDialogue->size())
         return;
@@ -352,7 +412,7 @@ inline void renderDialogue(Game& game) {
     sf::Text nameText{game.font, "", 28};
 
     if (!info.name.empty()) {
-        nameText.setFillColor(info.color);
+        nameText.setFillColor(applyAlpha(info.color, uiAlphaFactor));
         nameText.setString(info.name);
 
         auto namePos = game.nameBox.getPosition();
@@ -372,7 +432,7 @@ inline void renderDialogue(Game& game) {
 
     auto segments = buildColoredSegments(textToDraw);
     float maxWidth = game.textBox.getSize().x - 40.f;
-    auto cursorPos = drawColoredSegments(game.window, game.font, segments, basePos, 28, maxWidth);
+    auto cursorPos = drawColoredSegments(game.window, game.font, segments, basePos, 28, maxWidth, uiAlphaFactor);
 
     bool canPressEnter = false;
     if (game.askingName) {
@@ -394,7 +454,7 @@ inline void renderDialogue(Game& game) {
         sf::Vector2f inputPos{ textPos.x + 20.f, textPos.y + 60.f };
 
         sf::Text inputText{game.font, "", 28};
-        inputText.setFillColor(sf::Color::White);
+        inputText.setFillColor(applyAlpha(sf::Color::White, uiAlphaFactor));
         inputText.setString(game.nameInput);
 
         std::string nameWithCursor = game.nameInput;
@@ -406,7 +466,7 @@ inline void renderDialogue(Game& game) {
 
         if (game.cursorVisible) {
             sf::Text cursorText{game.font, "_", 28};
-            cursorText.setFillColor(sf::Color::White);
+            cursorText.setFillColor(applyAlpha(sf::Color::White, uiAlphaFactor));
             auto cursorPos = inputText.findCharacterPos(game.nameInput.size());
             cursorText.setPosition(cursorPos);
             game.window.draw(cursorText);
@@ -425,7 +485,7 @@ inline void renderDialogue(Game& game) {
             sf::Color c = game.returnSprite.getColor();
             c.a = 0;
             game.returnSprite.setColor(c);
-            c.a = 255;
+            c.a = static_cast<std::uint8_t>(255.f * uiAlphaFactor);
             game.returnSprite.setColor(c);
             game.window.draw(game.returnSprite);
         }

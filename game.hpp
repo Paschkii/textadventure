@@ -80,4 +80,13 @@ class Game {
         float introFadeDuration = 1.0f;
         bool introFadeOutActive = false;
         float introFadeOutDuration = 3.0f;
+
+        bool introDialogueFinished = false;
+        bool uiFadeOutActive = false;
+        float uiFadeOutDuration = 1.0f;
+        sf::Clock uiFadeClock;
+
+        bool backgroundFadeInActive = false;
+        bool backgroundVisible = false;
+        sf::Clock backgroundFadeClock;
 };

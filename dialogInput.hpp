@@ -39,6 +39,9 @@ inline EnterAction processEnter(
 }
 
 inline void waitForEnter(Game& game, const DialogueLine& line) {
+    if (game.introDialogueFinished)
+        return;
+
     auto* dialog = game.currentDialogue;
     std::size_t count = dialog ? dialog->size() : 0;
     std::string processed = injectSpeakerNames(line.text, game);
@@ -89,8 +92,14 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
 
     game.stopTypingSound();
     game.visibleText = "";
-    game.charIndex = 0;
+    game.charIndex = processed.size();
     game.currentProcessedLine = processed;
+
+    if (game.currentDialogue == &intro && !game.introDialogueFinished) {
+        game.introDialogueFinished = true;
+        game.uiFadeOutActive = true;
+        game.uiFadeClock.restart();
+    }
 }
 
 inline std::string injectSpeakerNames(const std::string& text, const Game& game) {
