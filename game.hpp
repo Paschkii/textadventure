@@ -22,6 +22,9 @@ class Game {
         friend void renderDialogue(Game& game);
         friend std::string injectSpeakerNames(const std::string& text, const Game& game);
         friend void renderIntroScreen(Game& game);
+        friend void drawIntroTitle(Game& game, sf::RenderTarget& target);
+        friend void drawDialogueUI(Game& game, sf::RenderTarget& target);
+        friend void drawLocationBox(Game& game, sf::RenderTarget& target);
 
         void changeState(std::unique_ptr<State> newState);
         // === Dialogues ===

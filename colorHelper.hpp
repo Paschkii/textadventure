@@ -80,59 +80,40 @@ namespace ColorHelper {
     //  VORDEFINIERTE PALETTEN
     // ----------------------------------------------------------
 
-    namespace Pastel {
+    namespace Palette {
         static const sf::Color Purple   = sf::Color(0xC1,0xA1,0xFF);
         static const sf::Color Blue     = sf::Color(0xA0,0xD7,0xFF);
         static const sf::Color Green    = sf::Color(0xA8,0xE6,0xCF);
         static const sf::Color Orange   = sf::Color(0xFF,0xC7,0x9F);
         static const sf::Color Pink     = sf::Color(0xFF,0xAD,0xC6);
-    }
-
-    namespace Stardew {
         static const sf::Color DarkBrown   = sf::Color(0x5A,0x3E,0x36);
         static const sf::Color LightBrown  = sf::Color(0x9C,0x6B,0x4E);
         static const sf::Color SoftYellow  = sf::Color(0xF2,0xD3,0x64);
         static const sf::Color Green       = sf::Color(0x80,0xB6,0x63);
         static const sf::Color SkyBlue     = sf::Color(0x7C,0xC6,0xF9);
-    }
-
-    namespace RPG {
         static const sf::Color FrameGoldLight = sf::Color(0xF7,0xE5,0x7A);
         static const sf::Color FrameGoldDark  = sf::Color(0xC6,0x9A,0x26);
         static const sf::Color BlueDark       = sf::Color(0x22,0x2C,0x4F);
         static const sf::Color Blue           = sf::Color(0x3A,0x4F,0x87);
         static const sf::Color BlueLight      = sf::Color(0x7E,0x9C,0xCE);
-    }
-
-    namespace UI {
         static const sf::Color White20          = sf::Color(255,255,255, 20);
         static const sf::Color White40          = sf::Color(255,255,255, 40);
         static const sf::Color White80          = sf::Color(255,255,255, 80);
         static const sf::Color Overlay          = sf::Color(0, 0, 0, 120);
-        static const sf::Color PanelBlue        = sf::Color(0x2F,0x3B,0x68); // Royal-Blue
+        static const sf::Color PanelBlue        = sf::Color(0x2F,0x3B,0x68);
         static const sf::Color PanelBlueDark    = sf::Color(0x1C,0x25,0x44);
         static const sf::Color PanelBlueLight   = sf::Color(0x7C,0x95,0xCC);
-    }
-
-    namespace Accent {
         static const sf::Color Mint     = sf::Color(0xA8,0xFF,0xE0);
         static const sf::Color Rose     = sf::Color(0xF9,0xA8,0xC5);
         static const sf::Color Amber    = sf::Color(0xFF,0xC4,0x63);
         static const sf::Color IceBlue  = sf::Color(0xB4,0xE1,0xFF);
-    }
-
-    namespace Text {
         static const sf::Color Normal      = sf::Color(0xFF,0xFF,0xFF);
         static const sf::Color Subtitle    = sf::Color(0xD0,0xD0,0xD0);
         static const sf::Color Dim         = sf::Color(0xAA,0xAA,0xAA);
-
         static const sf::Color NPC_Hero    = sf::Color(0x7C,0xCC,0xF9);
         static const sf::Color NPC_Villain = sf::Color(0xFF,0x66,0x66);
         static const sf::Color NPC_Mage    = sf::Color(0xB0,0x7C,0xFF);
         static const sf::Color NPC_Rogue   = sf::Color(0xB4,0xFF,0xA1);
-    }
-
-    namespace Layer {
         static const sf::Color Shadow40  = sf::Color(0,0,0,40);
         static const sf::Color Shadow80  = sf::Color(0,0,0,80);
         static const sf::Color Shadow120 = sf::Color(0,0,0,120);
