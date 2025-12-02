@@ -1,5 +1,5 @@
 #include "introScreen.hpp"
-#include "game.hpp"
+#include "core/game.hpp"
 #include <algorithm>
 #include <sstream>
 #include <vector>

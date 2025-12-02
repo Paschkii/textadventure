@@ -1,11 +1,11 @@
 #pragma once
-#include "dialogUI.hpp"
-#include "game.hpp"
-#include "introScreen.hpp"
-#include "introTitle.hpp"
-#include "mapSelectionUI.hpp"
-#include "quizUI.hpp"
-#include "weaponSelectionUI.hpp"
+#include "ui/dialogUI.hpp"
+#include "core/game.hpp"
+#include "ui/introScreen.hpp"
+#include "ui/introTitle.hpp"
+#include "ui/mapSelectionUI.hpp"
+#include "ui/quizUI.hpp"
+#include "ui/weaponSelectionUI.hpp"
 
 inline void renderGame(Game& game) {
     switch (game.state) {

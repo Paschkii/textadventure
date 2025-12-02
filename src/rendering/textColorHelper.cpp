@@ -3,7 +3,7 @@
 #include <array>
 #include <cctype>
 #include <utility>
-#include "textStyles.hpp"
+#include "story/textStyles.hpp"
 
 namespace {
 std::size_t longestPartialSpeakerPrefix(

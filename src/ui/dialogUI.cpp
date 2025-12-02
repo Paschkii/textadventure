@@ -1,10 +1,10 @@
 #include "dialogUI.hpp"
 #include <algorithm>
 #include <cmath>
-#include "game.hpp"
-#include "textColorHelper.hpp"
-#include "textLayout.hpp"
-#include "textStyles.hpp"
+#include "story/dialogInput.hpp"
+#include "rendering/textColorHelper.hpp"
+#include "rendering/textLayout.hpp"
+#include "story/textStyles.hpp"
 
 namespace {
     constexpr float kNameBoxTextOffset = 20.f;
@@ -159,18 +159,18 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target) {
     if (!isTyping) {
         float returnPosWidth = game.textBox.getSize().x + 300.f;
         float returnPosHeight = game.textBox.getSize().y + 450.f;
-        game.returnSprite.setPosition({ returnPosWidth, returnPosHeight });
+        game.returnSprite->setPosition({ returnPosWidth, returnPosHeight });
         if (game.returnBlinkClock.getElapsedTime().asSeconds() >= game.returnBlinkInterval) {
             game.returnVisible = !game.returnVisible;
             game.returnBlinkClock.restart();
         }
         if (game.returnVisible) {
-            sf::Color c = game.returnSprite.getColor();
+            sf::Color c = game.returnSprite->getColor();
             c.a = 0;
-            game.returnSprite.setColor(c);
+            game.returnSprite->setColor(c);
             c.a = static_cast<std::uint8_t>(255.f * uiAlphaFactor);
-            game.returnSprite.setColor(c);
-            target.draw(game.returnSprite);
+            game.returnSprite->setColor(c);
+            target.draw(*game.returnSprite);
         }
     }
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Graphics/RenderTarget.hpp>
+#include "core/game.hpp"
 
 class Game;
 

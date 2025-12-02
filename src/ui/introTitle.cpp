@@ -1,13 +1,15 @@
 #include "introTitle.hpp"
+#include "core/game.hpp"
 #include <algorithm>
-#include "game.hpp"
 
 void drawIntroTitle(Game& game, sf::RenderTarget& target) {
     bool backgroundActive = game.backgroundFadeInActive || game.backgroundVisible;
-    if (backgroundActive) {
+    if (backgroundActive && game.background) {  // <- background existiert?
         float fadeProgress = 1.f;
         if (game.backgroundFadeInActive) {
-            fadeProgress = std::min(1.f, game.backgroundFadeClock.getElapsedTime().asSeconds() / game.introFadeDuration);
+            float t = game.backgroundFadeClock.getElapsedTime().asSeconds() / game.introFadeDuration;
+            fadeProgress = std::min<float>(1.f, t);
+
             if (fadeProgress >= 1.f) {
                 game.backgroundFadeInActive = false;
                 game.backgroundVisible = true;
@@ -19,14 +21,15 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
             float scaleX = static_cast<float>(target.getSize().x) / static_cast<float>(texSize.x);
             float scaleY = static_cast<float>(target.getSize().y) / static_cast<float>(texSize.y);
 
-            game.background.setScale(sf::Vector2f{ scaleX, scaleY });
-            game.background.setPosition({ 0.f, 0.f });
+            game.background->setScale(sf::Vector2f{ scaleX, scaleY });
+            game.background->setPosition({ 0.f, 0.f });
         }
 
-        sf::Color bgColor = game.background.getColor();
+        sf::Color bgColor = game.background->getColor();
         bgColor.a = static_cast<std::uint8_t>(255.f * fadeProgress);
-        game.background.setColor(bgColor);
-        target.draw(game.background);
+        game.background->setColor(bgColor);
+
+        target.draw(*game.background);
     }
 
     if (game.titleDropStarted) {

@@ -1,7 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <stdexcept>
-#include "textStyles.hpp"
+#include "story/textStyles.hpp"
 
 class NineSliceBox {
     public:

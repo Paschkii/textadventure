@@ -1,6 +1,6 @@
 #pragma once
 #include "dialogueLine.hpp"
-#include "game.hpp"
+#include "core/game.hpp"
 #include "textStyles.hpp"
 
 struct EnterAction {
@@ -8,6 +8,8 @@ struct EnterAction {
     bool skipToEnd = false;
     bool nextLine = false;
 };
+
+inline std::string injectSpeakerNames(const std::string& text, const Game& game);
 
 inline EnterAction processEnter(
     bool askingName,

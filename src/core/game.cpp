@@ -1,9 +1,9 @@
 #include "game.hpp"
-#include "dialogueLine.hpp"
-#include "dialogInput.hpp"
-#include "dialogRender.hpp"
-#include "storyIntro.hpp"
-#include "textStyles.hpp"
+#include "story/dialogueLine.hpp"
+#include "story/dialogInput.hpp"
+#include "rendering/dialogRender.hpp"
+#include "story/storyIntro.hpp"
+#include "story/textStyles.hpp"
 #include <iostream>
 
 constexpr unsigned int windowWidth = 1280;
@@ -17,12 +17,12 @@ Game::Game()
         std::cout << "Fatal: konnte Ressourcen nicht laden.\n";
         std::exit(1);
     }
-    background.setTexture(resources.introBackground);
-    returnSprite.setTexture(resources.returnSymbol);
-    returnSprite.setColor(sf::Color(160, 160, 160));
+    background.emplace(resources.introBackground);
+    returnSprite.emplace(resources.returnSymbol);
+    returnSprite->setColor(sf::Color(160, 160, 160));
 
-    textBlipSound.setBuffer(resources.typewriter);
-    enterSound.setBuffer(resources.enterKey);
+    textBlipSound.emplace(resources.typewriter);
+    enterSound.emplace(resources.enterKey);
     // === Framerate limitieren ===
     window.setFramerateLimit(fpsLimit);
     // === NameBox Style setzen ===
@@ -90,8 +90,8 @@ void Game::run() {
             if (auto key = event->getIf<sf::Event::KeyReleased>()) {
                 if (key->scancode == sf::Keyboard::Scan::Enter) {
 
-                    enterSound.stop();
-                    enterSound.play();
+                    enterSound->stop();
+                    enterSound->play();
 
                     if (state == GameState::IntroScreen) {
                         if (!introFadeOutActive) {
@@ -120,15 +120,15 @@ void Game::run() {
 }
 
 void Game::startTypingSound() {
-    if (textBlipSound.getStatus() != sf::Sound::Status::Playing) {
+    if (textBlipSound->getStatus() != sf::Sound::Status::Playing) {
         // std::cout << "start on " << this << " / sound " << &textBlipSound << "\n";
-        textBlipSound.play();
+        textBlipSound->play();
     }
 }
 
 void Game::stopTypingSound() {
-    if (textBlipSound.getStatus() == sf::Sound::Status::Playing) {
+    if (textBlipSound->getStatus() == sf::Sound::Status::Playing) {
         // std::cout << "end on " << this << " / sound " << &textBlipSound << "\n";
-        textBlipSound.stop();
+        textBlipSound->stop();
     }
 }

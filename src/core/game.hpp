@@ -4,13 +4,14 @@
 #include <SFML/System.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window.hpp>
+#include <optional>
 #include <memory>
 #include <cmath>
-#include "storyIntro.hpp"
-#include "nineSliceBox.hpp"
-#include "resources.hpp"
-#include "state.hpp"
-#include "textStyles.hpp"
+#include "story/storyIntro.hpp"
+#include "ui/nineSliceBox.hpp"
+#include "resources/resources.hpp"
+#include "core/state.hpp"
+#include "story/textStyles.hpp"
 
 struct Game {
     Game();
@@ -33,16 +34,18 @@ struct Game {
         sf::RectangleShape textBox;
         NineSliceBox uiFrame{12};
 
-        sf::Sprite background;
-        sf::Sprite returnSprite;
+        std::optional<sf::Sprite> background;
+        std::optional<sf::Sprite> returnSprite;
 
         std::string visibleText;
         std::size_t charIndex = 0;
         sf::Clock typewriterClock;
         sf::Clock uiGlowClock;
 
-        sf::Sound textBlipSound;
-        sf::Sound enterSound;
+        std::optional<sf::Sound> textBlipSound;
+        std::optional<sf::Sound> enterSound;
+        std::optional<sf::Sound> acquireSound;
+        std::optional<sf::Sound> confirmSound;
 
         std::string playerName;
         std::string nameInput;
