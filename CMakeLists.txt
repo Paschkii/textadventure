@@ -10,6 +10,7 @@ add_executable(textadventure
     introTitle.cpp
     dialogUI.cpp
     textColorHelper.cpp
+    textLayout.cpp
     # ui.cpp
     # audiomanager.cpp
 )

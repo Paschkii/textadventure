@@ -5,6 +5,7 @@
 #include "game.hpp"
 #include "speaker.hpp"
 #include "textColorHelper.hpp"
+#include "textLayout.cpp"
 
 namespace {
     constexpr float kNameBoxTextOffset = 20.f;
