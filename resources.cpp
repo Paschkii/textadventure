@@ -76,18 +76,21 @@ bool Resources::loadAll()
     if (!mapBackground.loadFromFile("assets/gfx/map/map_background.png")) {
         std::cout << "Failed to load Map Background Texture\n"; return false;
     }
+    if (!mapBackground.loadFromFile("assets/textures/returnSymbol.png")) {
+        std::cout << "Failed to load Return Symbol Texture\n"; return false;
+    }
 
     // === Sounds ===
-    if (!acquire.loadFromFile("assets/sfx/acquire.wav")) {
+    if (!acquire.loadFromFile("assets/audio/acquire.wav")) {
         std::cout << "Failed to load typewriter\n"; return false;
     }
-    if (!confirm.loadFromFile("assets/sfx/confirm.wav")) {
+    if (!confirm.loadFromFile("assets/audio/confirm.wav")) {
         std::cout << "Failed to load typewriter\n"; return false;
     }
-    if (!enterKey.loadFromFile("assets/sfx/enterKey.wav")) {
+    if (!enterKey.loadFromFile("assets/audio/enterKey.wav")) {
         std::cout << "Failed to load typewriter\n"; return false;
     }
-    if (!typewriter.loadFromFile("assets/sfx/typewriter.mp3")) {
+    if (!typewriter.loadFromFile("assets/audio/typewriter.mp3")) {
         std::cout << "Failed to load typewriter\n"; return false;
     }
 

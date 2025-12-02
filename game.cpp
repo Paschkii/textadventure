@@ -12,13 +12,17 @@ constexpr unsigned int fpsLimit = 60;
 
 Game::Game()
 : window(sf::VideoMode({windowWidth, windowHeight}), "Glandular", sf::Style::Titlebar | sf::Style::Close)
-
 {
     if (!resources.loadAll()) {
         std::cout << "Fatal: konnte Ressourcen nicht laden.\n";
         std::exit(1);
     }
+    background.setTexture(resources.introBackground);
+    returnSprite.setTexture(resources.returnSymbol);
     returnSprite.setColor(sf::Color(160, 160, 160));
+
+    textBlipSound.setBuffer(resources.typewriter);
+    enterSound.setBuffer(resources.enterKey);
     // === Framerate limitieren ===
     window.setFramerateLimit(fpsLimit);
     // === NameBox Style setzen ===

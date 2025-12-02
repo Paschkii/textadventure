@@ -32,16 +32,24 @@ class Game {
         void startTypingSound();
         void stopTypingSound();
 
+        Resources resources;
+
         sf::RenderWindow window;
 
         sf::RectangleShape nameBox;
         sf::RectangleShape textBox;
         NineSliceBox uiFrame{12};
 
+        sf::Sprite background;
+        sf::Sprite returnSprite;
+
         std::string visibleText;
         std::size_t charIndex = 0;
         sf::Clock typewriterClock;
         sf::Clock uiGlowClock;
+
+        sf::Sound textBlipSound;
+        sf::Sound enterSound;
 
         std::string playerName;
         std::string nameInput;
@@ -75,8 +83,4 @@ class Game {
 
         bool titleDropStarted = false;
         sf::Clock titleDropClock;
-};
-
-struct Game {
-    Resources resources;
 };

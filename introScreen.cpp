@@ -44,7 +44,7 @@ void renderIntroScreen(Game& game) {
     }
     std::uint8_t alpha = static_cast<std::uint8_t>(255.f * fadeProgress);
 
-    sf::Text title{ game.introFont, titleText, 36 };
+    sf::Text title{ game.resources.introFont, titleText, 36 };
     sf::Color titleColor = sf::Color::Red;
     titleColor.a = alpha;
     title.setFillColor(titleColor);
@@ -58,7 +58,7 @@ void renderIntroScreen(Game& game) {
         bodyLines.push_back(bodyLineText);
     }
 
-    sf::Text body{ game.introFont, bodyText, 28 };
+    sf::Text body{ game.resources.introFont, bodyText, 28 };
     sf::Color bodyColor = sf::Color::White;
     bodyColor.a = alpha;
     body.setFillColor(bodyColor);
@@ -73,7 +73,7 @@ void renderIntroScreen(Game& game) {
         game.window.draw(body);
     }
 
-    sf::Text prompt{ game.introFont, promptText, 28 };
+    sf::Text prompt{ game.resources.introFont, promptText, 28 };
     sf::Color promptColor = sf::Color(200, 200, 200);
     promptColor.a = alpha;
     prompt.setFillColor(promptColor);

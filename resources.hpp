@@ -13,6 +13,7 @@ struct Resources {
 
     // Textures
     sf::Texture introBackground; // Background
+    sf::Texture returnSymbol;
     // Character Textures
     sf::Texture air_dragon;
     sf::Texture earth_dragon;

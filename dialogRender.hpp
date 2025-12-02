@@ -324,17 +324,14 @@ inline void renderDialogue(Game& game) {
             }
         }
 
-        auto texSize = game.storyBackground.getSize();
+        auto texSize = game.resources.introBackground.getSize();
         if (texSize.x > 0 && texSize.y > 0) {
             float scaleX = static_cast<float>(game.window.getSize().x) / static_cast<float>(texSize.x);
             float scaleY = static_cast<float>(game.window.getSize().y) / static_cast<float>(texSize.y);
-            float scale = std::min(scaleX, scaleY);
+
             game.background.setScale(sf::Vector2f{scaleX, scaleY});
             game.background.setPosition({0.f, 0.f});
 
-            // float centeredX = (static_cast<float>(game.window.getSize().x) - static_cast<float>(texSize.x) * scale) * 0.5f;
-            // float centeredY = (static_cast<float>(game.window.getSize().y) - static_cast<float>(texSize.y) * scale) * 0.5f;
-            // game.background.setPosition({centeredX, centeredY});
         }
 
         sf::Color bgColor = game.background.getColor();
@@ -342,11 +339,6 @@ inline void renderDialogue(Game& game) {
         game.background.setColor(bgColor);
         game.window.draw(game.background);
     }
-
-    // if (game.backgroundVisible && !game.titleDropStarted) {
-    //     game.titleDropStarted = true;
-    //     game.titleDropClock.restart();
-    // }
 
     if (game.titleDropStarted) {
         float elapsed = game.titleDropClock.getElapsedTime().asSeconds();
@@ -375,8 +367,8 @@ inline void renderDialogue(Game& game) {
         };
 
         auto drawTitle = [&](const std::string& text, unsigned int size, sf::Vector2f position) {
-            sf::Text backLayer{ game.titleFontExtrude, text, size };
-            sf::Text frontLayer{ game.titleFont,       text, size };
+            sf::Text backLayer{ game.resources.titleFontExtrude, text, size };
+            sf::Text frontLayer{ game.resources.titleFont,       text, size };
 
             frontLayer.setFillColor(sf::Color(255, 186, 59));
             backLayer.setFillColor(sf::Color(92, 64, 35));
@@ -494,7 +486,7 @@ inline void renderDialogue(Game& game) {
 
     auto info = getSpeakerInfo(line.speaker);
 
-    sf::Text nameText{game.font, "", 28};
+    sf::Text nameText{game.resources.uiFont, "", 28};
 
     if (!info.name.empty()) {
         nameText.setFillColor(applyAlpha(info.color, uiAlphaFactor));
@@ -517,7 +509,7 @@ inline void renderDialogue(Game& game) {
 
     auto segments = buildColoredSegments(textToDraw);
     float maxWidth = game.textBox.getSize().x - 40.f;
-    auto cursorPos = drawColoredSegments(game.window, game.font, segments, basePos, 28, maxWidth, uiAlphaFactor);
+    auto cursorPos = drawColoredSegments(game.window, game.resources.uiFont, segments, basePos, 28, maxWidth, uiAlphaFactor);
 
     bool canPressEnter = false;
     if (game.askingName) {
@@ -538,7 +530,7 @@ inline void renderDialogue(Game& game) {
 
         sf::Vector2f inputPos{ textPos.x + 20.f, textPos.y + 60.f };
 
-        sf::Text inputText{game.font, "", 28};
+        sf::Text inputText{game.resources.uiFont, "", 28};
         inputText.setFillColor(applyAlpha(sf::Color::White, uiAlphaFactor));
         inputText.setString(game.nameInput);
 
@@ -550,7 +542,7 @@ inline void renderDialogue(Game& game) {
         game.window.draw(inputText);
 
         if (game.cursorVisible) {
-            sf::Text cursorText{game.font, "_", 28};
+            sf::Text cursorText{game.resources.uiFont, "_", 28};
             cursorText.setFillColor(applyAlpha(sf::Color::White, uiAlphaFactor));
             auto cursorPos = inputText.findCharacterPos(game.nameInput.size());
             cursorText.setPosition(cursorPos);
