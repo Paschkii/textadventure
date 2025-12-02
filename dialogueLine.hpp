@@ -1,9 +1,9 @@
 #pragma once
 #include <string>
-#include "speaker.hpp"
+#include "textStyles.hpp"
 
 struct DialogueLine {
-    Speaker speaker;
+    TextStyles::SpeakerId speaker;
     std::string text;
     bool triggersNameInput = false;
     bool waitForEnter;

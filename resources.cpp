@@ -76,7 +76,7 @@ bool Resources::loadAll()
     if (!mapBackground.loadFromFile("assets/gfx/map/map_background.png")) {
         std::cout << "Failed to load Map Background Texture\n"; return false;
     }
-    if (!mapBackground.loadFromFile("assets/textures/returnSymbol.png")) {
+    if (!returnSymbol.loadFromFile("assets/textures/returnSymbol.png")) {
         std::cout << "Failed to load Return Symbol Texture\n"; return false;
     }
 

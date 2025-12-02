@@ -1,7 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <stdexcept>
-#include "colorHelper.hpp"
+#include "textStyles.hpp"
 
 class NineSliceBox {
     public:
@@ -17,7 +17,7 @@ class NineSliceBox {
 
     void draw(  sf::RenderTarget& target
         , const sf::RectangleShape& box
-        , sf::Color color = ColorHelper::UI::PanelBlueDark) const {
+        , sf::Color color = TextStyles::UI::PanelDark) const {
         draw(target, box.getPosition(), box.getSize(), color);
     }
     // pos = Top Left Corner
@@ -25,7 +25,7 @@ class NineSliceBox {
     void draw(sf::RenderTarget& target
             , sf::Vector2f pos
             , sf::Vector2f size
-            , sf::Color color = ColorHelper::UI::PanelBlueDark) const {
+            , sf::Color color = TextStyles::UI::PanelDark) const {
         if (texSize.x == 0 || texSize.y == 0) return;
 
         const float x = pos.x;

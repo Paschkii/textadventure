@@ -1,11 +1,9 @@
 #include "textColorHelper.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <utility>
-
-#include "speaker.hpp"
+#include "textStyles.hpp"
 
 namespace {
 std::size_t longestPartialSpeakerPrefix(
@@ -47,22 +45,23 @@ std::vector<ColoredTextSegment> buildColoredSegments(const std::string& text) {
     if (text.empty())
         return segments;
 
-    const std::array<Speaker, 7> speakersToColor{
-        Speaker::StoryTeller,
-        Speaker::NoNameNPC,
-        Speaker::Player,
-        Speaker::FireDragon,
-        Speaker::WaterDragon,
-        Speaker::AirDragon,
-        Speaker::EarthDragon
+    const std::array<TextStyles::SpeakerId, 8> speakersToColor{
+        TextStyles::SpeakerId::Narrator,
+        TextStyles::SpeakerId::StoryTeller,
+        TextStyles::SpeakerId::NoName,
+        TextStyles::SpeakerId::Player,
+        TextStyles::SpeakerId::FireDragon,
+        TextStyles::SpeakerId::WaterDragon,
+        TextStyles::SpeakerId::AirDragon,
+        TextStyles::SpeakerId::EarthDragon
     };
 
     std::vector<std::pair<std::string, sf::Color>> tokens;
     tokens.reserve(speakersToColor.size());
-    for (Speaker speaker : speakersToColor) {
-        std::string name = speakerToName(speaker);
-        if (!name.empty())
-            tokens.emplace_back(name, colorForSpeaker(speaker));
+    for (auto speaker : speakersToColor) {
+        TextStyles::SpeakerStyle style = TextStyles::speakerStyle(speaker);
+        if (!style.name.empty())
+            tokens.emplace_back(style.name, style.color);
     }
 
     std::size_t cursor = 0;

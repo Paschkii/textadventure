@@ -9,35 +9,25 @@
 #include "storyIntro.hpp"
 #include "nineSliceBox.hpp"
 #include "resources.hpp"
+#include "state.hpp"
+#include "textStyles.hpp"
 
-class State;
+struct Game {
+    Game();
+    void run();
+    void updateLayout();
 
-class Game {
-    public:
-        Game();
-        void run();
-        void updateLayout();
+    void startTypingSound();
+    void stopTypingSound();
 
-        friend void waitForEnter(Game& game, const DialogueLine& line);
-        friend void renderDialogue(Game& game);
-        friend std::string injectSpeakerNames(const std::string& text, const Game& game);
-        friend void renderIntroScreen(Game& game);
-        friend void drawIntroTitle(Game& game, sf::RenderTarget& target);
-        friend void drawDialogueUI(Game& game, sf::RenderTarget& target);
-        friend void drawLocationBox(Game& game, sf::RenderTarget& target);
+        // === Public game data ===
+        sf::RenderWindow window;
+        Resources resources;
+        GameState state = GameState::IntroScreen;
 
-        void changeState(std::unique_ptr<State> newState);
         // === Dialogues ===
         size_t dialogueIndex = 0;
-        const std::vector<DialogueLine> *currentDialogue = &intro;
-
-    private:
-        void startTypingSound();
-        void stopTypingSound();
-
-        Resources resources;
-
-        sf::RenderWindow window;
+        const std::vector<DialogueLine>* currentDialogue = &intro;
 
         sf::RectangleShape nameBox;
         sf::RectangleShape textBox;
@@ -57,8 +47,6 @@ class Game {
         std::string playerName;
         std::string nameInput;
         bool askingName = false;
-
-        bool showingIntroScreen = true;
 
         sf::Clock cursorBlinkClock;
         bool cursorVisible = true;

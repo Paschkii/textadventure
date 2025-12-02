@@ -34,7 +34,7 @@ void renderIntroScreen(Game& game) {
         fadeProgress = 1.f - fadeOutProgress;
 
         if (fadeOutProgress >= 1.f) {
-            game.showingIntroScreen = false;
+            game.state = GameState::IntroTitle;
             game.introFadeOutActive = false;
             game.visibleText.clear();
             game.charIndex = 0;

@@ -2,6 +2,8 @@
 #include <vector>
 #include "dialogueLine.hpp"
 
+using Speaker = TextStyles::SpeakerId;
+
 inline const std::vector<DialogueLine> intro = {
     { Speaker::NoNameNPC, "Welcome to this tiny fictional adventure." },
     { Speaker::NoNameNPC, "I am Tory Tailor, your guide and storyteller." },

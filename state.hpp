@@ -1,6 +1,15 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 
+enum class GameState {
+    IntroScreen,
+    IntroTitle,
+    Dialogue,
+    MapSelection,
+    WeaponSelection,
+    Quiz,
+};
+
 class Game;
 
 class State {
@@ -13,5 +22,5 @@ class State {
         virtual void draw() = 0;
         
     protected:
-    Game& game;
+        Game& game;
 };

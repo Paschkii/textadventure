@@ -1,11 +1,10 @@
 #include "dialogUI.hpp"
 #include <algorithm>
 #include <cmath>
-#include "colorHelper.hpp"
 #include "game.hpp"
-#include "speaker.hpp"
 #include "textColorHelper.hpp"
-#include "textLayout.cpp"
+#include "textLayout.hpp"
+#include "textStyles.hpp"
 
 namespace {
     constexpr float kNameBoxTextOffset = 20.f;
@@ -52,7 +51,7 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target) {
 
     float alpha = 140.f + flicker * 30.f;
 
-    sf::Color glowColor = ColorHelper::UI::PanelBlueLight;
+    sf::Color glowColor = TextStyles::UI::PanelLight;
     glowColor.a = static_cast<std::uint8_t>(std::clamp(alpha, 0.f, 255.f));
     glowColor = applyAlpha(glowColor, uiAlphaFactor);
 
@@ -72,7 +71,7 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target) {
         2.f
     );
 
-    sf::Color frameColor = applyAlpha(ColorHelper::UI::PanelBlueDark, uiAlphaFactor);
+    sf::Color frameColor = applyAlpha(TextStyles::UI::PanelDark, uiAlphaFactor);
     game.uiFrame.draw(target, game.nameBox, frameColor);
     game.uiFrame.draw(target, game.textBox, frameColor);
 
@@ -100,7 +99,7 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target) {
         game.stopTypingSound();
     }
 
-    auto info = getSpeakerInfo(line.speaker);
+    TextStyles::SpeakerStyle info = TextStyles::speakerStyle(line.speaker);
 
     sf::Text nameText{game.resources.uiFont, "", kTextCharacterSize};
 

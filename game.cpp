@@ -3,7 +3,7 @@
 #include "dialogInput.hpp"
 #include "dialogRender.hpp"
 #include "storyIntro.hpp"
-#include "speaker.hpp"
+#include "textStyles.hpp"
 #include <iostream>
 
 constexpr unsigned int windowWidth = 1280;
@@ -12,10 +12,6 @@ constexpr unsigned int fpsLimit = 60;
 
 Game::Game()
 : window(sf::VideoMode({windowWidth, windowHeight}), "Glandular", sf::Style::Titlebar | sf::Style::Close)
-, background(resources.introBackground)
-, returnSprite(resources.returnSymbol)
-, textBlipSound(resources.typewriter)
-, enterSound(resources.enterKey)
 {
     if (!resources.loadAll()) {
         std::cout << "Fatal: konnte Ressourcen nicht laden.\n";
@@ -97,13 +93,13 @@ void Game::run() {
                     enterSound.stop();
                     enterSound.play();
 
-                    if (showingIntroScreen) {
+                    if (state == GameState::IntroScreen) {
                         if (!introFadeOutActive) {
                             introFadeOutActive = true;
                             introClock.restart();
                         }
                     }
-                    else {
+                    else if (state == GameState::IntroTitle || state == GameState::Dialogue) {
                         waitForEnter(*this, (*currentDialogue)[dialogueIndex]);
                     }
                 }
@@ -118,7 +114,7 @@ void Game::run() {
         updateLayout();
 
         window.clear();
-        renderDialogue(*this);
+        renderGame(*this);
         window.display();
     }
 }

@@ -9,8 +9,13 @@ add_executable(textadventure
     introScreen.cpp
     introTitle.cpp
     dialogUI.cpp
+    dialogRender.hpp
+    mapSelectionUI.cpp
+    quizUI.cpp
     textColorHelper.cpp
     textLayout.cpp
+    textStyles.cpp
+    weaponSelectionUI.cpp
     # ui.cpp
     # audiomanager.cpp
 )

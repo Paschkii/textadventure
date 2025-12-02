@@ -1,7 +1,7 @@
 #pragma once
 #include "dialogueLine.hpp"
 #include "game.hpp"
-#include "speaker.hpp"
+#include "textStyles.hpp"
 
 struct EnterAction {
     bool confirmName = false;
