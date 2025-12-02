@@ -12,6 +12,10 @@ constexpr unsigned int fpsLimit = 60;
 
 Game::Game()
 : window(sf::VideoMode({windowWidth, windowHeight}), "Glandular", sf::Style::Titlebar | sf::Style::Close)
+, background(resources.introBackground)
+, returnSprite(resources.returnSymbol)
+, textBlipSound(resources.typewriter)
+, enterSound(resources.enterKey)
 {
     if (!resources.loadAll()) {
         std::cout << "Fatal: konnte Ressourcen nicht laden.\n";
