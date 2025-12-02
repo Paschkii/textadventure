@@ -5,6 +5,7 @@
 #include <cctype>
 #include <utility>
 #include <vector>
+#include <iostream>
 #include "game.hpp"
 #include "introScreen.hpp"
 #include "speaker.hpp"
@@ -327,15 +328,99 @@ inline void renderDialogue(Game& game) {
         if (texSize.x > 0 && texSize.y > 0) {
             float scaleX = static_cast<float>(game.window.getSize().x) / static_cast<float>(texSize.x);
             float scaleY = static_cast<float>(game.window.getSize().y) / static_cast<float>(texSize.y);
-            float scale = std::max(scaleX, scaleY);
-            game.background.setScale(sf::Vector2f{scale, scale});
+            float scale = std::min(scaleX, scaleY);
+            game.background.setScale(sf::Vector2f{scaleX, scaleY});
             game.background.setPosition({0.f, 0.f});
+
+            // float centeredX = (static_cast<float>(game.window.getSize().x) - static_cast<float>(texSize.x) * scale) * 0.5f;
+            // float centeredY = (static_cast<float>(game.window.getSize().y) - static_cast<float>(texSize.y) * scale) * 0.5f;
+            // game.background.setPosition({centeredX, centeredY});
         }
 
         sf::Color bgColor = game.background.getColor();
         bgColor.a = static_cast<std::uint8_t>(255.f * fadeProgress);
         game.background.setColor(bgColor);
         game.window.draw(game.background);
+    }
+
+    // if (game.backgroundVisible && !game.titleDropStarted) {
+    //     game.titleDropStarted = true;
+    //     game.titleDropClock.restart();
+    // }
+
+    if (game.titleDropStarted) {
+        float elapsed = game.titleDropClock.getElapsedTime().asSeconds();
+        constexpr float firstDropDuration = 1.0f;
+        constexpr float secondDropDelay = 0.15f;
+        constexpr float secondDropDuration = 1.0f;
+
+        auto windowSize = game.window.getSize();
+        float centerX = static_cast<float>(windowSize.x) * 0.5f;
+        float firstTargetY = static_cast<float>(windowSize.y) * 0.45f;
+        float secondTargetY = firstTargetY + 110.f;
+        float startY = -200.f;
+
+        auto easeOutCubic = [](float t) {
+            float inv = 1.f - t;
+            return 1.f - inv * inv * inv;
+        };
+
+        auto computeY = [&](float dropElapsed, float duration, float targetY) {
+            if (dropElapsed <= 0.f)
+                return startY;
+
+            float t = std::clamp(dropElapsed / duration, 0.f, 1.f);
+            float eased = easeOutCubic(t);
+            return startY + (targetY - startY) * eased;
+        };
+
+        auto drawTitle = [&](const std::string& text, unsigned int size, sf::Vector2f position) {
+            sf::Text backLayer{ game.titleFontExtrude, text, size };
+            sf::Text frontLayer{ game.titleFont,       text, size };
+
+            frontLayer.setFillColor(sf::Color(255, 186, 59));
+            backLayer.setFillColor(sf::Color(92, 64, 35));
+
+            // --- Beide Layer sauber um ihren eigenen Center zentrieren ---
+            auto centerOrigin = [](sf::Text& t) {
+                auto b = t.getLocalBounds();
+                t.setOrigin({
+                    b.position.x + b.size.x * 0.5f,
+                    b.position.y + b.size.y * 0.5f
+                });
+            };
+
+            centerOrigin(frontLayer);
+            centerOrigin(backLayer);
+
+            // --- Basisposition (z.B. der animierte Drop-Y) ---
+            float offsetY = -200.f;
+            sf::Vector2f finalPos = { position.x, position.y + offsetY };
+
+            frontLayer.setPosition(finalPos);
+            backLayer.setPosition(finalPos);
+
+            // backLayer.move({ 0.f, 0.f });
+
+            game.window.draw(backLayer);
+            game.window.draw(frontLayer);
+        };
+
+        float lineSpacing = -40.f;
+
+        float firstY = computeY(elapsed, firstDropDuration, firstTargetY);
+        drawTitle("Glandular Chronicles", 100, { centerX, firstY });
+
+        float secondElapsed = elapsed - firstDropDuration - secondDropDelay;
+        if (secondElapsed > 0.f) {
+            float secondY = computeY(secondElapsed, secondDropDuration, secondTargetY);
+            drawTitle("The Dragonborn", 60, { centerX, secondY + lineSpacing });
+        }
+    }
+
+    if (game.backgroundVisible && !game.titleDropStarted) {
+        game.titleDropStarted = true;
+        game.titleDropClock.restart();
     }
 
     if (hideUI)

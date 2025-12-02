@@ -8,6 +8,7 @@
 #include <cmath>
 #include "storyIntro.hpp"
 #include "nineSliceBox.hpp"
+#include "resources.hpp"
 
 class State;
 
@@ -32,24 +33,6 @@ class Game {
         void stopTypingSound();
 
         sf::RenderWindow window;
-
-        sf::Font font;
-        sf::Font fontSymbol;
-        sf::Font introFont;
-        sf::Font titleFont;
-        sf::Font titleFontExtrude;
-
-        sf::SoundBuffer enterBuffer;
-        sf::Sound enterSound;
-
-        sf::SoundBuffer textBlipBuffer;
-        sf::Sound textBlipSound;
-
-        sf::Texture returnSymbol;
-        sf::Sprite returnSprite;
-
-        sf::Texture storyBackground;
-        sf::Sprite background;
 
         sf::RectangleShape nameBox;
         sf::RectangleShape textBox;
@@ -89,4 +72,11 @@ class Game {
         bool backgroundFadeInActive = false;
         bool backgroundVisible = false;
         sf::Clock backgroundFadeClock;
+
+        bool titleDropStarted = false;
+        sf::Clock titleDropClock;
+};
+
+struct Game {
+    Resources resources;
 };
