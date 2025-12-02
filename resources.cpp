@@ -79,6 +79,9 @@ bool Resources::loadAll()
     if (!returnSymbol.loadFromFile("assets/textures/returnSymbol.png")) {
         std::cout << "Failed to load Return Symbol Texture\n"; return false;
     }
+    if (!boxBorder.loadFromFile("assets/textures/boxBorder.png")) {
+        std::cout << "Failed to load Box Border Texture\n"; return false;
+    }
 
     // === Sounds ===
     if (!acquire.loadFromFile("assets/audio/acquire.wav")) {

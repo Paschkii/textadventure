@@ -6,19 +6,20 @@
 
 struct Resources {
     // Fonts
-    sf::Font uiFont;
-    sf::Font introFont;
-    sf::Font titleFont;
-    sf::Font titleFontExtrude;
+    sf::Font uiFont; // Font for Dialogue Texts
+    sf::Font introFont; // Font for the Important Message
+    sf::Font titleFont; // FrontLayer for introBackground
+    sf::Font titleFontExtrude; // BackLayer for introBackground
 
     // Textures
     sf::Texture introBackground; // Background
-    sf::Texture returnSymbol;
+    sf::Texture returnSymbol; // Blinking return Symbol
+    sf::Texture boxBorder;
     // Character Textures
-    sf::Texture air_dragon;
-    sf::Texture earth_dragon;
-    sf::Texture fire_dragon;
-    sf::Texture water_dragon;
+    sf::Texture air_dragon; // Air Dragon Texture
+    sf::Texture earth_dragon; // Earth Dragon Texture
+    sf::Texture fire_dragon; // Fire Dragon Texture
+    sf::Texture water_dragon; // Water Dragon Texture
     // Map Textures
     sf::Texture locationGonadColored; // Gonad
     sf::Texture locationGonadSepia; // Gonad
@@ -32,13 +33,13 @@ struct Resources {
     sf::Texture locationAerobronchiSepia; // Aerobronchi
     sf::Texture locationMasterBatesHideoutColored; // Master Bates Stronghold
     sf::Texture locationMasterBatesHideoutSepia; // Master Bates Stronghold
-    sf::Texture mapBackground;
+    sf::Texture mapBackground; // Map Background
 
     // Sound Buffers
-    sf::SoundBuffer typewriter;
-    sf::SoundBuffer enterKey;
-    sf::SoundBuffer acquire;
-    sf::SoundBuffer confirm;
+    sf::SoundBuffer typewriter; // Typewriter Sound -> isTyping
+    sf::SoundBuffer enterKey; // Sound played when Enter Key is pressed
+    sf::SoundBuffer acquire; // Sound played, when aquiring items
+    sf::SoundBuffer confirm; // Sound played, when confirming choices
 
     // Zentraler Loader
     bool loadAll();
