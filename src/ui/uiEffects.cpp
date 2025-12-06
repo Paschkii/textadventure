@@ -56,7 +56,7 @@ namespace uiEffects {
         const NineSliceBox& frame,
         sf::Vector2f position,
         sf::Vector2f size,
-        const sf::Color glowColor,
+        const sf::Color& glowColor,
         float scaleOffset
     )
     {

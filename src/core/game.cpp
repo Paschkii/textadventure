@@ -33,6 +33,10 @@ Game::Game()
     textBox.setFillColor(sf::Color::Transparent);
     textBox.setOutlineColor(sf::Color::White);
     textBox.setOutlineThickness(2.f);
+    // === LocationBox Style setzen ===
+    locationBox.setFillColor(sf::Color::Transparent);
+    locationBox.setOutlineColor(sf::Color::White);
+    locationBox.setOutlineThickness(2.f);
 
     currentDialogue = &intro;
 }
@@ -48,6 +52,7 @@ void Game::updateLayout() {
     float boxHeight = h * 0.25f;    // beide Boxen: 25% Höhe (180)
     float nameWidth = w * 0.20f;    // NameBox: 20% Breite (256)
     float textWidth = w * 0.70f;    // TextBox: 70% Breite (896)
+    float locationWidth = w * 0.30f; // LocationBox 30% Breite
 
     // === NameBox: links unten, 5% Abstand ===
     nameBox.setSize({ nameWidth, boxHeight });
@@ -61,6 +66,12 @@ void Game::updateLayout() {
     textBox.setPosition({
         marginX + nameBox.getSize().x + (marginX / 2),
         h - boxHeight - marginY
+    });
+
+    locationBox.setSize({ locationWidth, boxHeight / 2 });
+    locationBox.setPosition({
+        marginX,
+        marginY
     });
 
     // === 9-Slice-Textur laden ===

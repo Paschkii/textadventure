@@ -32,6 +32,7 @@ struct Game {
 
         sf::RectangleShape nameBox;
         sf::RectangleShape textBox;
+        sf::RectangleShape locationBox;
         NineSliceBox uiFrame{12};
 
         std::optional<sf::Sprite> background;
