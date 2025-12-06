@@ -25,13 +25,13 @@ struct SpeakerStyle {
 namespace Palette = ColorHelper::Palette;
 
 namespace UI {
-    inline const sf::Color Background = Palette::PanelBlue;
+    inline const sf::Color Background = Palette::Blue;
     inline const sf::Color Border = Palette::FrameGoldDark;
     inline const sf::Color Text = Palette::Normal;
     inline const sf::Color Highlight = Palette::SoftYellow;
-    inline const sf::Color Panel = Palette::PanelBlue;
-    inline const sf::Color PanelDark = Palette::PanelBlueDark;
-    inline const sf::Color PanelLight = Palette::PanelBlueLight;
+    inline const sf::Color Panel = Palette::Blue;
+    inline const sf::Color PanelDark = Palette::BlueDark;
+    inline const sf::Color PanelLight = Palette::BlueLight;
 }
 
 SpeakerId speakerFromName(const std::string& name);

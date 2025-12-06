@@ -81,7 +81,9 @@ namespace ColorHelper {
     // ----------------------------------------------------------
     namespace Palette {
         inline const sf::Color Purple = sf::Color(0xC1, 0xA1, 0xFF);
-        inline const sf::Color Blue = sf::Color(0xA0, 0xD7, 0xFF);
+        inline const sf::Color BlueDark = sf::Color(0x1C, 0x25, 0x44);
+        inline const sf::Color Blue = sf::Color(0x2F, 0x3B, 0x68);
+        inline const sf::Color BlueLight = sf::Color(0x7C, 0x95, 0xCC);
         inline const sf::Color Green = sf::Color(0x80, 0xB6, 0x63);
         inline const sf::Color Orange = sf::Color(0xFF, 0xC7, 0x9F);
         inline const sf::Color Pink = sf::Color(0xFF, 0xAD, 0xC6);
@@ -91,16 +93,10 @@ namespace ColorHelper {
         inline const sf::Color SkyBlue = sf::Color(0x7C, 0xC6, 0xF9);
         inline const sf::Color FrameGoldLight = sf::Color(0xF7, 0xE5, 0x7A);
         inline const sf::Color FrameGoldDark = sf::Color(0xC6, 0x9A, 0x26);
-        inline const sf::Color BlueDark = sf::Color(0x22, 0x2C, 0x4F);
-        inline const sf::Color BlueMid = sf::Color(0x3A, 0x4F, 0x87);
-        inline const sf::Color BlueLight = sf::Color(0x7E, 0x9C, 0xCE);
         inline const sf::Color White20 = sf::Color(255, 255, 255, 20);
         inline const sf::Color White40 = sf::Color(255, 255, 255, 40);
         inline const sf::Color White80 = sf::Color(255, 255, 255, 80);
         inline const sf::Color Overlay = sf::Color(0, 0, 0, 120);
-        inline const sf::Color PanelBlue = sf::Color(0x2F, 0x3B, 0x68);
-        inline const sf::Color PanelBlueDark = sf::Color(0x1C, 0x25, 0x44);
-        inline const sf::Color PanelBlueLight = sf::Color(0x7C, 0x95, 0xCC);
         inline const sf::Color Mint = sf::Color(0xA8, 0xFF, 0xE0);
         inline const sf::Color Rose = sf::Color(0xF9, 0xA8, 0xC5);
         inline const sf::Color Amber = sf::Color(0xFF, 0xC4, 0x63);
