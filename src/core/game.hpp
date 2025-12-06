@@ -60,6 +60,10 @@ struct Game {
         bool returnVisible = true;
         float returnBlinkInterval = 0.4f;
 
+        sf::Clock introPromptBlinkClock;
+        bool introPromptVisible = true;
+        float introPromptBlinkInterval = 0.8f;
+
         std::string currentProcessedLine;
 
         sf::Clock introClock;
@@ -77,5 +81,6 @@ struct Game {
         sf::Clock backgroundFadeClock;
 
         bool titleDropStarted = false;
+        bool titleDropComplete = false;
         sf::Clock titleDropClock;
 };

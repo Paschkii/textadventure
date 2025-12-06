@@ -32,11 +32,14 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
         target.draw(*game.background);
     }
 
+    bool dropFinished = game.titleDropComplete;
+
     if (game.titleDropStarted) {
         float elapsed = game.titleDropClock.getElapsedTime().asSeconds();
         constexpr float firstDropDuration = 1.0f;
         constexpr float secondDropDelay = 0.15f;
         constexpr float secondDropDuration = 1.0f;
+        constexpr float totalDropDuration = firstDropDuration + secondDropDelay + secondDropDuration;
 
         auto windowSize = target.getSize();
         float centerX = static_cast<float>(windowSize.x) * 0.5f;
@@ -95,11 +98,50 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
         if (secondElapsed > 0.f) {
             float secondY = computeY(secondElapsed, secondDropDuration, secondTargetY);
             drawTitle("The Dragonborn", 60, { centerX, secondY + lineSpacing });
+
+            if (secondElapsed >= secondDropDuration) {
+                game.titleDropComplete = true;
+            }
         }
+
+        dropFinished = elapsed >= totalDropDuration;
+    }
+
+    if (dropFinished && !game.titleDropComplete) {
+        game.titleDropComplete = true;
+        game.introPromptVisible = true;
+        game.introPromptBlinkClock.restart();
     }
 
     if (game.backgroundVisible && !game.titleDropStarted) {
         game.titleDropStarted = true;
+        game.titleDropComplete = false;
         game.titleDropClock.restart();
+    }
+
+    if (game.titleDropComplete) {
+        auto windowSize = target.getSize();
+        float centerX = static_cast<float>(windowSize.x) * 0.5f;
+        float centerY = static_cast<float>(windowSize.y) * 0.82f;
+
+        if (game.introPromptBlinkClock.getElapsedTime().asSeconds() >= game.introPromptBlinkInterval) {
+            game.introPromptVisible = !game.introPromptVisible;
+            game.introPromptBlinkClock.restart();
+        }
+
+        if (game.introPromptVisible) {
+            const std::string promptText = "Press Enter to Continue.";
+            sf::Text prompt{ game.resources.introFont, promptText, 28 };
+            prompt.setFillColor(ColorHelper::Palette::SoftYellow);
+
+            auto centerText = [](sf::Text& text, float x, float y) {
+                auto bounds = text.getLocalBounds();
+                text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y + bounds.size.y * 0.5f});
+                text.setPosition({ x, y });
+            };
+
+            centerText(prompt, centerX, centerY);
+            target.draw(prompt);
+        }
     }
 }
