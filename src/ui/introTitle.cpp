@@ -31,7 +31,9 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
     if (game.introTitleHidden)
         return;
 
-    if (!game.titleDropStarted && game.state == GameState::IntroTitle) {
+    if (!game.titleDropStarted
+        && game.state == GameState::IntroTitle
+        && (game.backgroundFadeInActive || game.backgroundVisible)) {
         game.titleDropStarted = true;
         game.titleDropComplete = false;
         game.titleDropClock.restart();
