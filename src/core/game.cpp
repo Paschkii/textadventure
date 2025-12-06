@@ -4,7 +4,9 @@
 #include "rendering/dialogRender.hpp"
 #include "story/storyIntro.hpp"
 #include "story/textStyles.hpp"
+#include "ui/introTitle.hpp"
 #include <iostream>
+#include <algorithm>
 
 constexpr unsigned int windowWidth = 1280;
 constexpr unsigned int windowHeight = 720;
@@ -113,7 +115,15 @@ void Game::run() {
                             introClock.restart();
                         }
                     }
-                    else if (state == GameState::IntroTitle || state == GameState::Dialogue) {
+                    else if (state == GameState::IntroTitle) {
+                        if (introDialogueFinished && introTitleDropComplete(*this)) {
+                            triggerIntroTitleExit(*this);
+                        }
+                        else {
+                            waitForEnter(*this, (*currentDialogue)[dialogueIndex]);
+                        }
+                    }
+                    else if (state == GameState::Dialogue) {
                         waitForEnter(*this, (*currentDialogue)[dialogueIndex]);
                     }
                 }

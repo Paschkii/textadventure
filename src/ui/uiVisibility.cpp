@@ -8,7 +8,26 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
     if (elements == static_cast<UiElementMask>(UiElement::None))
         return visibility;
 
-    if (game.introDialogueFinished) {
+    if (game.uiFadeInActive) {
+        float fadeProgress = std::min(1.f, game.uiFadeClock.getElapsedTime().asSeconds() / game.uiFadeInDuration);
+        visibility.alphaFactor = fadeProgress;
+
+        if (fadeProgress >= 1.f) {
+            game.uiFadeInActive = false;
+
+            if (game.startGonadDialoguePending) {
+                game.startGonadDialoguePending = false;
+                game.currentDialogue = &gonad;
+                game.dialogueIndex = 0;
+                game.visibleText.clear();
+                game.charIndex = 0;
+                game.typewriterClock.restart();
+                game.introDialogueFinished = false;
+                game.state = GameState::Dialogue;
+            }
+        }
+    }
+    else if (game.introDialogueFinished) {
         if (game.uiFadeOutActive) {
             float fadeProgress = std::min(1.f, game.uiFadeClock.getElapsedTime().asSeconds() / game.uiFadeOutDuration);
             visibility.alphaFactor = 1.f - fadeProgress;

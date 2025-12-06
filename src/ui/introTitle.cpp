@@ -2,7 +2,46 @@
 #include "core/game.hpp"
 #include <algorithm>
 
+bool introTitleDropComplete(const Game& game) {
+    if (!game.titleDropStarted)
+        return false;
+
+    constexpr float firstDropDuration = 1.0f;
+    constexpr float secondDropDelay = 0.15f;
+    constexpr float secondDropDuration = 1.0f;
+
+    float totalDuration = firstDropDuration + secondDropDelay + secondDropDuration;
+    return game.titleDropClock.getElapsedTime().asSeconds() >= totalDuration;
+}
+
+void triggerIntroTitleExit(Game& game) {
+    if(!game.introTitleFadeOutActive && !game.introTitleHidden) {
+        game.introTitleFadeOutActive = true;
+        game.introTitleFadeClock.restart();
+    }
+
+    if (!game.uiFadeInActive) {
+        game.uiFadeInActive = true;
+        game.uiFadeClock.restart();
+        game.startGonadDialoguePending = true;
+    }
+}
+
 void drawIntroTitle(Game& game, sf::RenderTarget& target) {
+    if (game.introTitleHidden)
+        return;
+
+    float globalFade = 1.f;
+    if(game.introTitleFadeOutActive) {
+        float fadeProgress = std::min<float>(1.f, game.introTitleFadeClock.getElapsedTime().asSeconds() / game.introTitleFadeOutDuration);
+        globalFade = 1.f - fadeProgress;
+
+        if (fadeProgress >= 1.f) {
+            game.introTitleFadeOutActive = false;
+            game.introTitleHidden = true;
+            return;
+        }
+    }
     bool backgroundActive = game.backgroundFadeInActive || game.backgroundVisible;
     if (backgroundActive && game.background) {  // <- background existiert?
         float fadeProgress = 1.f;
@@ -26,7 +65,7 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
         }
 
         sf::Color bgColor = game.background->getColor();
-        bgColor.a = static_cast<std::uint8_t>(255.f * fadeProgress);
+        bgColor.a = static_cast<std::uint8_t>(255.f * fadeProgress * globalFade);
         game.background->setColor(bgColor);
 
         target.draw(*game.background);
@@ -84,6 +123,15 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
 
             frontLayer.setPosition(finalPos);
             backLayer.setPosition(finalPos);
+
+            auto applyFade = [&](sf::Text& t) {
+                sf::Color c = t.getFillColor();
+                c.a = static_cast<std::uint8_t>(static_cast<float>(c.a) * globalFade);
+                t.setFillColor(c);
+            };
+
+            applyFade(backLayer);
+            applyFade(frontLayer);
 
             target.draw(backLayer);
             target.draw(frontLayer);

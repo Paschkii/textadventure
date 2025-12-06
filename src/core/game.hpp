@@ -71,10 +71,19 @@ struct Game {
         bool introFadeOutActive = false;
         float introFadeOutDuration = 3.0f;
 
+        bool introTitleFadeOutActive = false;
+        float introTitleFadeOutDuration = 1.0f;
+        bool introTitleHidden = false;
+        sf::Clock introTitleFadeClock;
+
         bool introDialogueFinished = false;
         bool uiFadeOutActive = false;
         float uiFadeOutDuration = 1.0f;
         sf::Clock uiFadeClock;
+
+        bool uiFadeInActive = false;
+        bool startGonadDialoguePending = false;
+        float uiFadeInDuration = 1.0f;
 
         bool backgroundFadeInActive = false;
         bool backgroundVisible = false;
