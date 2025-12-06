@@ -21,6 +21,7 @@ add_executable(textadventure
 
     src/rendering/textColorHelper.cpp
     src/rendering/textLayout.cpp
+    src/rendering/locations.cpp
 
     src/story/textStyles.cpp
 

@@ -21,9 +21,14 @@ void triggerIntroTitleExit(Game& game) {
     }
 
     if (!game.uiFadeInActive) {
-        game.uiFadeInActive = true;
-        game.uiFadeClock.restart();
-        game.startGonadDialoguePending = true;
+        if (game.introTitleHidden) {
+            game.uiFadeInActive = true;
+            game.uiFadeClock.restart();
+            game.startGonadDialoguePending = true;
+        }
+        else {
+            game.uiFadeInQueued = true;
+        }
     }
 }
 
@@ -47,6 +52,13 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
         if (fadeProgress >= 1.f) {
             game.introTitleFadeOutActive = false;
             game.introTitleHidden = true;
+
+            if (game.uiFadeInQueued && !game.uiFadeInActive) {
+                game.uiFadeInQueued = false;
+                game.uiFadeInActive = true;
+                game.uiFadeClock.restart();
+                game.startGonadDialoguePending = true;
+            }
             return;
         }
     }

@@ -3,6 +3,7 @@
 #include "story/dialogInput.hpp"
 #include "dialogDrawElements.hpp"
 #include "story/textStyles.hpp"
+#include "rendering/colorHelper.hpp"
 #include "uiVisibility.hpp"
 
 namespace {
@@ -35,8 +36,20 @@ namespace {
     }
 }
 
-void drawLocationBox(Game&, sf::RenderTarget&) {
-    // TODO: Implement location box rendering.
+void drawLocationBox(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
+    if (!game.currentLocation)
+        return;
+
+    constexpr float kLocationPadding = 16.f;
+    constexpr unsigned int kLocationTextSize = 24;
+
+    sf::Text locationName{ game.resources.uiFont, game.currentLocation->name, kLocationTextSize };
+    locationName.setFillColor(ColorHelper::applyAlphaFactor(game.currentLocation->color, uiAlphaFactor));
+
+    auto boxPos = game.locationBox.getPosition();
+    locationName.setPosition({ boxPos.x + kLocationPadding, boxPos.y + kLocationPadding });
+
+    target.draw(locationName);
 }
 
 void drawDialogueUI(Game& game, sf::RenderTarget& target) {
@@ -50,7 +63,7 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target) {
     float glowElapsedSeconds = game.uiGlowClock.getElapsedTime().asSeconds();
 
     dialogDraw::drawDialogueFrames(game, target, uiAlphaFactor, glowElapsedSeconds);
-    drawLocationBox(game, target);
+    drawLocationBox(game, target, uiAlphaFactor);
 
     if (!game.currentDialogue || game.dialogueIndex >= game.currentDialogue->size())
         return;

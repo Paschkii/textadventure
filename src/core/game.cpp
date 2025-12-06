@@ -23,6 +23,8 @@ Game::Game()
     returnSprite.emplace(resources.returnSymbol);
     returnSprite->setColor(sf::Color(160, 160, 160));
 
+    locations = Locations::buildLocations(resources);
+
     textBlipSound.emplace(resources.typewriter);
     enterSound.emplace(resources.enterKey);
     // === Framerate limitieren ===
@@ -54,7 +56,7 @@ void Game::updateLayout() {
     float boxHeight = h * 0.25f;    // beide Boxen: 25% Höhe (180)
     float nameWidth = w * 0.20f;    // NameBox: 20% Breite (256)
     float textWidth = w * 0.70f;    // TextBox: 70% Breite (896)
-    float locationWidth = w * 0.30f; // LocationBox 30% Breite
+    float locationWidth = w * 0.20f; // LocationBox 30% Breite
 
     // === NameBox: links unten, 5% Abstand ===
     nameBox.setSize({ nameWidth, boxHeight });

@@ -13,18 +13,19 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
         visibility.alphaFactor = fadeProgress;
 
         if (fadeProgress >= 1.f) {
-            game.uiFadeInActive = false;
+                game.uiFadeInActive = false;
 
-            if (game.startGonadDialoguePending) {
-                game.startGonadDialoguePending = false;
-                game.currentDialogue = &gonad;
-                game.dialogueIndex = 0;
-                game.visibleText.clear();
-                game.charIndex = 0;
-                game.typewriterClock.restart();
-                game.introDialogueFinished = false;
-                game.state = GameState::Dialogue;
-            }
+                if (game.startGonadDialoguePending) {
+                    game.startGonadDialoguePending = false;
+                    game.currentDialogue = &gonad;
+                    game.dialogueIndex = 0;
+                    game.visibleText.clear();
+                    game.charIndex = 0;
+                    game.typewriterClock.restart();
+                    game.introDialogueFinished = false;
+                    game.state = GameState::Dialogue;
+                    game.currentLocation = Locations::findById(game.locations, LocationId::Gonad);
+                }
         }
     }
     else if (game.introDialogueFinished) {

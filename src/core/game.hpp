@@ -12,6 +12,7 @@
 #include "resources/resources.hpp"
 #include "core/state.hpp"
 #include "story/textStyles.hpp"
+#include "rendering/locations.hpp"
 
 struct Game {
     Game();
@@ -81,6 +82,7 @@ struct Game {
         float uiFadeOutDuration = 1.0f;
         sf::Clock uiFadeClock;
 
+        bool uiFadeInQueued = false;
         bool uiFadeInActive = false;
         bool startGonadDialoguePending = false;
         float uiFadeInDuration = 1.0f;
@@ -92,4 +94,7 @@ struct Game {
         bool titleDropStarted = false;
         bool titleDropComplete = false;
         sf::Clock titleDropClock;
+
+        std::vector<Location> locations;
+        const Location* currentLocation = nullptr;
 };
