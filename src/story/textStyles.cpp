@@ -58,6 +58,7 @@ namespace TextStyles {
                 return { "Gustavo Windimaess", sf::Color::Green };
             case SpeakerId::EarthDragon:
                 return { "Grounded Claymore", brown };
+            case SpeakerId::Unknown:
             default:
                 return { "", sf::Color::White };
         }

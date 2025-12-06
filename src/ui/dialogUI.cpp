@@ -5,6 +5,7 @@
 #include "rendering/textColorHelper.hpp"
 #include "rendering/textLayout.hpp"
 #include "story/textStyles.hpp"
+#include "uiVisibility.hpp"
 
 namespace {
     constexpr float kNameBoxTextOffset = 20.f;
@@ -22,29 +23,13 @@ void drawLocationBox(Game&, sf::RenderTarget&) {
 }
 
 void drawDialogueUI(Game& game, sf::RenderTarget& target) {
-    float uiAlphaFactor = 1.f;
-    bool hideUI = false;
+    UiElementMask visibilityMask = UiElement::TextBox | UiElement::NameBox | UiElement::LocationBox | UiElement::IntroTitle;
+    UiVisibility visibility = computeUiVisibility(game, visibilityMask);
 
-    if (game.introDialogueFinished) {
-        if (game.uiFadeOutActive) {
-            float fadeProgress = std::min(1.f, game.uiFadeClock.getElapsedTime().asSeconds() / game.uiFadeOutDuration);
-            uiAlphaFactor = 1.f - fadeProgress;
-
-            if (fadeProgress >= 1.f) {
-                game.uiFadeOutActive = false;
-                hideUI = true;
-                if (!game.backgroundFadeInActive && !game.backgroundVisible) {
-                    game.backgroundFadeInActive = true;
-                    game.backgroundFadeClock.restart();
-                }
-            }
-        } else {
-            hideUI = true;
-        }
-    }
-
-    if (hideUI)
+    if (visibility.hidden)
         return;
+
+    float uiAlphaFactor = visibility.alphaFactor;
 
     float t = game.uiGlowClock.getElapsedTime().asSeconds();
     float flicker = (std::sin(t * 25.f) + std::sin(t * 41.f)) * 0.25f;

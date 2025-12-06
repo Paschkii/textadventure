@@ -46,9 +46,9 @@ std::vector<ColoredTextSegment> buildColoredSegments(const std::string& text) {
         return segments;
 
     const std::array<TextStyles::SpeakerId, 8> speakersToColor{
-        TextStyles::SpeakerId::Narrator,
         TextStyles::SpeakerId::StoryTeller,
-        TextStyles::SpeakerId::NoName,
+        TextStyles::SpeakerId::NoNameNPC,
+        TextStyles::SpeakerId::VillageNPC,
         TextStyles::SpeakerId::Player,
         TextStyles::SpeakerId::FireDragon,
         TextStyles::SpeakerId::WaterDragon,
