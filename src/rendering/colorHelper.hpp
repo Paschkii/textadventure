@@ -41,6 +41,11 @@ namespace ColorHelper {
         return c;
     }
 
+    inline sf::Color applyAlphaFactor(sf::Color color, float factor) {
+        color.a = static_cast<std::uint8_t>(static_cast<float>(color.a) * factor);
+        return color;
+    }
+
     inline sf::Color darken(sf::Color c, float amount) {
         amount = std::clamp(amount, 0.f, 1.f);
         c.r = static_cast<std::uint8_t>(c.r * (1.f - amount));

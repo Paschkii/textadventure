@@ -11,6 +11,7 @@ add_executable(textadventure
 
     src/ui/introScreen.cpp
     src/ui/introTitle.cpp
+    src/ui/dialogDrawElements.cpp
     src/ui/dialogUI.cpp
     src/ui/uiEffects.cpp
     src/ui/uiVisibility.cpp
