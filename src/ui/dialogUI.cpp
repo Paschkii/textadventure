@@ -38,27 +38,29 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target) {
     float uiAlphaFactor = visibility.alphaFactor;
 
     // UI Flicker Effect
-    float glowAlpha = uiEffects::computeFlickerAlpha(
-        game.uiGlowClock.getElapsedTime().asSeconds(),
+    float glowElapsedSeconds = game.uiGlowClock.getElapsedTime().asSeconds();
+
+    sf::Color glowColor = uiEffects::computeGlowColor(
+        ColorHelper::Palette::BlueLight,
+        glowElapsedSeconds,
+        uiAlphaFactor,
         140.f,
         30.f,
         { 25.f, 41.f }
     );
 
-    sf::Color glowColor = TextStyles::UI::PanelLight;
-    glowColor.a = static_cast<std::uint8_t>(glowAlpha);
-    glowColor = applyAlpha(glowColor, uiAlphaFactor);
-
-    game.uiFrame.drawScaled(
+    uiEffects::drawGlowFrame(
         target,
+        game.uiFrame,
         game.textBox.getPosition(),
         game.textBox.getSize(),
         glowColor,
         2.f
     );
 
-    game.uiFrame.drawScaled(
+    uiEffects::drawGlowFrame(
         target,
+        game.uiFrame,
         game.nameBox.getPosition(),
         game.nameBox.getSize(),
         glowColor,
