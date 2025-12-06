@@ -31,6 +31,12 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
     if (game.introTitleHidden)
         return;
 
+    if (!game.titleDropStarted && game.state == GameState::IntroTitle) {
+        game.titleDropStarted = true;
+        game.titleDropComplete = false;
+        game.titleDropClock.restart();
+    }
+
     float globalFade = 1.f;
     if(game.introTitleFadeOutActive) {
         float fadeProgress = std::min<float>(1.f, game.introTitleFadeClock.getElapsedTime().asSeconds() / game.introTitleFadeOutDuration);
@@ -159,12 +165,6 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
         game.titleDropComplete = true;
         game.introPromptVisible = true;
         game.introPromptBlinkClock.restart();
-    }
-
-    if (game.backgroundVisible && !game.titleDropStarted) {
-        game.titleDropStarted = true;
-        game.titleDropComplete = false;
-        game.titleDropClock.restart();
     }
 
     if (game.titleDropComplete) {

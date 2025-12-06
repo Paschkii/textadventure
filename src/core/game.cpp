@@ -103,7 +103,7 @@ void Game::run() {
             if (auto key = event->getIf<sf::Event::KeyReleased>()) {
                 if (key->scancode == sf::Keyboard::Scan::Enter) {
 
-                    if (state == GameState::IntroTitle && !titleDropComplete)
+                    if (state == GameState::IntroTitle && titleDropStarted && !introTitleDropComplete(*this))
                         continue;
 
                     enterSound->stop();
