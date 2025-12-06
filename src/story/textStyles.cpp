@@ -23,11 +23,11 @@ namespace TextStyles {
             return SpeakerId::Player;
 
         if (equalsIgnoreCase(name, "Tory Tailor"))
-            return SpeakerId::Narrator;
+            return SpeakerId::StoryTeller;
         if (equalsIgnoreCase(name, "?????"))
-            return SpeakerId::NoName;
+            return SpeakerId::NoNameNPC;
         if (equalsIgnoreCase(name, "Noah Lott"))
-            return SpeakerId::NoahLott;
+            return SpeakerId::VillageNPC;
         if (equalsIgnoreCase(name, "Rowsted Sheacane"))
             return SpeakerId::FireDragon;
         if (equalsIgnoreCase(name, "Flawtin Seamen"))
@@ -42,14 +42,11 @@ namespace TextStyles {
 
     SpeakerStyle speakerStyle(SpeakerId speaker) {
         switch (speaker) {
-            case SpeakerId::Narrator:
             case SpeakerId::StoryTeller:
-            case SpeakerId::NoNameNPC:
-            case SpeakerId::VillageNPC:
                 return { "Tory Tailor", purpleblue };
-            case SpeakerId::NoName:
+            case SpeakerId::NoNameNPC:
                 return { "?????", purpleblue };
-            case SpeakerId::NoahLott:
+            case SpeakerId::VillageNPC:
                 return { "Noah Lott", purpleblue };
             case SpeakerId::Player:
                 return { playerDisplayName, sf::Color::Cyan };

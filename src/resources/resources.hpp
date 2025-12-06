@@ -14,12 +14,12 @@ struct Resources {
     // Textures
     sf::Texture introBackground; // Background
     sf::Texture returnSymbol; // Blinking return Symbol
-    sf::Texture boxBorder;
+    sf::Texture boxBorder; // Box Asset
     // Character Textures
-    sf::Texture air_dragon; // Air Dragon Texture
-    sf::Texture earth_dragon; // Earth Dragon Texture
-    sf::Texture fire_dragon; // Fire Dragon Texture
-    sf::Texture water_dragon; // Water Dragon Texture
+    sf::Texture airDragon; // Air Dragon Texture
+    sf::Texture earthDragon; // Earth Dragon Texture
+    sf::Texture fireDragon; // Fire Dragon Texture
+    sf::Texture waterDragon; // Water Dragon Texture
     // Map Textures
     sf::Texture locationGonadColored; // Gonad
     sf::Texture locationGonadSepia; // Gonad
@@ -36,11 +36,11 @@ struct Resources {
     sf::Texture mapBackground; // Map Background
 
     // Sound Buffers
-    sf::SoundBuffer typewriter; // Typewriter Sound -> isTyping
-    sf::SoundBuffer enterKey; // Sound played when Enter Key is pressed
     sf::SoundBuffer acquire; // Sound played, when aquiring items
     sf::SoundBuffer confirm; // Sound played, when confirming choices
+    sf::SoundBuffer enterKey; // Sound played when Enter Key is pressed
+    sf::SoundBuffer typewriter; // Typewriter Sound » isTyping
 
-    // Zentraler Loader
+    // Central Loader
     bool loadAll();
 };

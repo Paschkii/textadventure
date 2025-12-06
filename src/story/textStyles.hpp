@@ -8,11 +8,8 @@ namespace TextStyles {
 enum class SpeakerId {
     Unknown,
     Player,
-    Narrator,
     StoryTeller,
-    NoName,
     NoNameNPC,
-    NoahLott,
     VillageNPC,
     FireDragon,
     WaterDragon,

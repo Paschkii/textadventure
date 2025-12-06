@@ -9,7 +9,7 @@
 
 namespace ColorHelper {
     // ----------------------------------------------------------
-    //  HEX → sf::Color
+    //  HEX » sf::Color
     // ----------------------------------------------------------
     inline sf::Color hex(const std::string& code)
     {
@@ -79,7 +79,6 @@ namespace ColorHelper {
     // ----------------------------------------------------------
     //  VORDEFINIERTE PALETTEN
     // ----------------------------------------------------------
-
     namespace Palette {
         static const sf::Color Purple   = sf::Color(0xC1,0xA1,0xFF);
         static const sf::Color Blue     = sf::Color(0xA0,0xD7,0xFF);
