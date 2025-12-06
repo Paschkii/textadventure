@@ -1,11 +1,11 @@
 #include "dialogUI.hpp"
 #include <algorithm>
-#include <cmath>
 #include "story/dialogInput.hpp"
 #include "rendering/textColorHelper.hpp"
 #include "rendering/textLayout.hpp"
 #include "story/textStyles.hpp"
 #include "uiVisibility.hpp"
+#include "uiEffects.hpp"
 
 namespace {
     constexpr float kNameBoxTextOffset = 20.f;
@@ -23,7 +23,13 @@ void drawLocationBox(Game&, sf::RenderTarget&) {
 }
 
 void drawDialogueUI(Game& game, sf::RenderTarget& target) {
-    UiElementMask visibilityMask = UiElement::TextBox | UiElement::NameBox | UiElement::LocationBox | UiElement::IntroTitle;
+
+    // UI Visibility
+    UiElementMask visibilityMask =
+    UiElement::TextBox
+    | UiElement::NameBox
+    | UiElement::LocationBox
+    | UiElement::IntroTitle;
     UiVisibility visibility = computeUiVisibility(game, visibilityMask);
 
     if (visibility.hidden)
@@ -31,13 +37,16 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target) {
 
     float uiAlphaFactor = visibility.alphaFactor;
 
-    float t = game.uiGlowClock.getElapsedTime().asSeconds();
-    float flicker = (std::sin(t * 25.f) + std::sin(t * 41.f)) * 0.25f;
-
-    float alpha = 140.f + flicker * 30.f;
+    // UI Flicker Effect
+    float glowAlpha = uiEffects::computeFlickerAlpha(
+        game.uiGlowClock.getElapsedTime().asSeconds(),
+        140.f,
+        30.f,
+        { 25.f, 41.f }
+    );
 
     sf::Color glowColor = TextStyles::UI::PanelLight;
-    glowColor.a = static_cast<std::uint8_t>(std::clamp(alpha, 0.f, 255.f));
+    glowColor.a = static_cast<std::uint8_t>(glowAlpha);
     glowColor = applyAlpha(glowColor, uiAlphaFactor);
 
     game.uiFrame.drawScaled(
