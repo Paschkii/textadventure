@@ -44,6 +44,14 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
     if (game.introDialogueFinished)
         return;
 
+    auto startDialogue = [&](const std::vector<DialogueLine>* nextDialogue) {
+        game.currentDialogue = nextDialogue;
+        game.dialogueIndex = 0;
+        game.visibleText.clear();
+        game.charIndex = 0;
+        game.typewriterClock.restart();
+    };
+
     auto* dialog = game.currentDialogue;
     std::size_t count = dialog ? dialog->size() : 0;
     std::string processed = injectSpeakerNames(line.text, game);
@@ -101,6 +109,15 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
         game.introDialogueFinished = true;
         game.uiFadeOutActive = true;
         game.uiFadeClock.restart();
+    }
+    else if (game.currentDialogue == &gonad) {
+        startDialogue(&weapon);
+    }
+    else if (game.currentDialogue == &weapon) {
+        startDialogue(&dragon);
+    }
+    else if (game.currentDialogue == &dragon) {
+        startDialogue(&destination);
     }
 }
 

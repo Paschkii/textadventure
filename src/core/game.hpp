@@ -7,6 +7,7 @@
 #include <optional>
 #include <memory>
 #include <cmath>
+#include <vector>
 #include "story/storyIntro.hpp"
 #include "ui/nineSliceBox.hpp"
 #include "resources/resources.hpp"
@@ -15,6 +16,20 @@
 #include "rendering/locations.hpp"
 
 struct Game {
+    struct WeaponOption {
+        sf::Texture texture;
+        std::optional<sf::Sprite> sprite;
+        std::string displayName;
+        sf::FloatRect bounds;
+        sf::Vector2f labelPosition;
+
+        WeaponOption() = default;
+        WeaponOption(WeaponOption&&) noexcept = default;
+        WeaponOption& operator=(WeaponOption&&) noexcept = default;
+        WeaponOption(const WeaponOption&) = delete;
+        WeaponOption& operator=(const WeaponOption&) = delete;
+    };
+
     Game();
     void run();
     void updateLayout();
@@ -34,6 +49,7 @@ struct Game {
         sf::RectangleShape nameBox;
         sf::RectangleShape textBox;
         sf::RectangleShape locationBox;
+        sf::RectangleShape weaponPanel;
         NineSliceBox uiFrame{12};
 
         std::optional<sf::Sprite> background;
@@ -97,4 +113,12 @@ struct Game {
 
         std::vector<Location> locations;
         const Location* currentLocation = nullptr;
+
+        std::vector<WeaponOption> weaponOptions;
+        int hoveredWeaponIndex = -1;
+        int selectedWeaponIndex = -1;
+
+    private:
+        void loadWeaponOptions();
+        void layoutWeaponSelection();
 };

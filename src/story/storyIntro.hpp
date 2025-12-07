@@ -30,14 +30,18 @@ inline const std::vector<DialogueLine> gonad = {
     { Speaker::VillageNPC, "So it was an easy guess for me!" },
 };
 
+inline const std::vector<DialogueLine> weapon = {
+    { Speaker::VillageNPC, "Oh! And I found this weapon beside your body. Can you tell me its name?" }
+};
+
 inline const std::vector<DialogueLine> dragon = {
     { Speaker::VillageNPC, "You have to ask the dragons for their help. These are the 4 dragons:" },
     { Speaker::VillageNPC, "Rowsted Sheacane - The Fire Dragon" },
     { Speaker::VillageNPC, "This is the hottest temper among the Four, burning through every room he enters." },
-    { Speaker::VillageNPC, "His tongue is thick-rolled and smoky, spitting sounds like crackling embers — every “R“ erupts like a small wildfire." },
+    { Speaker::VillageNPC, "His tongue is thick-rolled and smoky, spitting sounds like crackling embers - every R erupts like a small wildfire." },
     { Speaker::VillageNPC, "Blunt, heavy, and scorching, his words hit with the heat of molten iron." },
     { Speaker::VillageNPC, "Flawtin Seamen - The Water Dragon" },
-    { Speaker::VillageNPC, "Calm on the surface, tidal underneath — he carries the quiet weight of deep waters." },
+    { Speaker::VillageNPC, "Calm on the surface, tidal underneath - he carries the quiet weight of deep waters." },
     { Speaker::VillageNPC, "His tongue is sharp, crisp, and clean-cut, with consonants hitting like droplets on metal." },
     { Speaker::VillageNPC, "Every sentence flows steady and precise, like a cold stream running over polished stone." },
     { Speaker::VillageNPC, "Grounded Claymore - The Earth Dragon" },
@@ -45,13 +49,9 @@ inline const std::vector<DialogueLine> dragon = {
     { Speaker::VillageNPC, "His tongue is broad, relaxed, and gravel-warm, sliding through words with a slow drawl that rumbles like shifting earth." },
     { Speaker::VillageNPC, "He speaks in solid chunks, every syllable dropping like a stone." },
     { Speaker::VillageNPC, "Gustavo Windimaess - The Air Dragon" },
-    { Speaker::VillageNPC, "Lively, airy, and constantly in motion — the breeze itself can’t keep up with him." },
+    { Speaker::VillageNPC, "Lively, airy, and constantly in motion - the breeze itself can't keep up with him." },
     { Speaker::VillageNPC, "His tongue is melodic, rolling, and feather-light, dancing through vowels like swirling gusts." },
     { Speaker::VillageNPC, "Every phrase rises and falls like a warm Mediterranean wind." },
-};
-
-inline const std::vector<DialogueLine> weapon = {
-    { Speaker::VillageNPC, "I found this weapon beside your body. Can you tell me its name?" }
 };
 
 inline const std::vector<DialogueLine> destination = {
