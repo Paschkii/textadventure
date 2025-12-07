@@ -94,16 +94,22 @@ bool Resources::loadAll()
     //       === Sounds ===
     // ---------------------------
     if (!acquire.loadFromFile("assets/audio/acquire.wav")) { // Acquiring Item
-        std::cout << "Failed to load typewriter\n"; return false;
+        std::cout << "Failed to load Acquire Sound\n"; return false;
     }
-    if (!confirm.loadFromFile("assets/audio/confirm.wav")) { // Confirm Choice
-        std::cout << "Failed to load typewriter\n"; return false;
+    if (!confirm.loadFromFile("assets/audio/confirm.mp3")) { // Confirm Choice
+        std::cout << "Failed to load Confirm Sound\n"; return false;
     }
     if (!enterKey.loadFromFile("assets/audio/enterKey.wav")) { // Pressing Enter Key
-        std::cout << "Failed to load typewriter\n"; return false;
+        std::cout << "Failed to load Enter Key Sound\n"; return false;
     }
     if (!typewriter.loadFromFile("assets/audio/typewriter.mp3")) { // isTyping Sound
-        std::cout << "Failed to load typewriter\n"; return false;
+        std::cout << "Failed to load Typewriter Sound\n"; return false;
+    }
+    if (!reject.loadFromFile("assets/audio/reject.mp3")) { // Reject Choice
+        std::cout << "Failed to load Reject Sound\n"; return false;
+    }
+    if (!startGame.loadFromFile("assets/audio/startGame.wav")) { // Start Game
+        std::cout << "Failed to load Start Game Sound\n"; return false;
     }
 
     return true;

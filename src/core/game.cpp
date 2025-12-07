@@ -52,6 +52,7 @@ Game::Game()
     currentDialogue = &intro;
 
     loadWeaponOptions();
+    loadDragonPortraits();
 }
 
 // === Layout updaten je nach Fenstergröße ===
@@ -98,6 +99,7 @@ void Game::updateLayout() {
     uiFrame.load("assets/textures/boxborder.png");
 
     layoutWeaponSelection();
+    layoutDragonPortraits();
 }
 
 
@@ -289,6 +291,81 @@ void Game::layoutWeaponSelection() {
         option.bounds = sprite.getGlobalBounds();
 
         option.labelPosition = {
+            slotCenterX,
+            weaponPanel.getPosition().y + padding + spriteAreaHeight + 4.f
+        };
+    }
+}
+
+void Game::loadDragonPortraits() {
+    dragonPortraits.clear();
+
+    struct PortraitInfo {
+        const sf::Texture* texture;
+        std::string name;
+    };
+
+    const std::vector<PortraitInfo> portraits = {
+        { &resources.fireDragon, "Rowsted Sheacane" },
+        { &resources.waterDragon, "Flawtin Seamen" },
+        { &resources.earthDragon, "Grounded Claymore" },
+        { &resources.airDragon, "Gustavo Windimaess" }
+    };
+
+    dragonPortraits.reserve(portraits.size());
+
+    for (const auto& portrait : portraits) {
+        if (!portrait.texture)
+            continue;
+
+        dragonPortraits.emplace_back();
+        auto& entry = dragonPortraits.back();
+        entry.displayName = portrait.name;
+        entry.sprite.setTexture(*portrait.texture);
+    }
+}
+
+void Game::layoutDragonPortraits() {
+    if (dragonPortraits.empty())
+        return;
+
+    constexpr float padding = 24.f;
+    constexpr float labelHeight = 32.f;
+
+    float availableWidth = weaponPanel.getSize().x - (padding * 2.f);
+    float availableHeight = weaponPanel.getSize().y - (padding * 2.f) - labelHeight;
+
+    if (availableWidth <= 0.f || availableHeight <= 0.f)
+        return;
+
+    float slotWidth = availableWidth / static_cast<float>(dragonPortraits.size());
+    float spriteAreaHeight = availableHeight;
+
+    for (std::size_t i = 0; i < dragonPortraits.size(); ++i) {
+        auto& entry = dragonPortraits[i];
+        float slotCenterX = weaponPanel.getPosition().x + padding + (slotWidth * (static_cast<float>(i) + 0.5f));
+        float spriteCenterY = weaponPanel.getPosition().y + padding + (spriteAreaHeight * 0.5f);
+
+        const sf::Texture& texture = entry.sprite.getTexture();
+
+        entry.sprite.setScale({ 1.f, 1.f });
+        auto texSize = texture.getSize();
+        float scaleX = (slotWidth * 0.7f) / static_cast<float>(texSize.x);
+        float scaleY = (spriteAreaHeight * 0.8f) / static_cast<float>(texSize.y);
+        float scale = std::min(scaleX, scaleY);
+        entry.baseScale = scale;
+        entry.sprite.setScale({ scale, scale });
+
+        auto localBounds = entry.sprite.getLocalBounds();
+        entry.sprite.setOrigin({
+            localBounds.position.x + (localBounds.size.x / 2.f),
+            localBounds.position.y + (localBounds.size.y / 2.f)
+        });
+        entry.centerPosition = { slotCenterX, spriteCenterY };
+        entry.sprite.setPosition(entry.centerPosition);
+        entry.bounds = entry.sprite.getGlobalBounds();
+
+        entry.labelPosition = {
             slotCenterX,
             weaponPanel.getPosition().y + padding + spriteAreaHeight + 4.f
         };

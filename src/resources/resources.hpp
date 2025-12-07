@@ -40,6 +40,8 @@ struct Resources {
     sf::SoundBuffer confirm; // Sound played, when confirming choices
     sf::SoundBuffer enterKey; // Sound played when Enter Key is pressed
     sf::SoundBuffer typewriter; // Typewriter Sound » isTyping
+    sf::SoundBuffer reject; // Sound played when rejecting choices
+    sf::SoundBuffer startGame; // Sound played when starting the Game
 
     // Central Loader
     bool loadAll();

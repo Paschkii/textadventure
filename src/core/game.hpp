@@ -31,6 +31,15 @@ struct Game {
         WeaponOption& operator=(const WeaponOption&) = delete;
     };
 
+    struct DragonPortrait {
+        sf::Sprite sprite;
+        std::string displayName;
+        sf::FloatRect bounds;
+        sf::Vector2f labelPosition;
+        sf::Vector2f centerPosition;
+        float baseScale = 1.f;
+    };
+
     Game();
     void run();
     void updateLayout();
@@ -125,7 +134,11 @@ struct Game {
         int hoveredWeaponIndex = -1;
         int selectedWeaponIndex = -1;
 
+        std::vector<DragonPortrait> dragonPortraits;
+
     private:
         void loadWeaponOptions();
         void layoutWeaponSelection();
+        void loadDragonPortraits();
+        void layoutDragonPortraits();
 };
