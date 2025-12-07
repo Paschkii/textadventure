@@ -14,6 +14,7 @@ namespace dialogDraw {
         , sf::RenderTarget& target
         , float uiAlphaFactor
         , float glowElapsedSeconds
+        , bool showLocationBox
     );
     void drawSpeakerName(
         sf::RenderTarget& target

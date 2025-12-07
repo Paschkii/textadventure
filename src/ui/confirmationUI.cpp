@@ -35,8 +35,11 @@ namespace {
         bool isHovered,
         float uiAlphaFactor
     ) {
-        sf::Color baseColor = isPrimary ? ColorHelper::Palette::Green : TextStyles::UI::PanelDark;
-        sf::Color outlineColor = isPrimary ? ColorHelper::Palette::Green : ColorHelper::Palette::BlueLight;
+        sf::Color baseColor = TextStyles::UI::PanelDark;
+        sf::Color outlineColor = ColorHelper::Palette::Amber;
+
+        if (isHovered)
+            baseColor = isPrimary ? ColorHelper::Palette::Green : sf::Color::Red;
 
         baseColor = ColorHelper::applyAlphaFactor(baseColor, uiAlphaFactor * (isHovered ? 0.9f : 0.7f));
         outlineColor = ColorHelper::applyAlphaFactor(outlineColor, uiAlphaFactor);

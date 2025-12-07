@@ -17,6 +17,7 @@ namespace dialogDraw {
         , sf::RenderTarget& target
         , float uiAlphaFactor
         , float glowElapsedSeconds
+        , bool showLocationBox
     )
     {
         sf::Color glowColor = uiEffects::computeGlowColor(
@@ -46,19 +47,22 @@ namespace dialogDraw {
             2.f
         );
 
-        uiEffects::drawGlowFrame(
-            target,
-            game.uiFrame,
-            game.locationBox.getPosition(),
-            game.locationBox.getSize(),
-            glowColor,
-            2.f
-        );
+        if (showLocationBox) {
+            uiEffects::drawGlowFrame(
+                target,
+                game.uiFrame,
+                game.locationBox.getPosition(),
+                game.locationBox.getSize(),
+                glowColor,
+                2.f
+            );
+        }
 
         sf::Color frameColor = ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor);
         game.uiFrame.draw(target, game.nameBox, frameColor);
         game.uiFrame.draw(target, game.textBox, frameColor);
-        game.uiFrame.draw(target, game.locationBox, frameColor);
+        if (showLocationBox)
+            game.uiFrame.draw(target, game.locationBox, frameColor);
     }
 
     void drawSpeakerName(

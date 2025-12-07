@@ -1,6 +1,7 @@
 #include "dialogUI.hpp"
 #include <algorithm>
 #include "story/dialogInput.hpp"
+#include "story/storyIntro.hpp"
 #include "dialogDrawElements.hpp"
 #include "story/textStyles.hpp"
 #include "rendering/colorHelper.hpp"
@@ -12,7 +13,6 @@ namespace {
         UiElementMask visibilityMask =
             UiElement::TextBox
             | UiElement::NameBox
-            | UiElement::LocationBox
             | UiElement::IntroTitle;
 
         return computeUiVisibility(game, visibilityMask);
@@ -41,14 +41,25 @@ void drawLocationBox(Game& game, sf::RenderTarget& target, float uiAlphaFactor) 
     if (!game.currentLocation)
         return;
 
-    constexpr float kLocationPadding = 16.f;
-    constexpr unsigned int kLocationTextSize = 24;
+    constexpr unsigned int kLocationTextSize = 32;
+    constexpr float kLocationOutlineThickness = 1.f;
 
     sf::Text locationName{ game.resources.uiFont, game.currentLocation->name, kLocationTextSize };
     locationName.setFillColor(ColorHelper::applyAlphaFactor(game.currentLocation->color, uiAlphaFactor));
+    locationName.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor));
+    locationName.setOutlineThickness(kLocationOutlineThickness);
 
     auto boxPos = game.locationBox.getPosition();
-    locationName.setPosition({ boxPos.x + kLocationPadding, boxPos.y + kLocationPadding });
+    auto boxSize = game.locationBox.getSize();
+    sf::Vector2f boxCenter{ boxPos.x + (boxSize.x / 2.f), boxPos.y + (boxSize.y / 2.f) };
+
+    auto textBounds = locationName.getLocalBounds();
+    sf::Vector2f origin{
+        textBounds.position.x + (textBounds.size.x / 2.f),
+        textBounds.position.y + (textBounds.size.y / 2.f)
+    };
+    locationName.setOrigin(origin);
+    locationName.setPosition(boxCenter);
 
     target.draw(locationName);
 }
@@ -63,8 +74,12 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target) {
     float uiAlphaFactor = visibility.alphaFactor;
     float glowElapsedSeconds = game.uiGlowClock.getElapsedTime().asSeconds();
 
-    dialogDraw::drawDialogueFrames(game, target, uiAlphaFactor, glowElapsedSeconds);
-    drawLocationBox(game, target, uiAlphaFactor);
+    bool showLocationBox = game.currentDialogue != &intro;
+
+    dialogDraw::drawDialogueFrames(game, target, uiAlphaFactor, glowElapsedSeconds, showLocationBox);
+
+    if (showLocationBox)
+        drawLocationBox(game, target, uiAlphaFactor);
 
     if (!game.currentDialogue || game.dialogueIndex >= game.currentDialogue->size())
         return;
