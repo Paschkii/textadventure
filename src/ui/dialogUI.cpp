@@ -70,27 +70,29 @@ namespace {
             { 25.f, 41.f }
         );
 
-        uiEffects::drawGlowFrame(
-            target,
-            game.uiFrame,
-            game.weaponPanel.getPosition(),
-            game.weaponPanel.getSize(),
-            glowColor,
-            2.f
-        );
+        auto highlighted = highlightedDragonIndex(game);
 
-        sf::Color frameColor = ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor);
-        game.uiFrame.draw(target, game.weaponPanel, frameColor);
+        // Wenn ein Drache hervorgehoben ist, sollen keine Rahmen (Glow / Panel) gezeichnet werden.
+        if (!highlighted) {
+            uiEffects::drawGlowFrame(
+                target,
+                game.uiFrame,
+                game.weaponPanel.getPosition(),
+                game.weaponPanel.getSize(),
+                glowColor,
+                2.f
+            );
+
+            sf::Color frameColor = ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor);
+            game.uiFrame.draw(target, game.weaponPanel, frameColor);
+        }
 
         constexpr float labelSize = 22.f;
         constexpr float outlinePadding = 6.f;
 
-        auto highlighted = highlightedDragonIndex(game);
-
         for (std::size_t i = 0; i < game.dragonPortraits.size(); ++i) {
             auto& portrait = game.dragonPortraits[i];
-
-            float scaleMultiplier = (highlighted && *highlighted == i) ? 1.1f : 1.f;
+            float scaleMultiplier = (highlighted && *highlighted == i) ? 1.2f : 1.f;
             portrait.sprite.setScale({ portrait.baseScale * scaleMultiplier, portrait.baseScale * scaleMultiplier });
             portrait.sprite.setPosition(portrait.centerPosition);
 
@@ -99,15 +101,7 @@ namespace {
             portrait.sprite.setColor(spriteColor);
             target.draw(portrait.sprite);
 
-            if (highlighted && *highlighted == i) {
-                auto bounds = portrait.sprite.getGlobalBounds();
-                sf::RectangleShape outline({ bounds.size.x + (outlinePadding * 2.f), bounds.size.y + (outlinePadding * 2.f) });
-                outline.setPosition({ bounds.position.x - outlinePadding, bounds.position.y - outlinePadding });
-                outline.setFillColor(sf::Color::Transparent);
-                outline.setOutlineColor(ColorHelper::applyAlphaFactor(sf::Color::White, uiAlphaFactor));
-                outline.setOutlineThickness(3.f);
-                target.draw(outline);
-            }
+            // Kein zusätzliches Portrait-Rahmen mehr anzeigen, wenn hervorgehoben.
 
             sf::Text label{ game.resources.titleFont, portrait.displayName, static_cast<unsigned int>(labelSize) };
             label.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, uiAlphaFactor));

@@ -107,11 +107,19 @@ bool handleConfirmationEvent(Game& game, const sf::Event& event) {
 
         sf::Vector2f clickPos = game.window.mapPixelToCoords(button->position);
         if (game.confirmationPrompt.yesBounds.contains(clickPos)) {
+            if (game.confirmSound) {
+                game.confirmSound->stop();
+                game.confirmSound->play();
+            }
             hideConfirmationPrompt(game);
             if (game.confirmationPrompt.onConfirm)
                 game.confirmationPrompt.onConfirm(game);
         }
         else if (game.confirmationPrompt.noBounds.contains(clickPos)) {
+            if (game.rejectSound) {
+                game.rejectSound->stop();
+                game.rejectSound->play();
+            }
             hideConfirmationPrompt(game);
             if (game.confirmationPrompt.onCancel)
                 game.confirmationPrompt.onCancel(game);
@@ -119,20 +127,7 @@ bool handleConfirmationEvent(Game& game, const sf::Event& event) {
         return true;
     }
 
-    if (auto key = event.getIf<sf::Event::KeyReleased>()) {
-        if (key->scancode == sf::Keyboard::Scan::Enter) {
-            hideConfirmationPrompt(game);
-            if (game.confirmationPrompt.onConfirm)
-                game.confirmationPrompt.onConfirm(game);
-            return true;
-        }
-        if (key->scancode == sf::Keyboard::Scan::Escape) {
-            hideConfirmationPrompt(game);
-            if (game.confirmationPrompt.onCancel)
-                game.confirmationPrompt.onCancel(game);
-            return true;
-        }
-    }
+    // Confirmation UI should only be controllable via mouse clicks.
 
     return false;
 }

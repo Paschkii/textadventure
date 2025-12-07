@@ -30,6 +30,8 @@ Game::Game()
 
     textBlipSound.emplace(resources.typewriter);
     enterSound.emplace(resources.enterKey);
+    confirmSound.emplace(resources.confirm);
+    rejectSound.emplace(resources.reject);
     // === Framerate limitieren ===
     window.setFramerateLimit(fpsLimit);
     // === NameBox Style setzen ===
@@ -136,6 +138,10 @@ void Game::run() {
 
             if (auto key = event->getIf<sf::Event::KeyReleased>()) {
                 if (key->scancode == sf::Keyboard::Scan::Enter) {
+                    // Block Enter key while a confirmation prompt is active to avoid
+                    // accidental confirmation via keyboard (prevent misclicks).
+                    if (confirmationPrompt.active)
+                        continue;
 
                     if (state == GameState::IntroTitle) {
                         if (titleDropStarted && !introTitleDropComplete(*this))
@@ -151,8 +157,8 @@ void Game::run() {
                         }
                     }
 
-                    enterSound->stop();
-                    enterSound->play();
+                    // Enter sound is played only when a new dialogue line actually starts.
+                    // The logic for playing the sound is handled inside `waitForEnter`.
 
                     if (state == GameState::IntroScreen) {
                         if (!introFadeOutActive) {
@@ -318,10 +324,7 @@ void Game::loadDragonPortraits() {
         if (!portrait.texture)
             continue;
 
-        dragonPortraits.emplace_back();
-        auto& entry = dragonPortraits.back();
-        entry.displayName = portrait.name;
-        entry.sprite.setTexture(*portrait.texture);
+        dragonPortraits.emplace_back(*portrait.texture, portrait.name);
     }
 }
 

@@ -8,6 +8,8 @@
 #include <memory>
 #include <cmath>
 #include <vector>
+#include <utility>
+#include <string>
 #include "story/storyIntro.hpp"
 #include "ui/nineSliceBox.hpp"
 #include "resources/resources.hpp"
@@ -32,6 +34,14 @@ struct Game {
     };
 
     struct DragonPortrait {
+        DragonPortrait(const sf::Texture& texture, std::string name)
+        : sprite(texture), displayName(std::move(name)) {}
+
+        DragonPortrait(DragonPortrait&&) noexcept = default;
+        DragonPortrait& operator=(DragonPortrait&&) noexcept = default;
+        DragonPortrait(const DragonPortrait&) = delete;
+        DragonPortrait& operator=(const DragonPortrait&) = delete;
+        
         sf::Sprite sprite;
         std::string displayName;
         sf::FloatRect bounds;
@@ -74,6 +84,7 @@ struct Game {
         std::optional<sf::Sound> enterSound;
         std::optional<sf::Sound> acquireSound;
         std::optional<sf::Sound> confirmSound;
+        std::optional<sf::Sound> rejectSound;
 
         ConfirmationPrompt confirmationPrompt;
 

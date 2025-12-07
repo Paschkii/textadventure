@@ -21,6 +21,8 @@ inline void renderGame(Game& game) {
             drawDialogueUI(game, game.window);
             break;
         case GameState::MapSelection:
+            // Keep the location/name/text boxes visible while showing the map
+            drawDialogueUI(game, game.window);
             drawMapSelectionUI(game, game.window);
             break;
         case GameState::WeaponSelection:

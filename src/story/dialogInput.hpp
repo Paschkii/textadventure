@@ -45,12 +45,14 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
     if (game.introDialogueFinished)
         return;
 
+    bool transitioned = false;
     auto startDialogue = [&](const std::vector<DialogueLine>* nextDialogue) {
         game.currentDialogue = nextDialogue;
         game.dialogueIndex = 0;
         game.visibleText.clear();
         game.charIndex = 0;
         game.typewriterClock.restart();
+        transitioned = true;
     };
 
     auto* dialog = game.currentDialogue;
@@ -111,6 +113,10 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
         game.visibleText.clear();
         game.charIndex = 0;
         game.typewriterClock.restart();
+        if (game.enterSound) {
+            game.enterSound->stop();
+            game.enterSound->play();
+        }
         return;
     }
 
@@ -143,6 +149,14 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
     }
     else if (game.currentDialogue == &dragon) {
         startDialogue(&destination);
+        // After the dragon dialogue we switch to the map selection state
+        game.state = GameState::MapSelection;
+    }
+
+    // If startDialogue was called (we transitioned to a new dialogue), play enter sound.
+    if (transitioned && game.enterSound) {
+        game.enterSound->stop();
+        game.enterSound->play();
     }
 }
 
