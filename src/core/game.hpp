@@ -14,6 +14,7 @@
 #include "core/state.hpp"
 #include "story/textStyles.hpp"
 #include "rendering/locations.hpp"
+#include "ui/confirmationUI.hpp"
 
 struct Game {
     struct WeaponOption {
@@ -64,6 +65,8 @@ struct Game {
         std::optional<sf::Sound> enterSound;
         std::optional<sf::Sound> acquireSound;
         std::optional<sf::Sound> confirmSound;
+
+        ConfirmationPrompt confirmationPrompt;
 
         std::string playerName;
         std::string nameInput;

@@ -2,6 +2,7 @@
 #include "dialogueLine.hpp"
 #include "core/game.hpp"
 #include "textStyles.hpp"
+#include "ui/confirmationUI.hpp"
 
 struct EnterAction {
     bool confirmName = false;
@@ -68,13 +69,26 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
 
     if (action.confirmName) {
         game.stopTypingSound();
-        game.playerName = game.nameInput;
-        playerDisplayName = game.playerName;
         game.askingName = false;
-        game.dialogueIndex++;
-        game.visibleText.clear();
-        game.charIndex = 0;
-        game.typewriterClock.restart();
+        
+        showConfirmationPrompt(
+            game,
+            "Is \"" + game.nameInput + "\" correct?",
+            [](Game& confirmedGame) {
+                confirmedGame.playerName = confirmedGame.nameInput;
+                playerDisplayName = confirmedGame.playerName;
+                confirmedGame.dialogueIndex++;
+                confirmedGame.visibleText.clear();
+                confirmedGame.charIndex = 0;
+                confirmedGame.typewriterClock.restart();
+            },
+            [](Game& retryGame) {
+                retryGame.nameInput.clear();
+                retryGame.visibleText.clear();
+                retryGame.charIndex = 0;
+                retryGame.typewriterClock.restart();
+            }
+        );
         return;
     }
 

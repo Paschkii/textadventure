@@ -5,6 +5,8 @@
 #include "rendering/colorHelper.hpp"
 #include "story/textStyles.hpp"
 #include "story/storyIntro.hpp"
+#include "confirmationUI.hpp"
+#include "story/dialogInput.hpp"
 #include <cstdint>
 #include <SFML/Window/Mouse.hpp>
 
@@ -70,8 +72,22 @@ void handleWeaponSelectionEvent(Game& game, const sf::Event& event) {
         if (clickedIndex >= 0)
             game.selectedWeaponIndex = clickedIndex;
 
-        if (game.selectedWeaponIndex >= 0 && game.state == GameState::WeaponSelection)
-            startDragonDialogue(game);
+        if (game.selectedWeaponIndex >= 0 && game.state == GameState::WeaponSelection) {
+            auto& weaponName = game.weaponOptions[game.selectedWeaponIndex].displayName;
+            showConfirmationPrompt(
+                game,
+                "Ahh so this is " + weaponName + "?",
+                [](Game& confirmedGame) {
+                    startDragonDialogue(confirmedGame);
+                },
+                [](Game& retryGame) {
+                    retryGame.selectedWeaponIndex = -1;
+                    retryGame.visibleText = injectSpeakerNames((*retryGame.currentDialogue)[retryGame.dialogueIndex].text, retryGame);
+                    retryGame.charIndex = retryGame.visibleText.size();
+                    retryGame.typewriterClock.restart();
+                }
+            );
+        }
     }
 }
 

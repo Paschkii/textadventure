@@ -4,6 +4,7 @@
 #include "rendering/dialogRender.hpp"
 #include "story/storyIntro.hpp"
 #include "story/textStyles.hpp"
+#include "ui/confirmationUI.hpp"
 #include "ui/introTitle.hpp"
 #include "ui/weaponSelectionUI.hpp"
 #include <iostream>
@@ -105,6 +106,18 @@ void Game::run() {
     while (window.isOpen()) {
         while (auto event = window.pollEvent()) {
 
+            if (event->is<sf::Event::Closed>()) {
+                window.close();
+                continue;
+            }
+
+            bool confirmationHandled = confirmationPrompt.active && handleConfirmationEvent(*this, *event);
+            if (confirmationHandled)
+                continue;
+
+            if (confirmationPrompt.active && event->is<sf::Event::TextEntered>())
+                continue;
+
             if (askingName && event->is<sf::Event::TextEntered>()) {
                 const auto& text = event->getIf<sf::Event::TextEntered>();
                 char32_t code = text->unicode;
@@ -159,10 +172,7 @@ void Game::run() {
                 }
             }
 
-            if (event->is<sf::Event::Closed>())
-                window.close();
-                
-            if (state == GameState::WeaponSelection)
+            if (state == GameState::WeaponSelection && !confirmationPrompt.active)
                 handleWeaponSelectionEvent(*this, *event);
         }
 

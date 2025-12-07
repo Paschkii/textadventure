@@ -4,6 +4,7 @@
 #include "dialogDrawElements.hpp"
 #include "story/textStyles.hpp"
 #include "rendering/colorHelper.hpp"
+#include "confirmationUI.hpp"
 #include "uiVisibility.hpp"
 
 namespace {
@@ -72,7 +73,9 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target) {
     std::string fullText = injectSpeakerNames(line.text, game);
 
     float delay = 0.02f;
-    bool isTyping = updateTypewriter(game, fullText, delay);
+    bool isTyping = false;
+    if (!game.confirmationPrompt.active)
+        isTyping = updateTypewriter(game, fullText, delay);
 
     TextStyles::SpeakerStyle info = TextStyles::speakerStyle(line.speaker);
     dialogDraw::drawSpeakerName(target, game, info, uiAlphaFactor);
@@ -86,7 +89,13 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target) {
 
     dialogDraw::drawDialogueText(target, game, textToDraw, uiAlphaFactor);
 
+    if (game.confirmationPrompt.active) {
+        drawConfirmationPrompt(game, target, uiAlphaFactor);
+        return;
+    }
+
     if (game.askingName)
         dialogDraw::drawNameInput(target, game, uiAlphaFactor);
-        dialogDraw::drawReturnPrompt(target, game, uiAlphaFactor, isTyping);
+
+    dialogDraw::drawReturnPrompt(target, game, uiAlphaFactor, isTyping);
 }
