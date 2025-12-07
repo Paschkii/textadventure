@@ -1,14 +1,23 @@
 #include "weaponSelectionUI.hpp"
 #include "core/game.hpp"
-#include "dialogDrawElements.hpp"
 #include "uiEffects.hpp"
 #include "uiVisibility.hpp"
 #include "rendering/colorHelper.hpp"
 #include "story/textStyles.hpp"
+#include "story/storyIntro.hpp"
 #include <cstdint>
 #include <SFML/Window/Mouse.hpp>
 
 namespace {
+    void startDragonDialogue(Game& game) {
+        game.currentDialogue = &dragon;
+        game.dialogueIndex = 0;
+        game.visibleText.clear();
+        game.charIndex = 0;
+        game.typewriterClock.restart();
+        game.state = GameState::Dialogue;
+    }
+
     int weaponIndexAt(const Game& game, sf::Vector2f position) {
         for (std::size_t i = 0; i < game.weaponOptions.size(); ++i) {
             if (game.weaponOptions[i].bounds.contains(position))
@@ -60,6 +69,9 @@ void handleWeaponSelectionEvent(Game& game, const sf::Event& event) {
         int clickedIndex = weaponIndexAt(game, clickPos);
         if (clickedIndex >= 0)
             game.selectedWeaponIndex = clickedIndex;
+
+        if (game.selectedWeaponIndex >= 0 && game.state == GameState::WeaponSelection)
+            startDragonDialogue(game);
     }
 }
 
@@ -74,7 +86,6 @@ void drawWeaponSelectionUI(Game& game, sf::RenderTarget& target) {
     float uiAlphaFactor = visibility.alphaFactor;
     float glowElapsedSeconds = game.uiGlowClock.getElapsedTime().asSeconds();
 
-    dialogDraw::drawDialogueFrames(game, target, uiAlphaFactor, glowElapsedSeconds);
     drawWeaponPanelFrame(game, target, uiAlphaFactor, glowElapsedSeconds);
 
     constexpr float labelSize = 22.f;

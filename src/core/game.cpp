@@ -196,13 +196,17 @@ void Game::loadWeaponOptions() {
 
     std::sort(weaponFiles.begin(), weaponFiles.end());
 
+    weaponOptions.reserve(weaponFiles.size());
+
     const std::string prefix = "Weapon ";
     for (const auto& path : weaponFiles) {
-        WeaponOption option;
-        if (!option.texture.loadFromFile(path.string()))
-            continue;
+        weaponOptions.emplace_back();
+        auto& option = weaponOptions.back();
 
-        option.sprite.emplace(option.texture);
+        if (!option.texture.loadFromFile(path.string())) {
+            weaponOptions.pop_back();
+            continue;
+        }
 
         std::string stem = path.stem().string();
         auto prefixPos = stem.find(prefix);
@@ -213,7 +217,9 @@ void Game::loadWeaponOptions() {
             stem.erase(stem.begin());
 
         option.displayName = stem;
-        weaponOptions.push_back(std::move(option));
+        
+        option.sprite.emplace(option.texture);
+        option.sprite->setTexture(option.texture);
     }
 }
 

@@ -100,6 +100,15 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
         return;
     }
 
+    if (game.currentDialogue == &weapon && game.selectedWeaponIndex < 0) {
+        game.stopTypingSound();
+        game.visibleText = processed;
+        game.charIndex = processed.size();
+        game.state = GameState::WeaponSelection;
+        game.hoveredWeaponIndex = -1;
+        return;
+    }
+
     game.stopTypingSound();
     game.visibleText = "";
     game.charIndex = processed.size();
@@ -112,9 +121,11 @@ inline void waitForEnter(Game& game, const DialogueLine& line) {
     }
     else if (game.currentDialogue == &gonad) {
         startDialogue(&weapon);
+        game.selectedWeaponIndex = -1;
     }
     else if (game.currentDialogue == &weapon) {
         startDialogue(&dragon);
+        game.state = GameState::Dialogue;
     }
     else if (game.currentDialogue == &dragon) {
         startDialogue(&destination);

@@ -24,6 +24,7 @@ inline void renderGame(Game& game) {
             drawMapSelectionUI(game, game.window);
             break;
         case GameState::WeaponSelection:
+            drawDialogueUI(game, game.window);
             drawWeaponSelectionUI(game, game.window);
             break;
         case GameState::Quiz:
