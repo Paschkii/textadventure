@@ -122,8 +122,19 @@ void Game::run() {
             if (auto key = event->getIf<sf::Event::KeyReleased>()) {
                 if (key->scancode == sf::Keyboard::Scan::Enter) {
 
-                    if (state == GameState::IntroTitle && titleDropStarted && !introTitleDropComplete(*this))
-                        continue;
+                    if (state == GameState::IntroTitle) {
+                        if (titleDropStarted && !introTitleDropComplete(*this))
+                            continue;
+
+                        if (introPromptBlinkActive) {
+                            if (!introPromptInputEnabled)
+                                continue;
+
+                            introPromptBlinkActive = false;
+                            introPromptVisible = true;
+                            introPromptFade = 1.f;
+                        }
+                    }
 
                     enterSound->stop();
                     enterSound->play();

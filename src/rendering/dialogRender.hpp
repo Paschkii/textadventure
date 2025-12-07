@@ -12,11 +12,11 @@ inline void renderGame(Game& game) {
         case GameState::IntroScreen:
             renderIntroScreen(game);
             break;
-        case GameState::IntroTitle:
+        case GameState::Dialogue:
             drawIntroTitle(game, game.window);
             drawDialogueUI(game, game.window);
             break;
-        case GameState::Dialogue:
+        case GameState::IntroTitle:
             drawIntroTitle(game, game.window);
             drawDialogueUI(game, game.window);
             break;

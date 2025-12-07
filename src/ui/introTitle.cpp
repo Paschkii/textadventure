@@ -92,6 +92,7 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
     }
 
     bool dropFinished = game.titleDropComplete;
+    bool introPromptJustActivated = false;
 
     if (game.titleDropStarted) {
         float elapsed = game.titleDropClock.getElapsedTime().asSeconds();
@@ -167,17 +168,21 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
             float secondY = computeY(secondElapsed, secondDropDuration, secondTargetY);
             drawTitle("The Dragonborn", 60, { centerX, secondY + lineSpacing });
 
-            if (secondElapsed >= secondDropDuration) {
+            if (secondElapsed >= secondDropDuration && !game.titleDropComplete) {
                 game.titleDropComplete = true;
+                introPromptJustActivated = true;
             }
         }
 
         dropFinished = elapsed >= totalDropDuration;
     }
 
-    if (dropFinished && !game.titleDropComplete) {
-        game.titleDropComplete = true;
-        game.introPromptVisible = true;
+    if (introPromptJustActivated) {
+        game.introPromptVisible = false;
+        game.introPromptFade = 0.f;
+        game.introPromptBlinkActive = true;
+        game.introPromptInputEnabled = false;
+        game.introPromptFadingIn = true;
         game.introPromptBlinkClock.restart();
     }
 
@@ -186,12 +191,32 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
         float centerX = static_cast<float>(windowSize.x) * 0.5f;
         float centerY = static_cast<float>(windowSize.y) * 0.82f;
 
-        if (game.introPromptBlinkClock.getElapsedTime().asSeconds() >= game.introPromptBlinkInterval) {
-            game.introPromptVisible = !game.introPromptVisible;
-            game.introPromptBlinkClock.restart();
+        if (game.introPromptBlinkActive) {
+            float elapsed = game.introPromptBlinkClock.getElapsedTime().asSeconds();
+            float progress = std::clamp(elapsed / game.introPromptBlinkInterval, 0.f, 1.f);
+
+            if (game.introPromptFadingIn) {
+                game.introPromptFade = progress;
+
+                if (progress >= 1.f) {
+                    game.introPromptFadingIn = false;
+                    game.introPromptVisible = true;
+                    game.introPromptInputEnabled = true;
+                    game.introPromptBlinkClock.restart();
+                }
+            }
+            else {
+                game.introPromptFade = 1.f - progress;
+
+                if (progress >= 1.f) {
+                    game.introPromptFadingIn = true;
+                    game.introPromptVisible = false;
+                    game.introPromptBlinkClock.restart();
+                }
+            }
         }
 
-        if (game.introPromptVisible) {
+        if (game.introPromptVisible || game.introPromptBlinkActive) {
             const std::string promptText = "Press Enter to Continue.";
             sf::Text prompt{ game.resources.introFont, promptText, 28 };
             prompt.setFillColor(ColorHelper::Palette::SoftYellow);
@@ -202,7 +227,15 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
                 text.setPosition({ x, y });
             };
 
+            auto applyPromptFade = [&](sf::Text& text) {
+                sf::Color color = text.getFillColor();
+                float fade = game.introPromptBlinkActive ? game.introPromptFade : 1.f;
+                color.a = static_cast<std::uint8_t>(static_cast<float>(color.a) * fade * globalFade);
+                text.setFillColor(color);
+            };
+
             centerText(prompt, centerX, centerY);
+            applyPromptFade(prompt);
             target.draw(prompt);
         }
     }

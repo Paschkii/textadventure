@@ -78,8 +78,12 @@ struct Game {
         float returnBlinkInterval = 0.4f;
 
         sf::Clock introPromptBlinkClock;
-        bool introPromptVisible = true;
-        float introPromptBlinkInterval = 0.8f;
+        bool introPromptVisible = false;
+        float introPromptBlinkInterval = 1.2f;
+        float introPromptFade = 0.f;
+        bool introPromptBlinkActive = false;
+        bool introPromptInputEnabled = false;
+        bool introPromptFadingIn = true;
 
         std::string currentProcessedLine;
 
