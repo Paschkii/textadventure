@@ -8,6 +8,7 @@ enum class GameState {
     MapSelection,
     WeaponSelection,
     Quiz,
+    FinalChoice,
 };
 
 class Game;

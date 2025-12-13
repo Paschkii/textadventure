@@ -1,7 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include "textColorHelper.hpp"
+#include "helper/textColorHelper.hpp"
 
 sf::Vector2f drawColoredSegments(
     sf::RenderTarget& target,

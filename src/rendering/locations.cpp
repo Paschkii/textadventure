@@ -1,5 +1,6 @@
 #include "locations.hpp"
-#include "colorHelper.hpp"
+#include "helper/colorHelper.hpp"
+#include "story/textStyles.hpp"
 
 namespace Locations {
     namespace {
@@ -18,6 +19,10 @@ namespace Locations {
                 &sepia
             };
         }
+
+        sf::Color speakerColor(TextStyles::SpeakerId id) {
+            return TextStyles::speakerStyle(id).color;
+        }
     }
 
     std::vector<Location> buildLocations(Resources& resources) {
@@ -35,7 +40,7 @@ namespace Locations {
         locations.push_back(makeLocation(
             LocationId::Blyathyroid,
             "Blyathyroid",
-            ColorHelper::Palette::Amber,
+            speakerColor(TextStyles::SpeakerId::FireDragon),
             resources.locationBlyathyroidColored,
             resources.locationBlyathyroidSepia
         ));
@@ -43,7 +48,7 @@ namespace Locations {
         locations.push_back(makeLocation(
             LocationId::Lacrimere,
             "Lacrimere",
-            ColorHelper::Palette::SkyBlue,
+            speakerColor(TextStyles::SpeakerId::WaterDragon),
             resources.locationLacrimereColored,
             resources.locationLacrimereSepia
         ));
@@ -51,7 +56,7 @@ namespace Locations {
         locations.push_back(makeLocation(
             LocationId::Cladrenal,
             "Cladrenal",
-            ColorHelper::Palette::LightBrown,
+            speakerColor(TextStyles::SpeakerId::EarthDragon),
             resources.locationCladrenalColored,
             resources.locationCladrenalSepia
         ));
@@ -59,17 +64,17 @@ namespace Locations {
         locations.push_back(makeLocation(
             LocationId::Aerobronchi,
             "Aerobronchi",
-            ColorHelper::Palette::Mint,
+            speakerColor(TextStyles::SpeakerId::AirDragon),
             resources.locationAerobronchiColored,
             resources.locationAerobronchiSepia
         ));
 
         locations.push_back(makeLocation(
             LocationId::MasterBatesStronghold,
-            "Master Bates Stronghold",
-            ColorHelper::Palette::Shadow40,
-            resources.locationMasterBatesHideoutColored,
-            resources.locationMasterBatesHideoutSepia
+            "Seminiferous",
+            ColorHelper::Palette::DarkPurple,
+            resources.locationSeminiferousColored,
+            resources.locationSeminiferousSepia
         ));
 
         return locations;

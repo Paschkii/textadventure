@@ -1,14 +1,97 @@
 #include "dialogDrawElements.hpp"
 #include "dialogUI.hpp"
 #include "uiEffects.hpp"
-#include "rendering/textColorHelper.hpp"
+#include "helper/textColorHelper.hpp"
+#include "helper/colorHelper.hpp"
 #include "rendering/textLayout.hpp"
 #include "story/textStyles.hpp"
+#include <algorithm>
+#include <vector>
 
 namespace {
-    constexpr float kNameBoxTextOffset = 20.f;
     constexpr float kTextBoxPadding = 20.f;
     constexpr unsigned int kTextCharacterSize = 28;
+    constexpr unsigned int kNameCharacterSize = kTextCharacterSize - 4;
+    constexpr float kNameVerticalNudge = -10.f;
+    constexpr float kPortraitPadding = 10.f;
+
+    const sf::Texture* portraitForSpeaker(const Game& game, const std::string& speakerName) {
+        using TextStyles::SpeakerId;
+
+        switch (TextStyles::speakerFromName(speakerName)) {
+            case SpeakerId::StoryTeller:
+            case SpeakerId::NoNameNPC:
+                return &game.resources.portraitStoryTeller;
+            case SpeakerId::VillageNPC:
+                return &game.resources.portraitVillageNPC;
+            case SpeakerId::MasterBates:
+                return &game.resources.portraitMasterBates;
+            case SpeakerId::NoahBates:
+                return &game.resources.portraitNoahBates;
+            case SpeakerId::Player:
+                return &game.resources.portraitPlayer;
+            case SpeakerId::FireDragon:
+                return &game.resources.portraitFireDragon;
+            case SpeakerId::WaterDragon:
+                return &game.resources.portraitWaterDragon;
+            case SpeakerId::AirDragon:
+                return &game.resources.portraitAirDragon;
+            case SpeakerId::EarthDragon:
+                return &game.resources.portraitEarthDragon;
+            case SpeakerId::Unknown:
+            default:
+                return nullptr;
+        }
+    }
+
+    void drawSpeakerPortrait(
+        sf::RenderTarget& target,
+        const sf::RectangleShape& nameBox,
+        const sf::Text& nameText,
+        const sf::Texture& texture,
+        float uiAlphaFactor
+    ) {
+        // Compute the area above the speaker name inside the name box.
+        auto boxPos = nameBox.getPosition();
+        auto boxSize = nameBox.getSize();
+
+        const auto textBounds = nameText.getLocalBounds();
+        float nameBaseline = nameText.getPosition().y;
+        float textOriginY = textBounds.position.y + textBounds.size.y;
+        float textTop = nameBaseline - textOriginY;
+
+        float portraitAreaTop = boxPos.y + kPortraitPadding;
+        float portraitAreaBottom = textTop - kPortraitPadding;
+
+        float portraitAreaHeight = portraitAreaBottom - portraitAreaTop;
+        float portraitAreaWidth = boxSize.x - (kPortraitPadding * 2.f);
+
+        if (portraitAreaWidth <= 0.f || portraitAreaHeight <= 0.f)
+            return;
+
+        sf::Sprite portrait{ texture };
+        auto texSize = texture.getSize();
+        float scaleX = portraitAreaWidth / static_cast<float>(texSize.x);
+        float scaleY = portraitAreaHeight / static_cast<float>(texSize.y);
+        float scale = std::min(scaleX, scaleY);
+        portrait.setScale({ scale, scale });
+
+        auto localBounds = portrait.getLocalBounds();
+        portrait.setOrigin({
+            localBounds.position.x + (localBounds.size.x / 2.f),
+            localBounds.position.y + (localBounds.size.y / 2.f)
+        });
+
+        float centerX = boxPos.x + (boxSize.x / 2.f);
+        float centerY = portraitAreaTop + (portraitAreaHeight / 2.f);
+        portrait.setPosition({ centerX, centerY });
+
+        sf::Color color = portrait.getColor();
+        color.a = static_cast<std::int8_t>(255.f * uiAlphaFactor);
+        portrait.setColor(color);
+
+        target.draw(portrait);
+    }
 }
 
 namespace dialogDraw {
@@ -18,6 +101,7 @@ namespace dialogDraw {
         , float uiAlphaFactor
         , float glowElapsedSeconds
         , bool showLocationBox
+        , bool showItemBox
     )
     {
         sf::Color glowColor = uiEffects::computeGlowColor(
@@ -57,12 +141,24 @@ namespace dialogDraw {
                 2.f
             );
         }
+        if (showItemBox) {
+            uiEffects::drawGlowFrame(
+                target,
+                game.uiFrame,
+                game.itemBox.getPosition(),
+                game.itemBox.getSize(),
+                glowColor,
+                2.f
+            );
+        }
 
-        sf::Color frameColor = ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor);
+        sf::Color frameColor = game.frameColor(uiAlphaFactor);
         game.uiFrame.draw(target, game.nameBox, frameColor);
         game.uiFrame.draw(target, game.textBox, frameColor);
         if (showLocationBox)
             game.uiFrame.draw(target, game.locationBox, frameColor);
+        if (showItemBox)
+            game.uiFrame.draw(target, game.itemBox, frameColor);
     }
 
     void drawSpeakerName(
@@ -72,16 +168,69 @@ namespace dialogDraw {
         , float uiAlphaFactor
     )
     {
-        sf::Text nameText{game.resources.uiFont, "", kTextCharacterSize};
+        sf::Text nameText{game.resources.uiFont, "", kNameCharacterSize};
         if (info.name.empty())
             return;
+
+        auto drawNameParts = [&](const std::vector<std::pair<std::string, sf::Color>>& parts, float baseY) {
+            std::vector<sf::Text> texts;
+            texts.reserve(parts.size());
+            float totalWidth = 0.f;
+            for (const auto& part : parts) {
+                sf::Text t{ game.resources.uiFont, part.first, kNameCharacterSize };
+                t.setFillColor(ColorHelper::applyAlphaFactor(part.second, uiAlphaFactor));
+                auto b = t.getLocalBounds();
+                totalWidth += b.size.x;
+                texts.push_back(std::move(t));
+            }
+
+            auto namePos = game.nameBox.getPosition();
+            auto nameSize = game.nameBox.getSize();
+            float marginY = nameSize.y * 0.05f;
+            float x = namePos.x + (nameSize.x / 2.f) - (totalWidth / 2.f);
+            float y = baseY + kNameVerticalNudge;
+
+            for (auto& t : texts) {
+                auto b = t.getLocalBounds();
+                t.setOrigin({ b.position.x, b.position.y + b.size.y });
+                t.setPosition({ x, y });
+                target.draw(t);
+                x += b.size.x;
+            }
+        };
 
         nameText.setFillColor(ColorHelper::applyAlphaFactor(info.color, uiAlphaFactor));
         nameText.setString(info.name);
 
         auto namePos = game.nameBox.getPosition();
-        nameText.setPosition({ namePos.x + kNameBoxTextOffset, namePos.y + kNameBoxTextOffset });
-        target.draw(nameText);
+        auto nameSize = game.nameBox.getSize();
+        auto bounds = nameText.getLocalBounds();
+
+        // Bottom-center the name with a 5% vertical inset from the lower edge
+        float marginY = nameSize.y * 0.05f;
+        nameText.setOrigin({ bounds.position.x + (bounds.size.x / 2.f), bounds.position.y + bounds.size.y });
+        float x = namePos.x + (nameSize.x / 2.f);
+        float baseY = namePos.y + nameSize.y - marginY;
+        nameText.setPosition({ x, baseY });
+
+        // Draw portrait using the un-nudged name position so its area stays stable.
+        if (const sf::Texture* portraitTex = portraitForSpeaker(game, info.name)) {
+            drawSpeakerPortrait(target, game.nameBox, nameText, *portraitTex, uiAlphaFactor);
+        }
+
+        // Apply visual nudge to bring the name closer to the portrait.
+        nameText.setPosition({ x, baseY + kNameVerticalNudge });
+
+
+        if (info.name == "Noah Bates") {
+            drawNameParts({
+                { "Noah ", ColorHelper::Palette::PurpleBlue },
+                { "Bates", ColorHelper::Palette::DarkPurple }
+            }, baseY);
+        }
+        else {
+            target.draw(nameText);
+        }
     }
 
     void drawDialogueText(
@@ -116,7 +265,7 @@ namespace dialogDraw {
         sf::Vector2f inputPos{ textPos.x +kTextBoxPadding, textPos.y + kTextBoxPadding + 40.f };
 
         sf::Text inputText{ game.resources.uiFont, "", kTextCharacterSize };
-        inputText.setFillColor(ColorHelper::applyAlphaFactor(sf::Color::White, uiAlphaFactor));
+        inputText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, uiAlphaFactor));
         inputText.setString(game.nameInput);
 
         std::string nameWithCursor = game.nameInput;
@@ -128,7 +277,7 @@ namespace dialogDraw {
 
         if (game.cursorVisible) {
             sf::Text cursorText{ game.resources.uiFont, "_", kTextCharacterSize };
-            cursorText.setFillColor(ColorHelper::applyAlphaFactor(sf::Color::White, uiAlphaFactor));
+            cursorText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, uiAlphaFactor));
 
             auto cursorDrawPos = inputText.findCharacterPos(game.nameInput.size());
             cursorText.setPosition(cursorDrawPos);
@@ -160,6 +309,39 @@ namespace dialogDraw {
             c.a = static_cast<uint8_t>(255.f * uiAlphaFactor);
             game.returnSprite->setColor(c);
             target.draw(*game.returnSprite);
+        }
+    }
+
+    void drawBoxHeader(
+        Game& game,
+        sf::RenderTarget& target,
+        const sf::RectangleShape& box,
+        const std::string& label,
+        float uiAlphaFactor
+    )
+    {
+        sf::Text title{ game.resources.uiFont, label, 18 };
+        title.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, uiAlphaFactor));
+
+        auto bounds = title.getLocalBounds();
+        title.setOrigin({
+            bounds.position.x + (bounds.size.x / 2.f),
+            bounds.position.y + bounds.size.y
+        });
+
+        auto pos = box.getPosition();
+        auto size = box.getSize();
+        title.setPosition({ pos.x + (size.x / 2.f), pos.y - 6.f });
+
+        target.draw(title);
+    }
+
+    void drawItemIcons(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
+        for (auto& item : game.itemIcons) {
+            sf::Color color = item.sprite.getColor();
+            color.a = static_cast<std::uint8_t>(255.f * uiAlphaFactor);
+            item.sprite.setColor(color);
+            target.draw(item.sprite);
         }
     }
 }

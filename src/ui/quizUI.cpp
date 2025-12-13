@@ -1,6 +1,793 @@
 #include "quizUI.hpp"
 #include "core/game.hpp"
+#include "helper/colorHelper.hpp"
+#include "story/textStyles.hpp"
+#include "story/storyIntro.hpp"
+#include "helper/layoutHelpers.hpp"
+#include "ui/confirmationUI.hpp"
+#include "rendering/locations.hpp"
+#include <random>
+#include <array>
+#include <algorithm>
 
-void drawQuizUI(Game&, sf::RenderTarget&) {
-    // Quiz UI rendering will be added here when the feature is active.
+namespace {
+    const std::array<std::string, 20> kSillyNames{
+        "Neil Down", "Anita Bath", "Ella Vator", "Willy Maykit", "Ray D. Ater",
+        "Earl E. Bird", "Chris P. Bacon", "Tom Morrow", "Ben Dover", "Dee Liver",
+        "Luke Atmyaz", "May I. Tutchem", "Pat Myaz", "Clee Torres", "I. P. Freely",
+        "Yuri Nator", "Annie Position", "Dil Doe", "Wilma Fingerdoo", "Lou Briccant"
+    };
+
+    std::size_t locIndex(LocationId id) {
+        switch (id) {
+            case LocationId::Gonad: return 0;
+            case LocationId::Lacrimere: return 1;
+            case LocationId::Blyathyroid: return 2;
+            case LocationId::Aerobronchi: return 3;
+            case LocationId::Cladrenal: return 4;
+            default: return 0;
+        }
+    }
+
+    std::string dragonNameFor(LocationId id) {
+        switch (id) {
+            case LocationId::Blyathyroid: return TextStyles::speakerStyle(TextStyles::SpeakerId::FireDragon).name;
+            case LocationId::Aerobronchi: return TextStyles::speakerStyle(TextStyles::SpeakerId::AirDragon).name;
+            case LocationId::Lacrimere: return TextStyles::speakerStyle(TextStyles::SpeakerId::WaterDragon).name;
+            case LocationId::Cladrenal: return TextStyles::speakerStyle(TextStyles::SpeakerId::EarthDragon).name;
+            default: return "Dragon";
+        }
+    }
+
+    std::string dragonElementFor(LocationId id) {
+        switch (id) {
+            case LocationId::Blyathyroid: return "Fire";
+            case LocationId::Aerobronchi: return "Air";
+            case LocationId::Lacrimere: return "Water";
+            case LocationId::Cladrenal: return "Earth";
+            default: return "Unknown";
+        }
+    }
+
+    TextStyles::SpeakerId speakerFor(LocationId id) {
+        switch (id) {
+            case LocationId::Blyathyroid: return TextStyles::SpeakerId::FireDragon;
+            case LocationId::Aerobronchi: return TextStyles::SpeakerId::AirDragon;
+            case LocationId::Lacrimere: return TextStyles::SpeakerId::WaterDragon;
+            case LocationId::Cladrenal: return TextStyles::SpeakerId::EarthDragon;
+            default: return TextStyles::SpeakerId::NoNameNPC;
+        }
+    }
+
+    std::string mathPromptFor(LocationId id) {
+        return StoryIntro::quizMathPrompt(speakerFor(id));
+    }
+
+    std::string quizCorrectFeedback(LocationId id, const std::string& explanation) {
+        std::string text = StoryIntro::quizCorrectResponse(speakerFor(id));
+        if (!explanation.empty()) {
+            text += "\n";
+            text += explanation;
+        }
+        return text;
+    }
+
+    constexpr float kSelectionLoggingDuration = 3.f;
+    constexpr float kSelectionBlinkDuration = 3.f;
+    constexpr float kSelectionBlinkInterval = 0.5f;
+
+    bool selectionBlinkHighlight(const Game::QuizData& quiz) {
+        float elapsed = quiz.blinkClock.getElapsedTime().asSeconds();
+        int cycle = static_cast<int>(elapsed / kSelectionBlinkInterval);
+        return (cycle % 2) == 0;
+    }
+
+    void triggerRiddleAnnouncement(Game& game);
+
+    void applyPendingFeedback(Game& game) {
+        const auto& pending = game.quiz.pendingFeedback;
+        game.quiz.feedbackDialogue.clear();
+        game.quiz.feedbackDialogue.push_back({ pending.speaker, pending.text });
+        if (!pending.followup.empty())
+            game.quiz.feedbackDialogue.push_back({ pending.speaker, pending.followup });
+        game.quiz.feedbackActive = true;
+        game.quiz.pendingQuestionAdvance = pending.advance;
+        game.quiz.pendingRetry = pending.retry;
+        game.quiz.pendingFinish = pending.finish;
+        game.quiz.active = false;
+        game.state = GameState::Dialogue;
+        game.currentDialogue = &game.quiz.feedbackDialogue;
+        game.dialogueIndex = 0;
+        game.visibleText.clear();
+        game.charIndex = 0;
+        game.typewriterClock.restart();
+        game.quiz.hoveredIndex = -1;
+    }
+
+    void updateQuizSelection(Game& game) {
+        auto& quiz = game.quiz;
+        if (!quiz.pendingFeedbackActive)
+            return;
+
+        switch (quiz.selectionPhase) {
+        case Game::QuizData::SelectionPhase::Logging: {
+            if (quiz.selectionClock.getElapsedTime().asSeconds() >= kSelectionLoggingDuration) {
+                quiz.selectionPhase = Game::QuizData::SelectionPhase::Blinking;
+                quiz.blinkClock.restart();
+                if (quiz.selectionCorrect) {
+                    if (game.quizCorrectSound) {
+                        game.quizCorrectSound->stop();
+                        game.quizCorrectSound->play();
+                    }
+                }
+                else if (game.quizIncorrectSound) {
+                    game.quizIncorrectSound->stop();
+                    game.quizIncorrectSound->play();
+                }
+            }
+            break;
+        }
+        case Game::QuizData::SelectionPhase::Blinking: {
+            if (quiz.selectionCorrect && quiz.pendingQuestionStartAnnouncement) {
+                bool answerSoundPlaying = false;
+                if (game.quizCorrectSound)
+                    answerSoundPlaying = game.quizCorrectSound->getStatus() == sf::Sound::Status::Playing;
+                if (!answerSoundPlaying) {
+                    triggerRiddleAnnouncement(game);
+                    quiz.pendingQuestionStartAnnouncement = false;
+                }
+            }
+            if (quiz.blinkClock.getElapsedTime().asSeconds() >= kSelectionBlinkDuration) {
+                applyPendingFeedback(game);
+                quiz.selectionPhase = Game::QuizData::SelectionPhase::Idle;
+                quiz.pendingFeedbackActive = false;
+                quiz.selectionIndex = -1;
+                quiz.selectionCorrect = false;
+            }
+            break;
+        }
+            case Game::QuizData::SelectionPhase::Idle:
+            default:
+                break;
+        }
+    }
+
+    void triggerRiddleAnnouncement(Game& game) {
+        auto& quiz = game.quiz;
+        if (game.quizQuestionStartSound) {
+            game.quizQuestionStartSound->stop();
+            game.quizQuestionStartSound->play();
+        }
+        quiz.questionAudioPhase = Game::QuizData::QuestionAudioPhase::QuestionStart;
+        quiz.questionStartClock.restart();
+        quiz.suppressNextQuestionStartRestart = true;
+    }
+
+    quiz::Question makeNameQuestion(Game& game, std::mt19937& rng) {
+        std::vector<std::string> pool(kSillyNames.begin(), kSillyNames.end());
+        pool.push_back(game.quiz.dragonName);
+        std::shuffle(pool.begin(), pool.end(), rng);
+
+        std::array<std::string, 4> opts{};
+        opts[0] = game.quiz.dragonName;
+        std::size_t poolIndex = 0;
+        for (int i = 1; i < 4; ++i) {
+            while (poolIndex < pool.size() && pool[poolIndex] == game.quiz.dragonName)
+                ++poolIndex;
+            if (poolIndex < pool.size())
+                opts[i] = pool[poolIndex++];
+            else
+                opts[i] = "???";
+        }
+
+        std::array<int, 4> order{ 0, 1, 2, 3 };
+        std::shuffle(order.begin(), order.end(), rng);
+
+        quiz::Question q;
+        q.prompt = "What is my name?";
+        q.category = quiz::Category::Name;
+        q.explanation = "You picked the only correct dragon name.";
+
+        for (std::size_t i = 0; i < order.size(); ++i) {
+            int src = order[i];
+            q.options[i] = opts[src];
+            if (src == 0)
+                q.correctIndex = static_cast<int>(i);
+        }
+
+        return q;
+    }
+
+    quiz::Question* currentQuestion(Game& game) {
+        if (game.quiz.currentQuestion >= game.quiz.questions.size())
+            return nullptr;
+        return &game.quiz.questions[game.quiz.currentQuestion];
+    }
+
+    const quiz::Question* currentQuestion(const Game& game) {
+        if (game.quiz.currentQuestion >= game.quiz.questions.size())
+            return nullptr;
+        return &game.quiz.questions[game.quiz.currentQuestion];
+    }
+
+    void regenerateCurrentQuestionInternal(Game& game) {
+        if (game.quiz.questions.empty() || game.quiz.currentQuestion >= game.quiz.questions.size())
+            return;
+
+        std::mt19937 rng(std::random_device{}());
+        if (game.quiz.currentQuestion == 0 || game.quiz.questions[game.quiz.currentQuestion].category == quiz::Category::Name) {
+            game.quiz.questions[game.quiz.currentQuestion] = makeNameQuestion(game, rng);
+            return;
+        }
+
+        auto category = game.quiz.questions[game.quiz.currentQuestion].category;
+        game.quiz.questions[game.quiz.currentQuestion] = quiz::generateQuestion(category, rng);
+    }
+
+    void finishQuizSuccess(Game& game) {
+        stopQuestionAudio(game);
+        game.quiz.quizAutoStarted = false;
+        game.quiz.active = false;
+        game.state = GameState::Dialogue;
+        game.lastCompletedLocation = game.quiz.targetLocation;
+        game.lastDragonName = game.quiz.dragonName;
+        game.locationCompleted[locIndex(game.quiz.targetLocation)] = true;
+        game.dragonStoneCount++;
+        if (game.dragonStoneCount >= 4)
+            game.finalEncounterPending = true;
+        game.addDragonstoneIcon(game.quiz.targetLocation);
+        game.transientDialogue.clear();
+        game.pendingTeleportToGonad = true;
+
+        // Copy dragonstone dialogue and replace tokens while staying at the dragon location.
+        for (const auto& line : dragonstone) {
+            std::string text = line.text;
+            auto replaceAll = [&](const std::string& token, const std::string& value) {
+                std::size_t pos = 0;
+                while ((pos = text.find(token, pos)) != std::string::npos) {
+                    text.replace(pos, token.size(), value);
+                    pos += value.size();
+                }
+            };
+            replaceAll("{dragonelement}", dragonElementFor(game.quiz.targetLocation));
+            replaceAll("{dragonstonecount}", std::to_string(game.dragonStoneCount));
+            const std::string dragonstoneWord =
+                (game.dragonStoneCount == 1 ? "Dragon Stone" : "Dragon Stones");
+            replaceAll("{dragonstoneword}", dragonstoneWord);
+            game.transientDialogue.push_back({ line.speaker, text, line.triggersNameInput, line.waitForEnter });
+        }
+
+        game.currentDialogue = &game.transientDialogue;
+        game.dialogueIndex = 0;
+        game.visibleText.clear();
+        game.charIndex = 0;
+        game.typewriterClock.restart();
+        game.transientReturnToMap = true;
+        game.state = GameState::Dialogue;
+        game.keyboardMapHover.reset();
+        game.mouseMapHover.reset();
+    }
+
+    void handleSelection(Game& game, int index) {
+        if (!game.quiz.quizDialogue)
+            return;
+        if (game.quiz.pendingFeedbackActive)
+            return;
+        stopQuestionAudio(game);
+
+        auto* question = currentQuestion(game);
+        if (!question)
+            return;
+
+        auto questionIdx = game.quiz.questionIndex;
+        auto speaker = speakerFor(game.quiz.targetLocation);
+        game.quiz.pendingQuestionStartAnnouncement = false;
+
+        auto feedbackFromStory = [&](std::size_t offset, const std::string& fallback) -> std::string {
+            if (game.quiz.quizDialogue && questionIdx + offset < game.quiz.quizDialogue->size())
+                return (*game.quiz.quizDialogue)[questionIdx + offset].text;
+            return fallback;
+        };
+
+        bool isLastQuestion = game.quiz.currentQuestion + 1 >= game.quiz.questions.size();
+        bool isNameQuestion = game.quiz.currentQuestion == 0;
+
+        std::string feedback;
+        std::string followup;
+        bool advance = false;
+        bool retry = false;
+        bool finish = false;
+
+        if (index == question->correctIndex) {
+            if (isNameQuestion) {
+                feedback = feedbackFromStory(2, "Correct, my name is " + game.quiz.dragonName + "!");
+            } else {
+                feedback = quizCorrectFeedback(game.quiz.targetLocation, question->explanation);
+            }
+
+            if (!isLastQuestion) {
+                auto nextIdx = game.quiz.currentQuestion + 1;
+                if (nextIdx < game.quiz.questions.size()) {
+                    auto nextCat = game.quiz.questions[nextIdx].category;
+                    if (nextCat != quiz::Category::Name)
+                        followup = mathPromptFor(game.quiz.targetLocation);
+                }
+            }
+
+            if (!isLastQuestion) {
+                std::string announcement = "Ladies and Gentleman, it's Riddle Number "
+                    + std::to_string(static_cast<int>(game.quiz.currentQuestion + 2)) + "!";
+                if (!followup.empty())
+                    followup = announcement + "\n" + followup;
+                else
+                    followup = announcement;
+                game.quiz.pendingQuestionStartAnnouncement = true;
+            }
+
+            advance = !isLastQuestion;
+            finish = isLastQuestion;
+        } else {
+            feedback = feedbackFromStory(1, "Wrong!");
+            retry = true;
+        }
+
+        game.quiz.pendingFeedback = {
+            speaker,
+            feedback,
+            followup,
+            advance,
+            retry,
+            finish
+        };
+        game.quiz.pendingFeedbackActive = true;
+        game.quiz.selectionIndex = index;
+        game.quiz.selectionCorrect = (index == question->correctIndex);
+        game.quiz.selectionPhase = Game::QuizData::SelectionPhase::Logging;
+        game.quiz.selectionClock.restart();
+        game.quiz.hoveredIndex = -1;
+
+        if (game.quizLoggingSound) {
+            game.quizLoggingSound->stop();
+            game.quizLoggingSound->play();
+        }
+    }
+
+    std::string injectSpeakerNamesForQuiz(const std::string& text, const Game& game) {
+        std::string out = text;
+        auto replaceToken = [&](const std::string& token, const std::string& value) {
+            if (value.empty())
+                return;
+            std::size_t pos = 0;
+            while ((pos = out.find(token, pos)) != std::string::npos) {
+                out.replace(pos, token.size(), value);
+                pos += value.size();
+            }
+        };
+        auto selectedWeaponName = [&]() -> std::string {
+            if (game.selectedWeaponIndex >= 0 && game.selectedWeaponIndex < static_cast<int>(game.weaponOptions.size()))
+                return game.weaponOptions[game.selectedWeaponIndex].displayName;
+            return "your weapon";
+        };
+
+        replaceToken("{player}", game.playerName);
+        replaceToken("{playerName}", game.playerName);
+        replaceToken("{fireDragon}", TextStyles::speakerStyle(TextStyles::SpeakerId::FireDragon).name);
+        replaceToken("{waterDragon}", TextStyles::speakerStyle(TextStyles::SpeakerId::WaterDragon).name);
+        replaceToken("{earthDragon}", TextStyles::speakerStyle(TextStyles::SpeakerId::EarthDragon).name);
+        replaceToken("{airDragon}", TextStyles::speakerStyle(TextStyles::SpeakerId::AirDragon).name);
+        replaceToken("{lastDragonName}", game.lastDragonName);
+        replaceToken("{weapon}", selectedWeaponName());
+
+        return out;
+    }
+}
+
+static void updateQuestionAudio(Game& game) {
+    auto& quiz = game.quiz;
+    if (quiz.questionAudioPhase != Game::QuizData::QuestionAudioPhase::QuestionStart)
+        return;
+    if (quiz.questionStartClock.getElapsedTime().asSeconds() < kQuizQuestionStartDelay)
+        return;
+    if (game.quizQuestionStartSound)
+        game.quizQuestionStartSound->stop();
+    if (game.quizQuestionThinkingSound) {
+        game.quizQuestionThinkingSound->setLooping(true);
+        game.quizQuestionThinkingSound->play();
+    }
+    quiz.questionAudioPhase = Game::QuizData::QuestionAudioPhase::Thinking;
+}
+
+void regenerateCurrentQuestion(Game& game) {
+    regenerateCurrentQuestionInternal(game);
+}
+
+void startQuiz(Game& game, LocationId targetLocation, std::size_t questionIndex) {
+    std::mt19937 rng(std::random_device{}());
+
+    auto& quiz = game.quiz;
+    quiz.quizAutoStarted = false;
+    quiz.intro.active = false;
+    quiz.intro.dialogue = nullptr;
+    quiz.finalCheerActive = false;
+    quiz.finalCheerTriggered = false;
+    quiz.locationMusicMuted = false;
+    quiz.suppressNextQuestionStartRestart = false;
+    stopQuestionAudio(game);
+
+    game.quiz.active = true;
+    game.state = GameState::Quiz;
+    game.quiz.targetLocation = targetLocation;
+    game.quiz.dragonName = dragonNameFor(targetLocation);
+    game.quiz.questions.clear();
+    game.quiz.questions.push_back(makeNameQuestion(game, rng));
+    auto numberQuiz = quiz::generateNumberQuiz(rng);
+    game.quiz.questions.insert(game.quiz.questions.end(), numberQuiz.begin(), numberQuiz.end());
+    game.quiz.currentQuestion = 0;
+    game.quiz.questionIndex = questionIndex;
+    game.quiz.quizDialogue = game.currentDialogue;
+    game.quiz.hoveredIndex = -1;
+    game.quiz.pendingSuccess = false;
+    game.quiz.feedbackActive = false;
+    game.quiz.pendingQuestionAdvance = false;
+    game.quiz.pendingRetry = false;
+    game.quiz.pendingFinish = false;
+    game.quiz.pendingQuestionStartAnnouncement = false;
+    beginQuestionAudio(game);
+}
+
+void handleQuizEvent(Game& game, const sf::Event& event) {
+    if (!game.quiz.active)
+        return;
+    if (game.quiz.pendingFeedbackActive)
+        return;
+
+    if (event.is<sf::Event::MouseMoved>()) {
+        auto pos = game.window.mapPixelToCoords(sf::Mouse::getPosition(game.window));
+        game.quiz.hoveredIndex = -1;
+        for (int i = 0; i < 4; ++i) {
+            if (game.quiz.optionBounds[i].contains(pos)) {
+                game.quiz.hoveredIndex = i;
+                break;
+            }
+        }
+    }
+    else if (auto button = event.getIf<sf::Event::MouseButtonReleased>()) {
+        if (button->button != sf::Mouse::Button::Left)
+            return;
+        auto pos = game.window.mapPixelToCoords(button->position);
+        for (int i = 0; i < 4; ++i) {
+            if (game.quiz.optionBounds[i].contains(pos)) {
+                handleSelection(game, i);
+                return;
+            }
+        }
+    }
+    else if (auto key = event.getIf<sf::Event::KeyReleased>()) {
+        int idx = -1;
+        switch (key->scancode) {
+            case sf::Keyboard::Scan::A: idx = 0; break;
+            case sf::Keyboard::Scan::B: idx = 1; break;
+            case sf::Keyboard::Scan::C: idx = 2; break;
+            case sf::Keyboard::Scan::D: idx = 3; break;
+            default: break;
+        }
+        if (idx >= 0) {
+            handleSelection(game, idx);
+        }
+    }
+}
+
+void drawQuizUI(Game& game, sf::RenderTarget& target) {
+    if (!game.quiz.active)
+        return;
+
+    updateQuestionAudio(game);
+    updateQuizSelection(game);
+    if (game.state != GameState::Quiz)
+        return;
+
+    auto* question = currentQuestion(game);
+    if (!question)
+        return;
+
+    auto textPos = game.textBox.getPosition();
+    auto textSize = game.textBox.getSize();
+    float padding = 14.f;
+    float buttonHeight = 44.f;
+    float buttonWidth = (textSize.x - padding * 3.f) / 2.f;
+
+    int totalQuestions = static_cast<int>(game.quiz.questions.size());
+    std::string progressLabel = "Riddle " + std::to_string(game.quiz.currentQuestion + 1) + "/" + std::to_string(std::max(1, totalQuestions));
+
+    sf::Text progressTxt{ game.resources.uiFont, progressLabel, 24 };
+    progressTxt.setFillColor(ColorHelper::Palette::Normal);
+
+    sf::Text promptTxt{ game.resources.uiFont, question->prompt, 24 };
+    promptTxt.setFillColor(ColorHelper::Palette::Normal);
+
+    auto progressBounds = progressTxt.getLocalBounds();
+    auto promptBounds = promptTxt.getLocalBounds();
+    float textBlockHeight = progressBounds.size.y + promptBounds.size.y + padding * 0.5f;
+
+    float popupWidth = textSize.x;
+    float popupHeight = padding * 4.f + textBlockHeight + buttonHeight * 2.f + 10.f;
+    float popupX = textPos.x;
+    float popupY = textPos.y - popupHeight - 12.f;
+    popupY = std::max(12.f, popupY);
+
+    sf::RectangleShape bg({ popupWidth, popupHeight });
+    bg.setPosition({ popupX, popupY });
+    bg.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, 0.95f));
+    bg.setOutlineThickness(3.f);
+    bg.setOutlineColor(ColorHelper::Palette::FrameGoldLight);
+    target.draw(bg);
+
+    float contentY = popupY + padding;
+
+    progressTxt.setOrigin({ 0.f, progressBounds.position.y });
+    progressTxt.setPosition({ popupX + padding, contentY });
+    target.draw(progressTxt);
+    contentY += progressBounds.size.y + 6.f;
+
+    promptTxt.setOrigin({ 0.f, promptBounds.position.y });
+    promptTxt.setPosition({ popupX + padding, contentY });
+    target.draw(promptTxt);
+    contentY += promptBounds.size.y + padding;
+
+    float buttonsTop = contentY;
+    std::array<sf::Vector2f, 4> positions{
+        sf::Vector2f{ popupX + padding, buttonsTop },
+        sf::Vector2f{ popupX + padding + buttonWidth + padding, buttonsTop },
+        sf::Vector2f{ popupX + padding, buttonsTop + buttonHeight + padding },
+        sf::Vector2f{ popupX + padding + buttonWidth + padding, buttonsTop + buttonHeight + padding }
+    };
+
+    auto selectionPhase = game.quiz.selectionPhase;
+    bool selectionActive = selectionPhase != Game::QuizData::SelectionPhase::Idle;
+    bool blinkingPhase = selectionPhase == Game::QuizData::SelectionPhase::Blinking;
+    bool blinkHighlight = blinkingPhase && selectionBlinkHighlight(game.quiz);
+
+    for (int i = 0; i < 4; ++i) {
+        std::string label;
+        switch (i) {
+            case 0: label = "A: "; break;
+            case 1: label = "B: "; break;
+            case 2: label = "C: "; break;
+            case 3: label = "D: "; break;
+        }
+        label += question->options[i];
+
+        sf::RectangleShape btn({ buttonWidth, buttonHeight });
+        btn.setPosition(positions[i]);
+        bool hovered = game.quiz.hoveredIndex == i;
+        sf::Color baseColor = TextStyles::UI::Panel;
+        float fillAlpha = hovered ? 0.95f : 0.8f;
+
+        if (selectionActive && game.quiz.selectionIndex == i) {
+            if (selectionPhase == Game::QuizData::SelectionPhase::Logging) {
+                baseColor = ColorHelper::Palette::SoftOrange;
+                fillAlpha = 0.95f;
+            }
+            else if (selectionPhase == Game::QuizData::SelectionPhase::Blinking) {
+                baseColor = blinkHighlight
+                    ? (game.quiz.selectionCorrect ? ColorHelper::Palette::Green : ColorHelper::Palette::NpcVillain)
+                    : TextStyles::UI::PanelDark;
+                fillAlpha = 0.95f;
+            }
+            hovered = false;
+        }
+        else if (hovered) {
+            baseColor = ColorHelper::Palette::BlueLight;
+            fillAlpha = 0.95f;
+        }
+
+        btn.setFillColor(ColorHelper::applyAlphaFactor(baseColor, fillAlpha));
+        btn.setOutlineThickness(2.f);
+        btn.setOutlineColor(ColorHelper::Palette::FrameGoldDark);
+        target.draw(btn);
+
+        sf::Text txt{ game.resources.uiFont, label, 22 };
+        txt.setFillColor(ColorHelper::Palette::Normal);
+        auto tBounds = txt.getLocalBounds();
+        txt.setOrigin({ 0.f, tBounds.position.y });
+        txt.setPosition({ positions[i].x + 10.f, positions[i].y + (buttonHeight - tBounds.size.y) / 2.f });
+        target.draw(txt);
+
+        game.quiz.optionBounds[i] = btn.getGlobalBounds();
+    }
+}
+
+void beginQuestionAudio(Game& game) {
+    auto& quiz = game.quiz;
+    if (quiz.suppressNextQuestionStartRestart) {
+        quiz.suppressNextQuestionStartRestart = false;
+        return;
+    }
+    stopQuestionAudio(game);
+    if (quiz.questionStartSuppressed) {
+        quiz.questionStartSuppressed = false;
+        if (game.quizQuestionThinkingSound) {
+            game.quizQuestionThinkingSound->setLooping(true);
+            game.quizQuestionThinkingSound->play();
+        }
+        quiz.questionAudioPhase = Game::QuizData::QuestionAudioPhase::Thinking;
+    } else {
+        if (game.quizQuestionStartSound) {
+            game.quizQuestionStartSound->setLooping(false);
+            game.quizQuestionStartSound->play();
+        }
+        quiz.questionAudioPhase = Game::QuizData::QuestionAudioPhase::QuestionStart;
+        quiz.questionStartClock.restart();
+    }
+}
+
+void stopQuestionAudio(Game& game) {
+    auto& quiz = game.quiz;
+    if (game.quizQuestionStartSound)
+        game.quizQuestionStartSound->stop();
+    if (game.quizQuestionThinkingSound) {
+        game.quizQuestionThinkingSound->stop();
+        game.quizQuestionThinkingSound->setLooping(false);
+    }
+    quiz.questionAudioPhase = Game::QuizData::QuestionAudioPhase::Idle;
+}
+
+void updateQuizIntro(Game& game) {
+    auto& quiz = game.quiz;
+    if (!quiz.intro.active)
+        return;
+    if (quiz.intro.clock.getElapsedTime().asSeconds() < kQuizIntroDelay)
+        return;
+
+    quiz.intro.active = false;
+    game.dialogueIndex = quiz.intro.questionIndex;
+    if (quiz.intro.dialogue && quiz.intro.questionIndex < quiz.intro.dialogue->size()) {
+        game.visibleText = injectSpeakerNamesForQuiz((*quiz.intro.dialogue)[quiz.intro.questionIndex].text, game);
+        game.charIndex = game.visibleText.size();
+    }
+    startQuiz(game, quiz.intro.targetLocation, quiz.intro.questionIndex);
+    quiz.quizAutoStarted = true;
+    quiz.intro.dialogue = nullptr;
+}
+
+void completeQuizSuccess(Game& game) {
+    finishQuizSuccess(game);
+}
+
+namespace {
+    void resolveFinalChoice(Game& game, int index) {
+        game.finalChoice.active = false;
+        game.state = GameState::Dialogue;
+        game.transientDialogue.clear();
+
+        auto appendDialogue = [&](const std::vector<DialogueLine>& src) {
+            game.transientDialogue.insert(game.transientDialogue.end(), src.begin(), src.end());
+        };
+
+        switch (index) {
+            case 0:
+                appendDialogue(finalChoiceKill);
+                break;
+            case 1:
+                appendDialogue(finalChoiceSpare);
+                break;
+            case 2:
+                appendDialogue(finalChoiceAbsorb);
+                break;
+            default:
+                break;
+        }
+
+        appendDialogue(finalThanks);
+
+        game.currentDialogue = &game.transientDialogue;
+        game.dialogueIndex = 0;
+        game.visibleText.clear();
+        game.charIndex = 0;
+        game.typewriterClock.restart();
+        game.finalEncounterActive = false;
+        game.finalEndingPending = true;
+    }
+}
+
+void startFinalChoice(Game& game) {
+    game.finalChoice.active = true;
+    game.finalChoice.hoveredIndex = -1;
+    game.finalChoice.options = { "Kill", "Spare", "Absorb" };
+    game.state = GameState::FinalChoice;
+}
+
+void handleFinalChoiceEvent(Game& game, const sf::Event& event) {
+    if (!game.finalChoice.active)
+        return;
+
+    if (event.is<sf::Event::MouseMoved>()) {
+        auto pos = game.window.mapPixelToCoords(sf::Mouse::getPosition(game.window));
+        game.finalChoice.hoveredIndex = -1;
+        for (int i = 0; i < 3; ++i) {
+            if (game.finalChoice.optionBounds[i].contains(pos)) {
+                game.finalChoice.hoveredIndex = i;
+                break;
+            }
+        }
+    }
+    else if (auto button = event.getIf<sf::Event::MouseButtonReleased>()) {
+        if (button->button != sf::Mouse::Button::Left)
+            return;
+        auto pos = game.window.mapPixelToCoords(button->position);
+        for (int i = 0; i < 3; ++i) {
+            if (game.finalChoice.optionBounds[i].contains(pos)) {
+                resolveFinalChoice(game, i);
+                return;
+            }
+        }
+    }
+    else if (auto key = event.getIf<sf::Event::KeyReleased>()) {
+        int idx = -1;
+        switch (key->scancode) {
+            case sf::Keyboard::Scan::A: idx = 0; break;
+            case sf::Keyboard::Scan::B: idx = 1; break;
+            case sf::Keyboard::Scan::C: idx = 2; break;
+            case sf::Keyboard::Scan::Num1: idx = 0; break;
+            case sf::Keyboard::Scan::Num2: idx = 1; break;
+            case sf::Keyboard::Scan::Num3: idx = 2; break;
+            default: break;
+        }
+        if (idx >= 0) {
+            resolveFinalChoice(game, idx);
+        }
+    }
+}
+
+void drawFinalChoiceUI(Game& game, sf::RenderTarget& target) {
+    if (!game.finalChoice.active)
+        return;
+
+    auto textPos = game.textBox.getPosition();
+    auto textSize = game.textBox.getSize();
+    float padding = 14.f;
+    float buttonHeight = 48.f;
+    float buttonWidth = textSize.x - padding * 2.f;
+
+    float popupWidth = textSize.x;
+    float popupHeight = padding * 4.f + buttonHeight * 3.f;
+    float popupX = textPos.x;
+    float popupY = textPos.y - popupHeight - 12.f;
+    popupY = std::max(12.f, popupY);
+
+    sf::RectangleShape bg({ popupWidth, popupHeight });
+    bg.setPosition({ popupX, popupY });
+    bg.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, 0.95f));
+    bg.setOutlineThickness(3.f);
+    bg.setOutlineColor(ColorHelper::Palette::FrameGoldLight);
+    target.draw(bg);
+
+    float currentY = popupY + padding;
+    for (int i = 0; i < 3; ++i) {
+        std::string label;
+        switch (i) {
+            case 0: label = "1: "; break;
+            case 1: label = "2: "; break;
+            case 2: label = "3: "; break;
+        }
+        label += game.finalChoice.options[i];
+
+        sf::RectangleShape btn({ buttonWidth, buttonHeight });
+        btn.setPosition({ popupX + padding, currentY });
+        bool hovered = game.finalChoice.hoveredIndex == i;
+        btn.setFillColor(ColorHelper::applyAlphaFactor(hovered ? ColorHelper::Palette::BlueLight : TextStyles::UI::Panel, hovered ? 0.95f : 0.8f));
+        btn.setOutlineThickness(2.f);
+        btn.setOutlineColor(ColorHelper::Palette::FrameGoldDark);
+        target.draw(btn);
+
+        sf::Text txt{ game.resources.uiFont, label, 22 };
+        txt.setFillColor(ColorHelper::Palette::Normal);
+        auto tBounds = txt.getLocalBounds();
+        txt.setOrigin({ 0.f, tBounds.position.y });
+        txt.setPosition({ popupX + padding + 10.f, currentY + (buttonHeight - tBounds.size.y) / 2.f });
+        target.draw(txt);
+
+        game.finalChoice.optionBounds[i] = btn.getGlobalBounds();
+        currentY += buttonHeight + padding;
+    }
 }

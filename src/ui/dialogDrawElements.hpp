@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <string>
 
 class Game;
@@ -15,6 +16,7 @@ namespace dialogDraw {
         , float uiAlphaFactor
         , float glowElapsedSeconds
         , bool showLocationBox
+        , bool showItemBox
     );
     void drawSpeakerName(
         sf::RenderTarget& target
@@ -38,5 +40,17 @@ namespace dialogDraw {
         , Game & game
         , float uiAlphaFactor
         , bool isTyping
+    );
+    void drawBoxHeader(
+        Game& game
+        , sf::RenderTarget& target
+        , const sf::RectangleShape& box
+        , const std::string& label
+        , float uiAlphaFactor
+    );
+    void drawItemIcons(
+        Game& game
+        , sf::RenderTarget& target
+        , float uiAlphaFactor
     );
 }

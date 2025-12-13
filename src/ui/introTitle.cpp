@@ -16,6 +16,12 @@ bool introTitleDropComplete(const Game& game) {
 
 void triggerIntroTitleExit(Game& game) {
     if(!game.introTitleFadeOutActive && !game.introTitleHidden) {
+        if (!game.startGameSoundPlayed && game.startGameSound) {
+            game.startGameSound->stop();
+            game.startGameSound->play();
+            game.startGameSoundPlayed = true;
+        }
+        game.fadeOutTitleScreenMusic(game.introTitleFadeOutDuration + 0.5f);
         game.introTitleFadeOutActive = true;
         game.introTitleFadeClock.restart();
     }
@@ -35,6 +41,8 @@ void triggerIntroTitleExit(Game& game) {
 void drawIntroTitle(Game& game, sf::RenderTarget& target) {
     if (game.introTitleHidden)
         return;
+
+    game.startTitleScreenMusic();
 
     if (!game.titleDropStarted
         && game.state == GameState::IntroTitle
@@ -125,8 +133,8 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
             sf::Text backLayer{ game.resources.titleFontExtrude, text, size };
             sf::Text frontLayer{ game.resources.titleFont,       text, size };
 
-            frontLayer.setFillColor(sf::Color(255, 186, 59));
-            backLayer.setFillColor(sf::Color(92, 64, 35));
+            frontLayer.setFillColor(ColorHelper::Palette::TitleAccent);
+            backLayer.setFillColor(ColorHelper::Palette::TitleBack);
 
             auto centerOrigin = [](sf::Text& t) {
                 auto b = t.getLocalBounds();
@@ -189,7 +197,8 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
     if (game.titleDropComplete) {
         auto windowSize = target.getSize();
         float centerX = static_cast<float>(windowSize.x) * 0.5f;
-        float centerY = static_cast<float>(windowSize.y) * 0.82f;
+        // Center the intro prompt vertically in the window (move it up from 82% to 50%)
+        float centerY = static_cast<float>(windowSize.y) * 0.5f;
 
         if (game.introPromptBlinkActive) {
             float elapsed = game.introPromptBlinkClock.getElapsedTime().asSeconds();

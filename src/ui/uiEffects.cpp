@@ -1,7 +1,7 @@
 #include "uiEffects.hpp"
 #include <algorithm>
 #include <cmath>
-#include "../rendering/colorHelper.hpp"
+#include "helper/colorHelper.hpp"
 #include "ui/nineSliceBox.hpp"
 
 namespace uiEffects {

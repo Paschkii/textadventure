@@ -169,7 +169,7 @@ You are molto smart-a! Now take-a my DRAGON STONE and leave-a my cave!
 
 === Receiving Dragon Stone ===
 You have received the Dragon Stone of the (dragonelement)!
-You now have (dragonstonecount) Dragon Stone(s)!
+You now have (dragonstonecount) (dragonstoneword)!
 Your Dragon Scales grow even stronger!
 Your weapon has been upgraded! It can now use the power of the (dragonelement).
 You will now be teleported back to (village).

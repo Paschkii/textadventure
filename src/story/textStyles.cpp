@@ -5,9 +5,6 @@
 namespace TextStyles {
 
     namespace {
-        const sf::Color purpleblue{180, 180, 255};
-        const sf::Color brown{139, 69, 19};
-
         bool equalsIgnoreCase(const std::string& a, const std::string& b) {
             return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), b.end(), [](char lhs, char rhs) {
                 return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs));
@@ -28,6 +25,10 @@ namespace TextStyles {
             return SpeakerId::NoNameNPC;
         if (equalsIgnoreCase(name, "Noah Lott"))
             return SpeakerId::VillageNPC;
+        if (equalsIgnoreCase(name, "Master Bates"))
+            return SpeakerId::MasterBates;
+        if (equalsIgnoreCase(name, "Noah Bates"))
+            return SpeakerId::NoahBates;
         if (equalsIgnoreCase(name, "Rowsted Sheacane"))
             return SpeakerId::FireDragon;
         if (equalsIgnoreCase(name, "Flawtin Seamen"))
@@ -42,25 +43,29 @@ namespace TextStyles {
 
     SpeakerStyle speakerStyle(SpeakerId speaker) {
         switch (speaker) {
-            case SpeakerId::StoryTeller:
-                return { "Tory Tailor", purpleblue };
-            case SpeakerId::NoNameNPC:
-                return { "?????", purpleblue };
-            case SpeakerId::VillageNPC:
-                return { "Noah Lott", purpleblue };
-            case SpeakerId::Player:
-                return { playerDisplayName, sf::Color::Cyan };
-            case SpeakerId::FireDragon:
-                return { "Rowsted Sheacane", sf::Color::Red };
-            case SpeakerId::WaterDragon:
-                return { "Flawtin Seamen", sf::Color::Blue };
-            case SpeakerId::AirDragon:
-                return { "Gustavo Windimaess", sf::Color::Green };
-            case SpeakerId::EarthDragon:
-                return { "Grounded Claymore", brown };
+                case SpeakerId::StoryTeller:
+                    return { "Tory Tailor", ColorHelper::Palette::PurpleBlue };
+                case SpeakerId::NoNameNPC:
+                    return { "?????", ColorHelper::Palette::PurpleBlue };
+                case SpeakerId::VillageNPC:
+                    return { "Noah Lott", ColorHelper::Palette::PurpleBlue };
+                case SpeakerId::MasterBates:
+                    return { "Master Bates", ColorHelper::Palette::DarkPurple };
+                case SpeakerId::NoahBates:
+                    return { "Noah Bates", ColorHelper::Palette::PurpleBlue };
+                case SpeakerId::Player:
+                    return { playerDisplayName, ColorHelper::Palette::PlayerColor };
+                case SpeakerId::FireDragon:
+                    return { "Rowsted Sheacane", ColorHelper::Palette::FireDragon };
+                case SpeakerId::WaterDragon:
+                    return { "Flawtin Seamen", ColorHelper::Palette::WaterDragon };
+                case SpeakerId::AirDragon:
+                    return { "Gustavo Windimaess", ColorHelper::Palette::AirDragon };
+                case SpeakerId::EarthDragon:
+                    return { "Grounded Claymore", ColorHelper::Palette::EarthDragon };
             case SpeakerId::Unknown:
             default:
-                return { "", sf::Color::White };
+                return { "", ColorHelper::Palette::Normal };
         }
     }
 

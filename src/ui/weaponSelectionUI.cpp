@@ -2,13 +2,17 @@
 #include "core/game.hpp"
 #include "uiEffects.hpp"
 #include "uiVisibility.hpp"
-#include "rendering/colorHelper.hpp"
+#include "helper/colorHelper.hpp"
 #include "story/textStyles.hpp"
 #include "story/storyIntro.hpp"
 #include "confirmationUI.hpp"
 #include "story/dialogInput.hpp"
 #include <cstdint>
+#include <algorithm>
+#include <cctype>
+#include <optional>
 #include <SFML/Window/Mouse.hpp>
+#include <SFML/Window/Keyboard.hpp>
 
 namespace {
     void startDragonDialogue(Game& game) {
@@ -35,6 +39,75 @@ namespace {
         game.hoveredWeaponIndex = weaponIndexAt(game, worldPos);
     }
 
+    char weaponHotkey(const Game::WeaponOption& option) {
+        if (option.displayName.empty())
+            return '\0';
+        return static_cast<char>(std::tolower(static_cast<unsigned char>(option.displayName.front())));
+    }
+
+    std::optional<char> keyToWeaponHotkey(sf::Keyboard::Scan code) {
+        switch (code) {
+            case sf::Keyboard::Scan::H: return 'h';
+            case sf::Keyboard::Scan::K: return 'k';
+            case sf::Keyboard::Scan::S: return 's';
+            default: return std::nullopt;
+        }
+    }
+
+    int findWeaponIndexForHotkey(const Game& game, char hotkey) {
+        for (std::size_t i = 0; i < game.weaponOptions.size(); ++i) {
+            if (weaponHotkey(game.weaponOptions[i]) == hotkey)
+                return static_cast<int>(i);
+        }
+        return -1;
+    }
+
+    void triggerWeaponSelection(Game& game, int index) {
+        if (index < 0 || static_cast<std::size_t>(index) >= game.weaponOptions.size())
+            return;
+
+        game.selectedWeaponIndex = index;
+        if (game.state != GameState::WeaponSelection)
+            return;
+
+        const auto& option = game.weaponOptions[index];
+        std::string nameOnly = option.displayName;
+        std::string label = "Ahh so this is " + nameOnly + "?";
+
+        std::string description;
+        std::string lower = nameOnly;
+        std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
+        if (lower.find("holmabir") != std::string::npos) {
+            description = "This is a mighty Longsword!";
+        } else if (lower.find("kattkavar") != std::string::npos) {
+            description = "This is a mighty Sword and Shield!";
+        } else if (lower.find("stiggedin") != std::string::npos) {
+            description = "These are mighty Daggers!";
+        }
+
+        if (!description.empty())
+            label += "\n" + description;
+
+        showConfirmationPrompt(
+            game,
+            label,
+            [](Game& confirmedGame) {
+                if (!confirmedGame.weaponItemAdded && confirmedGame.selectedWeaponIndex >= 0 && static_cast<std::size_t>(confirmedGame.selectedWeaponIndex) < confirmedGame.weaponOptions.size()) {
+                    const auto& tex = confirmedGame.weaponOptions[confirmedGame.selectedWeaponIndex].texture;
+                    confirmedGame.addItemIcon(tex);
+                    confirmedGame.weaponItemAdded = true;
+                }
+                startDragonDialogue(confirmedGame);
+            },
+            [](Game& retryGame) {
+                retryGame.selectedWeaponIndex = -1;
+                retryGame.visibleText = injectSpeakerNames((*retryGame.currentDialogue)[retryGame.dialogueIndex].text, retryGame);
+                retryGame.charIndex = retryGame.visibleText.size();
+                retryGame.typewriterClock.restart();
+            }
+        );
+    }
+
     void drawWeaponPanelFrame(Game& game, sf::RenderTarget& target, float uiAlphaFactor, float glowElapsedSeconds) {
         sf::Color glowColor = uiEffects::computeGlowColor(
             ColorHelper::Palette::BlueLight,
@@ -54,7 +127,7 @@ namespace {
             2.f
         );
 
-        sf::Color frameColor = ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor);
+        sf::Color frameColor = game.frameColor(uiAlphaFactor);
         game.uiFrame.draw(target, game.weaponPanel, frameColor);
     }
 }
@@ -69,24 +142,12 @@ void handleWeaponSelectionEvent(Game& game, const sf::Event& event) {
 
         sf::Vector2f clickPos = game.window.mapPixelToCoords(button->position);
         int clickedIndex = weaponIndexAt(game, clickPos);
-        if (clickedIndex >= 0)
-            game.selectedWeaponIndex = clickedIndex;
-
-        if (game.selectedWeaponIndex >= 0 && game.state == GameState::WeaponSelection) {
-            auto& weaponName = game.weaponOptions[game.selectedWeaponIndex].displayName;
-            showConfirmationPrompt(
-                game,
-                "Ahh so this is " + weaponName + "?",
-                [](Game& confirmedGame) {
-                    startDragonDialogue(confirmedGame);
-                },
-                [](Game& retryGame) {
-                    retryGame.selectedWeaponIndex = -1;
-                    retryGame.visibleText = injectSpeakerNames((*retryGame.currentDialogue)[retryGame.dialogueIndex].text, retryGame);
-                    retryGame.charIndex = retryGame.visibleText.size();
-                    retryGame.typewriterClock.restart();
-                }
-            );
+        triggerWeaponSelection(game, clickedIndex);
+    }
+    else if (auto key = event.getIf<sf::Event::KeyReleased>()) {
+        if (auto hotkey = keyToWeaponHotkey(key->scancode)) {
+            int desiredIndex = findWeaponIndexForHotkey(game, *hotkey);
+            triggerWeaponSelection(game, desiredIndex);
         }
     }
 }
@@ -133,19 +194,42 @@ void drawWeaponSelectionUI(Game& game, sf::RenderTarget& target) {
             sf::RectangleShape outline({ option.bounds.size.x + (outlinePadding * 2.f), option.bounds.size.y + (outlinePadding * 2.f) });
             outline.setPosition({ option.bounds.position.x - outlinePadding, option.bounds.position.y - outlinePadding });
             outline.setFillColor(sf::Color::Transparent);
-            outline.setOutlineColor(ColorHelper::applyAlphaFactor(sf::Color::White, uiAlphaFactor));
+            outline.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, uiAlphaFactor));
             outline.setOutlineThickness(2.f);
             target.draw(outline);
         }
 
-        sf::Text label{ game.resources.titleFont, option.displayName, static_cast<unsigned int>(labelSize) };
-        label.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, uiAlphaFactor));
-        if (isSelected)
-            label.setStyle(sf::Text::Bold);
+        sf::Text nameText{ game.resources.titleFont, option.displayName, static_cast<unsigned int>(labelSize) };
+        nameText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, uiAlphaFactor));
 
-        auto labelBounds = label.getLocalBounds();
-        label.setOrigin({ labelBounds.position.x + (labelBounds.size.x / 2.f), labelBounds.position.y });
-        label.setPosition(option.labelPosition);
-        target.draw(label);
+        if (isSelected)
+            nameText.setStyle(sf::Text::Bold);
+
+        auto nameBounds = nameText.getLocalBounds();
+        sf::Vector2f labelPos = option.labelPosition;
+        nameText.setOrigin({ 0.f, nameBounds.position.y });
+        nameText.setPosition({ labelPos.x - (nameBounds.size.x / 2.f), labelPos.y });
+
+        target.draw(nameText);
+
+        if (!option.displayName.empty()) {
+            std::size_t underlineIndex = 0; // underline the first character
+            sf::Vector2f firstPos = nameText.findCharacterPos(static_cast<unsigned>(underlineIndex));
+            sf::Vector2f nextPos = nameText.findCharacterPos(static_cast<unsigned>(std::min(option.displayName.size(), underlineIndex + 1)));
+            float underlineStartX = firstPos.x;
+            float underlineEndX = nextPos.x;
+            if (underlineEndX <= underlineStartX)
+                underlineEndX = underlineStartX + nameBounds.size.x * 0.08f;
+
+            float underlineY = nameText.getPosition().y + nameBounds.size.y + 3.f;
+            float underlineThickness = 2.f;
+            sf::Color underlineColor = ColorHelper::Palette::SoftYellow;
+            underlineColor.a = static_cast<std::uint8_t>(underlineColor.a * uiAlphaFactor);
+
+            sf::RectangleShape underline({ underlineEndX - underlineStartX, underlineThickness });
+            underline.setPosition({ underlineStartX, underlineY });
+            underline.setFillColor(underlineColor);
+            target.draw(underline);
+        }
     }
 }

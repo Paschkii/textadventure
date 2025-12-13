@@ -1,7 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <string>
-#include "../rendering/colorHelper.hpp"
+#include "helper/colorHelper.hpp"
 
 namespace TextStyles {
 
@@ -14,7 +14,9 @@ enum class SpeakerId {
     FireDragon,
     WaterDragon,
     AirDragon,
-    EarthDragon
+    EarthDragon,
+    MasterBates,
+    NoahBates
 };
 
 struct SpeakerStyle {
@@ -25,7 +27,7 @@ struct SpeakerStyle {
 namespace Palette = ColorHelper::Palette;
 
 namespace UI {
-    inline const sf::Color Background = Palette::Blue;
+    inline const sf::Color Background = Palette::BlueDark;
     inline const sf::Color Border = Palette::FrameGoldDark;
     inline const sf::Color Text = Palette::Normal;
     inline const sf::Color Highlight = Palette::SoftYellow;

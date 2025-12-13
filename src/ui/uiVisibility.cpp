@@ -24,7 +24,7 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
                     game.typewriterClock.restart();
                     game.introDialogueFinished = false;
                     game.state = GameState::Dialogue;
-                    game.currentLocation = Locations::findById(game.locations, LocationId::Gonad);
+                    game.setCurrentLocation(Locations::findById(game.locations, LocationId::Gonad));
                 }
         }
     }
@@ -36,6 +36,11 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
             if (fadeProgress >= 1.f) {
                 game.uiFadeOutActive = false;
                 visibility.hidden = true;
+                // Clear any lingering dialogue visuals (e.g., Tory Tailor portrait/name)
+                // before the next dialogue fades back in.
+                game.lastSpeaker.reset();
+                game.visibleText.clear();
+                game.currentProcessedLine.clear();
 
                 if (!game.backgroundFadeInActive && !game.backgroundVisible) {
                     game.backgroundFadeInActive = true;

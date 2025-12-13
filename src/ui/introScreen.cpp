@@ -1,5 +1,6 @@
 #include "introScreen.hpp"
 #include "core/game.hpp"
+#include "helper/colorHelper.hpp"
 #include <algorithm>
 #include <sstream>
 #include <vector>
@@ -59,7 +60,7 @@ void renderIntroScreen(Game& game) {
     }
 
     sf::Text body{ game.resources.introFont, bodyText, 28 };
-    sf::Color bodyColor = sf::Color::White;
+        sf::Color bodyColor = ColorHelper::Palette::Normal;
     bodyColor.a = alpha;
     body.setFillColor(bodyColor);
     const float lineSpacing = static_cast<float>(body.getCharacterSize()) * 1.4f;
@@ -74,7 +75,7 @@ void renderIntroScreen(Game& game) {
     }
 
     sf::Text prompt{ game.resources.introFont, promptText, 28 };
-    sf::Color promptColor = sf::Color(200, 200, 200);
+        sf::Color promptColor = ColorHelper::Palette::PromptGray;
     promptColor.a = alpha;
     prompt.setFillColor(promptColor);
     centerText(prompt, windowWidth / 2.f, windowHeight * 0.8f);

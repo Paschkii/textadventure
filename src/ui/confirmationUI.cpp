@@ -1,8 +1,10 @@
 #include "confirmationUI.hpp"
 #include "../core/game.hpp"
-#include "rendering/colorHelper.hpp"
+#include "helper/colorHelper.hpp"
 #include "story/textStyles.hpp"
 #include <SFML/Window/Mouse.hpp>
+#include <SFML/Window/Keyboard.hpp>
+#include <algorithm>
 
 namespace {
     constexpr float kButtonHeight = 44.f;
@@ -19,11 +21,8 @@ namespace {
     }
 
     sf::FloatRect computeNoBounds(const Game& game) {
-        auto boxPos = game.textBox.getPosition();
-        auto boxSize = game.textBox.getSize();
-        float y = boxPos.y + boxSize.y - kButtonHeight - kButtonPadding;
-        float x = boxPos.x + boxSize.x - kButtonPadding - kButtonWidth;
-        return { { x, y }, { kButtonWidth, kButtonHeight } };
+        // placeholder; final position is computed in drawConfirmationPrompt using popup layout
+        return {};
     }
 
     void drawButton(
@@ -32,16 +31,16 @@ namespace {
         const sf::FloatRect& bounds,
         const std::string& label,
         bool isPrimary,
-        bool isHovered,
+        bool isActive,
         float uiAlphaFactor
     ) {
         sf::Color baseColor = TextStyles::UI::PanelDark;
         sf::Color outlineColor = ColorHelper::Palette::Amber;
 
-        if (isHovered)
-            baseColor = isPrimary ? ColorHelper::Palette::Green : sf::Color::Red;
+        if (isActive)
+            baseColor = isPrimary ? ColorHelper::Palette::Green : ColorHelper::Palette::NpcVillain;
 
-        baseColor = ColorHelper::applyAlphaFactor(baseColor, uiAlphaFactor * (isHovered ? 0.9f : 0.7f));
+        baseColor = ColorHelper::applyAlphaFactor(baseColor, uiAlphaFactor * (isActive ? 0.9f : 0.7f));
         outlineColor = ColorHelper::applyAlphaFactor(outlineColor, uiAlphaFactor);
 
         sf::RectangleShape buttonShape({ bounds.size.x, bounds.size.y });
@@ -52,7 +51,7 @@ namespace {
         target.draw(buttonShape);
 
         sf::Text text{ game.resources.uiFont, label, kButtonTextSize };
-        text.setFillColor(ColorHelper::applyAlphaFactor(sf::Color::White, uiAlphaFactor));
+        text.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, uiAlphaFactor));
         auto textBounds = text.getLocalBounds();
         text.setOrigin({ textBounds.position.x + (textBounds.size.x / 2.f), textBounds.position.y + (textBounds.size.y / 2.f) });
         text.setPosition({ bounds.position.x + (bounds.size.x / 2.f), bounds.position.y + (bounds.size.y / 2.f) });
@@ -79,21 +78,60 @@ void hideConfirmationPrompt(Game& game) {
     game.confirmationPrompt.message.clear();
     game.confirmationPrompt.yesBounds = {};
     game.confirmationPrompt.noBounds = {};
+    game.confirmationPrompt.keyboardSelection = -1;
 }
 
 void drawConfirmationPrompt(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
     if (!game.confirmationPrompt.active)
         return;
 
-    game.confirmationPrompt.yesBounds = computeYesBounds(game);
-    game.confirmationPrompt.noBounds = computeNoBounds(game);
+    float popupPadding = 14.f;
+    float popupWidth = 520.f;
+    float popupHeight = (kButtonHeight * 2.f) + (popupPadding * 2.f);
+    float winW = static_cast<float>(game.window.getSize().x);
+    float winH = static_cast<float>(game.window.getSize().y);
+    float margin = winW * 0.05f;
+    float popupX = winW - margin - popupWidth;
+    float popupY = winH * 0.05f;
+
+    sf::Text message{ game.resources.uiFont, game.confirmationPrompt.message, 20 };
+    message.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, uiAlphaFactor));
+    auto msgBounds = message.getLocalBounds();
+
+    popupWidth = std::max(popupWidth, msgBounds.size.x + popupPadding * 2.f + kButtonWidth + popupPadding * 2.f);
+    popupHeight = std::max(popupHeight, msgBounds.size.y + popupPadding * 2.f);
+    popupX = std::max(8.f, popupX);
+    popupY = std::max(8.f, popupY);
+
+    sf::RectangleShape bg({ popupWidth, popupHeight });
+    bg.setPosition({ popupX, popupY });
+    bg.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor));
+    bg.setOutlineThickness(2.f);
+    bg.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::FrameGoldLight, uiAlphaFactor));
+    target.draw(bg);
+
+    // message on left
+    float msgX = popupX + popupPadding;
+    float msgY = popupY + popupPadding;
+    message.setPosition({ msgX, msgY });
+    target.draw(message);
+
+    // buttons on right stacked vertically
+    float buttonsX = popupX + popupWidth - popupPadding - kButtonWidth;
+    float yesY = popupY + popupPadding;
+    float noY = yesY + kButtonHeight + 8.f;
+    game.confirmationPrompt.yesBounds = { { buttonsX, yesY }, { kButtonWidth, kButtonHeight } };
+    game.confirmationPrompt.noBounds = { { buttonsX, noY }, { kButtonWidth, kButtonHeight } };
 
     auto mousePos = game.window.mapPixelToCoords(sf::Mouse::getPosition(game.window));
     bool yesHovered = game.confirmationPrompt.yesBounds.contains(mousePos);
     bool noHovered = game.confirmationPrompt.noBounds.contains(mousePos);
 
-    drawButton(game, target, game.confirmationPrompt.yesBounds, "Yes", true, yesHovered, uiAlphaFactor);
-    drawButton(game, target, game.confirmationPrompt.noBounds, "No", false, noHovered, uiAlphaFactor);
+    bool yesActive = yesHovered || game.confirmationPrompt.keyboardSelection == 0;
+    bool noActive = noHovered || game.confirmationPrompt.keyboardSelection == 1;
+
+    drawButton(game, target, game.confirmationPrompt.yesBounds, "Yes", true, yesActive, uiAlphaFactor);
+    drawButton(game, target, game.confirmationPrompt.noBounds, "No", false, noActive, uiAlphaFactor);
 }
 
 bool handleConfirmationEvent(Game& game, const sf::Event& event) {
@@ -127,7 +165,38 @@ bool handleConfirmationEvent(Game& game, const sf::Event& event) {
         return true;
     }
 
-    // Confirmation UI should only be controllable via mouse clicks.
+    if (auto key = event.getIf<sf::Event::KeyReleased>()) {
+        if (key->scancode == sf::Keyboard::Scan::Up) {
+            game.confirmationPrompt.keyboardSelection = 0;
+            return true;
+        }
+        if (key->scancode == sf::Keyboard::Scan::Down) {
+            game.confirmationPrompt.keyboardSelection = 1;
+            return true;
+        }
+        if (key->scancode == sf::Keyboard::Scan::Enter || key->scancode == sf::Keyboard::Scan::Enter) {
+            if (game.confirmationPrompt.keyboardSelection == 0) {
+                if (game.confirmSound) {
+                    game.confirmSound->stop();
+                    game.confirmSound->play();
+                }
+                hideConfirmationPrompt(game);
+                if (game.confirmationPrompt.onConfirm)
+                    game.confirmationPrompt.onConfirm(game);
+                return true;
+            }
+            if (game.confirmationPrompt.keyboardSelection == 1) {
+                if (game.rejectSound) {
+                    game.rejectSound->stop();
+                    game.rejectSound->play();
+                }
+                hideConfirmationPrompt(game);
+                if (game.confirmationPrompt.onCancel)
+                    game.confirmationPrompt.onCancel(game);
+                return true;
+            }
+        }
+    }
 
     return false;
 }

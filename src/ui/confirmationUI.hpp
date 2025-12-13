@@ -3,6 +3,7 @@
 #include <functional>
 #include <string>
 #include <SFML/Window/Event.hpp>
+#include <SFML/System/Clock.hpp>
 
 class Game;
 
@@ -13,6 +14,7 @@ struct ConfirmationPrompt {
     sf::FloatRect noBounds{};
     std::function<void(Game&)> onConfirm;
     std::function<void(Game&)> onCancel;
+    int keyboardSelection = -1; // 0 = yes, 1 = no, -1 = none
 };
 
 void showConfirmationPrompt(
