@@ -25,6 +25,7 @@
 #include "ui/mapSelectionUI.hpp"      // Declares handleMapSelectionEvent invoked for map choices.
 #include "ui/quizUI.hpp"              // Declares handleQuizEvent triggered while in quiz mode.
 #include "ui/weaponSelectionUI.hpp"   // Declares handleWeaponSelectionEvent and related callbacks.
+#include "ui/menuUI.hpp"              // Handles the in-game menu button + overlay.
 
 constexpr unsigned int windowWidth = 1280;
 constexpr unsigned int windowHeight = 720;
@@ -91,6 +92,13 @@ Game::Game()
     weaponPanel.setFillColor(sf::Color::Transparent);
     weaponPanel.setOutlineColor(ColorHelper::Palette::Normal);
     weaponPanel.setOutlineThickness(2.f);
+    menuButton.setTexture(&resources.menuButton, true);
+    menuButton.setFillColor(sf::Color::White);
+    menuButton.setOutlineThickness(0.f);
+
+    menuPanel.setFillColor(TextStyles::UI::PanelDark);
+    menuPanel.setOutlineColor(TextStyles::UI::Border);
+    menuPanel.setOutlineThickness(2.f);
 
     currentDialogue = &intro;
 
@@ -236,6 +244,8 @@ void Game::run() {
                         nameInput.push_back(static_cast<char>(code));
                 }
             }
+            if (!confirmationPrompt.active && ui::menu::handleEvent(*this, *event))
+                continue;
             if (genderSelectionActive) {
                 if (ui::genderSelection::handleEvent(*this, *event))
                     continue;

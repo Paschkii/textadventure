@@ -119,6 +119,40 @@ void updateLayout(Game& game) {
     // Layout the UI-specific elements (weapon / dragon)
     ui::weapons::layoutWeaponSelection(game);
     ui::dragons::layoutDragonPortraits(game);
+
+    float buttonTarget = std::clamp(w * 0.08f, 48.f, 72.f);
+    auto texSize = game.resources.menuButton.getSize();
+    float maxDim = static_cast<float>(std::max(texSize.x, texSize.y));
+    float uniformScale = (maxDim > 0.f) ? buttonTarget / maxDim : 1.f;
+    sf::Vector2f finalSize{
+        static_cast<float>(texSize.x) * uniformScale,
+        static_cast<float>(texSize.y) * uniformScale
+    };
+    float textBoxRight = game.textBox.getPosition().x + game.textBox.getSize().x;
+    float buttonX = textBoxRight - finalSize.x - 8.f;
+    float buttonY = game.textBox.getPosition().y - finalSize.y - 12.f;
+    game.menuButton.setSize(finalSize);
+    game.menuButton.setPosition({ buttonX, buttonY });
+
+    constexpr float marginPercent = 0.05f;
+    float horizontalMargin = w * marginPercent;
+    float verticalMargin = h * marginPercent;
+
+    constexpr float kTabHeight = 70.f;
+    constexpr float kTabSpacing = 12.f;
+    float tabAreaWidth = (w - horizontalMargin * 2.f - kTabSpacing * 5.f) / 6.f;
+    float tabY = verticalMargin + 8.f;
+    for (std::size_t idx = 0; idx < game.menuTabBounds.size(); ++idx) {
+        float x = horizontalMargin + static_cast<float>(idx) * (tabAreaWidth + kTabSpacing);
+        game.menuTabBounds[idx] = sf::FloatRect({ x, tabY }, { tabAreaWidth, kTabHeight });
+    }
+
+    float innerX = horizontalMargin;
+    float innerY = tabY + kTabHeight + 16.f;
+    float innerWidth = w - (horizontalMargin * 2.f);
+    float innerHeight = h - innerY - verticalMargin;
+    game.menuPanel.setPosition(sf::Vector2f{ innerX, innerY });
+    game.menuPanel.setSize({ innerWidth, innerHeight });
 }
 
 } // namespace layout

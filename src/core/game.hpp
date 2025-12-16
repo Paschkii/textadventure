@@ -209,7 +209,14 @@ struct Game {
         sf::RectangleShape locationBox;                  // Box showing the current location.
         sf::RectangleShape itemBox;                      // Outline for the item list.
         sf::RectangleShape weaponPanel;                  // Weapon selector background.
+        sf::RectangleShape menuButton;                   // Button that opens the in-game menu.
+        sf::RectangleShape menuPanel;                    // Panel shown when the menu is active.
+        std::array<sf::FloatRect, 6> menuTabBounds{};    // Click/touch areas for menu tabs.
         NineSliceBox uiFrame{12};                        // Decorative frame around UI elements.
+        bool menuActive = false;                         // Determines whether the menu overlay is visible.
+        bool menuButtonHovered = false;                   // Tracks hover state for the menu button.
+        int menuHoveredTab = -1;                          // Hovered tab index.
+        int menuActiveTab = 0;                            // Active tab index when the menu is open.
 
         std::optional<sf::Sprite> background;             // Background art for the current scene.
         std::optional<sf::Sprite> returnSprite;           // Icon drawn when returning to map.

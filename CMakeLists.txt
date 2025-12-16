@@ -17,6 +17,7 @@ add_executable(Glandular
 
     src/ui/introScreen.cpp
     src/ui/introTitle.cpp
+    src/ui/menuUI.cpp
     src/ui/confirmationUI.cpp
     src/ui/dialogDrawElements.cpp
     src/ui/dialogUI.cpp

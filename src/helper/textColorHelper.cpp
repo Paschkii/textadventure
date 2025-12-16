@@ -43,7 +43,7 @@ std::vector<ColoredTextSegment> buildColoredSegments(const std::string& text) {
     }
     const std::size_t speakerTokenCount = tokens.size();
 
-    const auto& storyTokens = StoryIntro::colorTokens();
+    auto storyTokens = StoryIntro::colorTokensWithDynamic();
     tokens.insert(tokens.end(), storyTokens.begin(), storyTokens.end());
 
     std::vector<TokenMatch> matches;

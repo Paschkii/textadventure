@@ -183,6 +183,27 @@ bool Resources::loadAll()
     if (!dividerRight.loadFromFile("assets/textures/divider_right.png")) {
         std::cout << "Failed to load Divider Right Texture\n"; return false;
     }
+    if (!menuButton.loadFromFile("assets/gfx/buttons/button_menu.png")) {
+        std::cout << "Failed to load Menu Button Texture\n"; return false;
+    }
+    if (!buttonInventory.loadFromFile("assets/gfx/buttons/button_inventory.png")) {
+        std::cout << "Failed to load Inventory Button Texture\n"; return false;
+    }
+    if (!buttonCharacter.loadFromFile("assets/gfx/buttons/button_character.png")) {
+        std::cout << "Failed to load Character Button Texture\n"; return false;
+    }
+    if (!buttonMap.loadFromFile("assets/gfx/buttons/button_map.png")) {
+        std::cout << "Failed to load Map Button Texture\n"; return false;
+    }
+    if (!buttonQuests.loadFromFile("assets/gfx/buttons/button_quests.png")) {
+        std::cout << "Failed to load Quests Button Texture\n"; return false;
+    }
+    if (!buttonSettings.loadFromFile("assets/gfx/buttons/button_settings.png")) {
+        std::cout << "Failed to load Settings Button Texture\n"; return false;
+    }
+    if (!buttonRankings.loadFromFile("assets/gfx/buttons/button_rankings.png")) {
+        std::cout << "Failed to load Rankings Button Texture\n"; return false;
+    }
 
     // ---------------------------
     //       === Sounds ===

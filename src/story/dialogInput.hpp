@@ -495,5 +495,35 @@ inline std::string injectSpeakerNames(const std::string& text, const Game& game)
     replaceToken("{lastDragonName}", game.lastDragonName);
     replaceToken("{weapon}", selectedWeaponName());
     replaceToken("{lastLocation}", lastLocationName());
+    auto otherGender = (game.playerGender == Game::DragonbornGender::Male)
+        ? Game::DragonbornGender::Female
+        : Game::DragonbornGender::Male;
+    auto otherName = (otherGender == Game::DragonbornGender::Male)
+        ? "Asha Scale"
+        : "Ember Scale";
+    auto otherSubject = (otherGender == Game::DragonbornGender::Male) ? "he" : "she";
+    auto otherObject = (otherGender == Game::DragonbornGender::Male) ? "him" : "her";
+    auto otherPossessive = (otherGender == Game::DragonbornGender::Male) ? "his" : "her";
+    auto otherPossessivePronoun = (otherGender == Game::DragonbornGender::Male) ? "his" : "hers";
+    auto otherSibling = (otherGender == Game::DragonbornGender::Male) ? "brother" : "sister";
+    auto otherSiblingName = (otherGender == Game::DragonbornGender::Male) ? "Asha" : "Ember";
+
+    StoryIntro::refreshDynamicDragonbornTokens(
+        game.playerName,
+        otherName,
+        otherSubject,
+        otherObject,
+        otherPossessive,
+        otherPossessivePronoun,
+        otherSibling,
+        otherSiblingName
+    );
+    replaceToken("{dragonbornName}", otherName);
+    replaceToken("{dragonbornSubject}", otherSubject);
+    replaceToken("{dragonbornObject}", otherObject);
+    replaceToken("{dragonbornPossessive}", otherPossessive);
+    replaceToken("{dragonbornPossessivePronoun}", otherPossessivePronoun);
+    replaceToken("{dragonbornSibling}", otherSibling);
+    replaceToken("{dragonbornSiblingName}", otherSiblingName);
     return out;
 }

@@ -21,6 +21,13 @@ struct Resources {
     sf::Texture boxBorder; // Box Asset
     sf::Texture dividerLeft; // Divider asset used in location header
     sf::Texture dividerRight; // Divider asset used in location header
+    sf::Texture menuButton; // Menu button graphic used for the overlay toggle
+    sf::Texture buttonInventory;
+    sf::Texture buttonCharacter;
+    sf::Texture buttonMap;
+    sf::Texture buttonQuests;
+    sf::Texture buttonSettings;
+    sf::Texture buttonRankings;
     // Item Textures
     sf::Texture dragonstoneAir; // Air Dragon Stone
     sf::Texture dragonstoneEarth; // Earth Dragon Stone

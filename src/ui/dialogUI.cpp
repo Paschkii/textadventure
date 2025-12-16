@@ -12,6 +12,7 @@
 #include "confirmationUI.hpp"       // Displays the confirmation prompt triggered from dialogues.
 #include "ui/genderSelectionUI.hpp" // Handles the dragonborn selection panel overlay.
 #include "uiVisibility.hpp"         // Computes fade/visibility rules shared across UI modules.
+#include "ui/menuUI.hpp"            // Draws and handles the new in-game menu button.
 #include "story/dialogInput.hpp"    // Handles Enter logic and quiz transitions used in dialogue flow.
 #include "story/storyIntro.hpp"     // Drives the intro, dragon, and quiz dialogues referenced here.
 #include "story/textStyles.hpp"     // Provides speaker styles/colors for names and portraits.
@@ -500,4 +501,6 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
 
     if (!game.genderSelectionActive)
         dialogDraw::drawReturnPrompt(target, game, uiAlphaFactor, isTyping);
+
+    ui::menu::draw(game, target);
 }

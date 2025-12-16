@@ -8,6 +8,18 @@
 #include "dialogueLine.hpp"         // Supplies DialogueLine definitions for the story arrays.
 #include "helper/colorHelper.hpp"   // Supplies palette colors referenced by color keywords.
 
+// Dialogue token cheatsheet:
+//   {player}/{playerName}       – the current player name entered during the intro.
+//   {fireDragon}/{waterDragon}/… – the colored dragon speaker names used inside quizzes.
+//   {lastDragonName}            – last dragon name captured while routing through map dialogue.
+//   {lastLocation}              – the name of the most recently completed location.
+//   {dragonbornName}            – the name of the Dragonborn the player didn't pick (Asha Scale or Ember Scale).
+//   {dragonbornSubject}         – uses he/she for the leftover Dragonborn.
+//   {dragonbornObject}          – uses him/her for the leftover Dragonborn.
+//   {dragonbornPossessive}      – uses his/her for the leftover Dragonborn.
+//   {dragonbornPossessivePronoun}- uses his/hers for the leftover Dragonborn.
+//   {dragonbornSibling}         – uses brother/sister based on that Dragonborn's gender.
+//
 namespace StoryIntro {
 // Declares keywords that should glow in the intro text and their tinted colors.
 struct ColorKeyword {
@@ -20,8 +32,9 @@ inline const std::vector<ColorKeyword> kColorHighlights = {
     { { "Dragon Stone", "Dragon Stones", "Dragon Stones!", "Dragon stone", "Dragon stones" }, ColorHelper::Palette::Dim },
     { { "DRAGON STONE", "DRAGON STONES", "DRRAGON STONE", "DRRAGON STONES" }, ColorHelper::Palette::Dim },
     { { "Dragonborn", "Dragon Scales", "smoky", "iron", "metal", "stone", "Stone" }, ColorHelper::Palette::Dim },
+    { { "Asha Scale", "Ember Scale", } },
     { { "Master Bates", "Bates", "Ominous Castle", "castle", "shady figure", "Seminiferous" }, ColorHelper::Palette::DarkPurple },
-    { { "Noah", "Noah Lott", "Tory Tailor" }, ColorHelper::Palette::PurpleBlue },
+    { { "Noah", "Noah Lott", "Tory Tailor", "Wanda Rinn", "Will Figsid" }, ColorHelper::Palette::PurpleBlue },
     { { "Fire Dragon", "hottest", "burning", "crackling embers", "wildfire", "heat", "wall of flames", "Flames", "Blyathyroid" }, ColorHelper::Palette::FireDragon },
     { { "Water Dragon", "surface", "deep waters", "droplets", "flows", "riverbed", "currents", "cold stream", "Lacrimere" }, ColorHelper::Palette::WaterDragon },
     { { "Earth Dragon", "bedrock", "mountain wall", "rumbles", "shifting earth", "puddle of mud", "Cladrenal" }, ColorHelper::Palette::EarthDragon },
@@ -44,6 +57,42 @@ inline const std::vector<std::pair<std::string, sf::Color>>& colorTokens() {
         return flattened;
     }();
     return tokens;
+}
+
+namespace {
+    inline std::vector<std::pair<std::string, sf::Color>> dynamicColorTokens;
+}
+
+inline std::vector<std::pair<std::string, sf::Color>> colorTokensWithDynamic() {
+    auto tokens = colorTokens();
+    tokens.insert(tokens.end(), dynamicColorTokens.begin(), dynamicColorTokens.end());
+    return tokens;
+}
+
+inline void refreshDynamicDragonbornTokens(
+    std::string playerName,
+    std::string dragonbornName,
+    std::string dragonbornSubject,
+    std::string dragonbornObject,
+    std::string dragonbornPossessive,
+    std::string dragonbornPossessivePronoun,
+    std::string dragonbornSibling,
+    std::string dragonbornSiblingName
+) {
+    dynamicColorTokens.clear();
+    auto add = [&](const std::string& value) {
+        if (!value.empty())
+            dynamicColorTokens.emplace_back(value, ColorHelper::Palette::SoftRed);
+    };
+
+    add(playerName);
+    add(dragonbornName);
+    add(dragonbornSubject);
+    add(dragonbornObject);
+    add(dragonbornPossessive);
+    add(dragonbornPossessivePronoun);
+    add(dragonbornSibling);
+    add(dragonbornSiblingName);
 }
 
 // Represents scripted quiz prompts keyed by dragon speaker identity.
@@ -134,9 +183,10 @@ inline const std::vector<DialogueLine> intro = {
 // Dialogue from Gonad village NPC introducing the player’s awakening.
 inline const std::vector<DialogueLine> gonad = {
     { Speaker::NoNameNPC, "Hey...! Are you alright? Wake up...." },
-    { Speaker::NoNameNPC, "Let me help you up. You look horrible!" },
-    { Speaker::VillageWanderer, "Let me help you up. You look horrible!" },
-    { Speaker::VillageElder, "Before we begin, what is your name?", true },
+    { Speaker::NoNameNPC, "You look horrible! Let me help you up..." },
+    { Speaker::NoNameNPC, "My name is Wanda Rinn. What is your name?", true },
+    { Speaker::VillageWanderer, "Nice to meet you, {playerName}. What on Glandular happened to you?" },
+    { Speaker::Player, "Me and my {dragonbornSibling} were travelling towards " },
     { Speaker::VillageElder, "Hey, {playerName}. Are you awake?" },
     { Speaker::VillageElder, "You have been asleep for a long time." },
     { Speaker::VillageElder, "I was starting to worry about you." },
@@ -146,6 +196,10 @@ inline const std::vector<DialogueLine> gonad = {
     { Speaker::VillageElder, "Your skin is covered in Dragon Scales!" },
     { Speaker::VillageElder, "And you are the only Dragonborn, that hasnt been captured by Master Bates, yet..." },
     { Speaker::VillageElder, "So it was an easy guess for me!" },
+};
+
+inline const std::vector<DialogueLine> perigonal = {
+
 };
 
 // Brief dialogue prompting the player to name the found weapon.
