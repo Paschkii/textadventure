@@ -8,7 +8,7 @@ const sf::SoundBuffer* AudioManager::locationMusicBuffer(LocationId id) const {
         return nullptr;
 
     switch (id) {
-        case LocationId::Perigonal: return &resources->locationMusicGonad;
+        case LocationId::Gonad: return &resources->locationMusicGonad;
         case LocationId::Blyathyroid: return &resources->locationMusicBlyathyroid;
         case LocationId::Lacrimere: return &resources->locationMusicLacrimere;
         case LocationId::Cladrenal: return &resources->locationMusicCladrenal;

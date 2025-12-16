@@ -1,12 +1,15 @@
-#include "helper/layoutHelpers.hpp"
-#include "core/game.hpp"
-#include <algorithm>
-#include "helper/weaponHelpers.hpp"
-#include "helper/dragonHelpers.hpp"
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::max when computing panel widths and positioning elements.
+// === Header Files ===
+#include "core/game.hpp"  // Accesses UI boxes, weapon/dragon lists, and window size info.
+#include "helper/weaponHelpers.hpp"  // Invokes weapon layout helpers at the end of updateLayout.
+#include "helper/dragonHelpers.hpp"  // Relies on dragon layout helpers for portrait positioning.
+#include "helper/layoutHelpers.hpp"  // Declares updateLayout implemented in this translation unit.
 
 namespace ui {
 namespace layout {
 namespace {
+// Positions each collected item icon vertically inside the item box.
 void layoutItemIcons(Game& game) {
     auto& icons = game.itemController.icons();
     if (icons.empty())
@@ -48,6 +51,7 @@ void layoutItemIcons(Game& game) {
 }
 } // namespace
 
+// Updates all major UI boxes, reloads the frame, and triggers weapon/dragon layouts.
 void updateLayout(Game& game) {
     float w = game.window.getSize().x;
     float h = game.window.getSize().y;
@@ -60,10 +64,6 @@ void updateLayout(Game& game) {
     float textWidth = w * 0.70f;    // TextBox: 70% Breite (896)
     float locationWidth = w * 0.20f; // LocationBox 30% Breite
     float itemWidth = (w * 0.20f) * 0.5f; // ItemBox: 50% der bisherigen Breite
-    constexpr float kStatusBarHeight = 16.f;
-    constexpr float kStatusBarPadding = 12.f;
-    constexpr float kStatusRowSpacing = kStatusBarHeight + 12.f;
-    float statusHeight = (kStatusRowSpacing + kStatusBarHeight) + (kStatusBarPadding * 2.f);
 
     // === NameBox: links unten, 5% Abstand ===
     game.nameBox.setSize({ nameWidth, boxHeight });
@@ -71,6 +71,16 @@ void updateLayout(Game& game) {
         marginX,
         h - boxHeight - marginY
     });
+
+    constexpr float kPlayerStatusBarHeight = 16.f;
+    constexpr float kPlayerStatusVerticalPadding = 8.f;
+    constexpr float kPlayerStatusRowSpacing = 5.f;
+    constexpr float kPlayerStatusBoxHeight = (kPlayerStatusBarHeight * 2.f) + (kPlayerStatusVerticalPadding * 2.f) + kPlayerStatusRowSpacing;
+    float statusWidth = std::max(0.f, game.nameBox.getSize().x * 0.9f);
+    float statusX = game.nameBox.getPosition().x + (game.nameBox.getSize().x - statusWidth) * 0.5f;
+    float statusY = game.nameBox.getPosition().y - kPlayerStatusBoxHeight - 10.f;
+    game.playerStatusBox.setSize({ statusWidth, kPlayerStatusBoxHeight });
+    game.playerStatusBox.setPosition({ statusX, statusY });
 
     // === TextBox: rechts unten, 5% Abstand ===
     game.textBox.setSize({ textWidth - (marginX / 2), boxHeight });
@@ -81,16 +91,8 @@ void updateLayout(Game& game) {
 
     game.locationBox.setSize({ locationWidth, boxHeight / 2 });
     game.locationBox.setPosition({
-        marginX,
+        marginX + 30.f,
         marginY
-    });
-
-    // statusHeight already computed above
-    constexpr float statusMargin = 12.f;
-    game.playerStatusBox.setSize({ nameWidth, statusHeight });
-    game.playerStatusBox.setPosition({
-        marginX,
-        game.nameBox.getPosition().y - statusHeight - statusMargin
     });
 
     // === ItemBox: rechts oben, gleicher Abstand zu Top/Right wie TextBox ===

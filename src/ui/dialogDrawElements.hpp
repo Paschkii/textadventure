@@ -2,6 +2,7 @@
 // === C++ Libraries ===
 #include <string>  // Passes label/text strings such as box headers and dialogue names.
 // === SFML Libraries ===
+#include <SFML/Graphics/Color.hpp>  // Colors used for the glow effects.
 #include <SFML/Graphics/RenderTarget.hpp>  // Draws portraits, text, and boxes into the UI area.
 #include <SFML/Graphics/RectangleShape.hpp>  // Describes box boundaries used when drawing UI frames.
 
@@ -16,7 +17,7 @@ namespace dialogDraw {
         Game& game
         , sf::RenderTarget& target
         , float uiAlphaFactor
-        , float glowElapsedSeconds
+        , const sf::Color& glowColor
     );
     void drawSpeakerName(
         sf::RenderTarget& target

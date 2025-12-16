@@ -1,6 +1,9 @@
-#include "resources.hpp"
-#include <iostream>
+// === C++ Libraries ===
+#include <iostream>  // Logs asset-loading failures during Resources::loadAll.
+// === Header Files ===
+#include "resources.hpp"  // Declares Resources::loadAll and the stored asset handles.
 
+// Attempts to load every font/texture/audio asset required for the game.
 bool Resources::loadAll()
 {
     // ---------------------------
@@ -8,6 +11,9 @@ bool Resources::loadAll()
     // ---------------------------
     if (!uiFont.openFromFile("assets/fonts/uiFont.ttf")) { // Font: Text Font
         std::cout << "Failed to load uiFont.ttf\n"; return false;
+    }
+    if (!quizFont.openFromFile("assets/fonts/quizFont.ttf")) { // Font: Quiz Text
+        std::cout << "Failed to load quizFont.ttf\n"; return false;
     }
     if (!titleFont.openFromFile("assets/fonts/titleFont.otf")) { // Font: Front Layer
         std::cout << "Failed to load titleFont.otf\n"; return false;
@@ -40,6 +46,24 @@ bool Resources::loadAll()
     if (!dragonstoneWater.loadFromFile("assets/dragonstones/dragonstoneWater.png")) { // Item: Water Dragonstone
         std::cout << "Failed to load Water Dragonstone Texture\n"; return false;
     }
+    if (!weaponHolmabir.loadFromFile("assets/gfx/weapons/Weapon Holmabir.png")) { // Weapon: Holmabir
+        std::cout << "Failed to load Holmabir Texture\n"; return false;
+    }
+    if (!weaponHolmabirBroken.loadFromFile("assets/gfx/weapons/Weapon Holmabir Broken.png")) { // Weapon: Holmabir Broken
+        std::cout << "Failed to load Holmabir Broken Texture\n"; return false;
+    }
+    if (!weaponKattkavar.loadFromFile("assets/gfx/weapons/Weapon Kattkavar.png")) { // Weapon: Kattkavar
+        std::cout << "Failed to load Kattkavar Texture\n"; return false;
+    }
+    if (!weaponKattkavarBroken.loadFromFile("assets/gfx/weapons/Weapon Kattkavar Broken.png")) { // Weapon: Kattkavar Broken
+        std::cout << "Failed to load Kattkavar Broken Texture\n"; return false;
+    }
+    if (!weaponStiggedin.loadFromFile("assets/gfx/weapons/Weapon Stiggedin.png")) { // Weapon: Stiggedin
+        std::cout << "Failed to load Stiggedin Texture\n"; return false;
+    }
+    if (!weaponStiggedinBroken.loadFromFile("assets/gfx/weapons/Weapon Stiggedin Broken.png")) { // Weapon: Stiggedin Broken
+        std::cout << "Failed to load Stiggedin Broken Texture\n"; return false;
+    }
 
     // ----------------------------
     //      Character Textures
@@ -56,20 +80,32 @@ bool Resources::loadAll()
     if (!waterDragon.loadFromFile("assets/gfx/characters/flawtin_seamen.png")) { // Char: Water Dragon » Flawtin Seamen
         std::cout << "Failed to load Water Dragon Texture\n"; return false;
     }
+    if (!dragonbornMaleSprite.loadFromFile("assets/gfx/characters/dragonborn/Dragonborn_Male.png")) { // Selectable Dragonborn Male
+        std::cout << "Failed to load Dragonborn Male Sprite\n"; return false;
+    }
+    if (!dragonbornFemaleSprite.loadFromFile("assets/gfx/characters/dragonborn/Dragonborn_Female.png")) { // Selectable Dragonborn Female
+        std::cout << "Failed to load Dragonborn Female Sprite\n"; return false;
+    }
+    if (!dragonbornMaleHoveredSprite.loadFromFile("assets/gfx/characters/dragonborn/Dragonborn_Male_Hovered.png")) { // Hovered Dragonborn Male
+        std::cout << "Failed to load Dragonborn Male Hover Sprite\n"; return false;
+    }
+    if (!dragonbornFemaleHoveredSprite.loadFromFile("assets/gfx/characters/dragonborn/Dragonborn_Female_Hovered.png")) { // Hovered Dragonborn Female
+        std::cout << "Failed to load Dragonborn Female Hover Sprite\n"; return false;
+    }
     // ----------------------------
     //      Character Portraits
     // ----------------------------
     if (!portraitStoryTeller.loadFromFile("assets/gfx/characters/tory_tailor.png")) { // Portrait: Tory Tailor
         std::cout << "Failed to load Tory Tailor Portrait\n"; return false;
     }
-    if (!portraitVillageNPC.loadFromFile("assets/gfx/characters/noah_lott.png")) { // Portrait: Noah Lott
+    if (!portraitVillageElder.loadFromFile("assets/gfx/characters/noah_lott.png")) { // Portrait: Noah Lott
         std::cout << "Failed to load Noah Lott Portrait\n"; return false;
+    }
+    if (!portraitVillageWanderer.loadFromFile("assets/gfx/characters/wanda_rinn.png")) { // Portrait: Wanda Rinn
+        std::cout << "Failed to load Village Wanderer Portrait\n"; return false;
     }
     if (!portraitNoahBates.loadFromFile("assets/gfx/characters/noah_bates.png")) { // Portrait: Noah Bates
         std::cout << "Failed to load Noah Bates Portrait\n"; return false;
-    }
-    if (!portraitPlayer.loadFromFile("assets/gfx/characters/dragonborn_male.png")) { // Portrait: Player (Dragonborn)
-        std::cout << "Failed to load Player Portrait\n"; return false;
     }
     if (!portraitFireDragon.loadFromFile("assets/gfx/characters/rowsted_sheacane_portrait.png")) { // Portrait: Rowsted Sheacane
         std::cout << "Failed to load Fire Dragon Portrait\n"; return false;
@@ -85,6 +121,12 @@ bool Resources::loadAll()
     }
     if (!portraitMasterBates.loadFromFile("assets/gfx/characters/master_bates.png")) { // Portrait: Master Bates
         std::cout << "Failed to load Master Bates Portrait\n"; return false;
+    }
+    if (!portraitDragonbornMale.loadFromFile("assets/gfx/characters/dragonborn/Portrait_Dragonborn_Male.png")) { // Portrait: Dragonborn Male
+        std::cout << "Failed to load Dragonborn Male Portrait\n"; return false;
+    }
+    if (!portraitDragonbornFemale.loadFromFile("assets/gfx/characters/dragonborn/Portrait_Dragonborn_Female.png")) { // Portrait: Dragonborn Female
+        std::cout << "Failed to load Dragonborn Female Portrait\n"; return false;
     }
 
     // ---------------------------
@@ -135,6 +177,12 @@ bool Resources::loadAll()
     if (!boxBorder.loadFromFile("assets/textures/boxBorder.png")) { // boxBordet Asset
         std::cout << "Failed to load Box Border Texture\n"; return false;
     }
+    if (!dividerLeft.loadFromFile("assets/textures/divider_left.png")) {
+        std::cout << "Failed to load Divider Left Texture\n"; return false;
+    }
+    if (!dividerRight.loadFromFile("assets/textures/divider_right.png")) {
+        std::cout << "Failed to load Divider Right Texture\n"; return false;
+    }
 
     // ---------------------------
     //       === Sounds ===
@@ -145,7 +193,7 @@ bool Resources::loadAll()
     if (!confirm.loadFromFile("assets/audio/confirm.mp3")) { // Confirm Choice
         std::cout << "Failed to load Confirm Sound\n"; return false;
     }
-    if (!enterKey.loadFromFile("assets/audio/enterKey.wav")) { // Pressing Enter Key
+    if (!enterKey.loadFromFile("assets/audio/enterKey.mp3")) { // Pressing Enter Key
         std::cout << "Failed to load Enter Key Sound\n"; return false;
     }
     if (!typewriter.loadFromFile("assets/audio/typewriter.mp3")) { // isTyping Sound
@@ -154,7 +202,7 @@ bool Resources::loadAll()
     if (!reject.loadFromFile("assets/audio/reject.mp3")) { // Reject Choice
         std::cout << "Failed to load Reject Sound\n"; return false;
     }
-    if (!startGame.loadFromFile("assets/audio/startGame.wav")) { // Start Game
+    if (!startGame.loadFromFile("assets/audio/startGame.mp3")) { // Start Game
         std::cout << "Failed to load Start Game Sound\n"; return false;
     }
     if (!teleportStart.loadFromFile("assets/audio/teleport_start.mp3")) { // Teleport Start
@@ -184,8 +232,17 @@ bool Resources::loadAll()
     if (!locationMusicSeminiferous.loadFromFile("assets/audio/locationMusicSeminiferous.mp3")) { // Seminiferous Location Sound
         std::cout << "Failed to load Seminiferous Location Music\n"; return false;
     }
-    if (!titleScreen.loadFromFile("assets/audio/titleScreen.mp3")) { // Title Screen Sound
-        std::cout << "Failed to load Title Screen Music\n"; return false;
+    if (!introTitle.loadFromFile("assets/audio/introTitle.mp3")) { // Intro Title Sound
+        std::cout << "Failed to load Intro Title Music\n"; return false;
+    }
+    if (!introDialogue.loadFromFile("assets/audio/introDialogue.mp3")) { // Intro Dialogue Sound
+        std::cout << "Failed to load Intro Dialogue Music\n"; return false;
+    }
+    if (!buttonHovered.loadFromFile("assets/audio/hoverButtons.mp3")) { // Button Hover Sound
+        std::cout << "Failed to load Button Hover Sound\n"; return false;
+    }
+    if (!titleButtons.loadFromFile("assets/audio/titleButtons.mp3")) { // Intro Title Button Hover
+        std::cout << "Failed to load Title Button Hover Sound\n"; return false;
     }
     if (!quizAnswerCorrect.loadFromFile("assets/audio/quizAnswerCorrect.mp3")) { // Answer Correct
         std::cout << "Failed to load Answer Correct Sound\n"; return false;
@@ -218,6 +275,6 @@ bool Resources::loadAll()
         std::cout << "Failed to load Sound\n"; return false;
     }
 
-
+    // All asset loads succeeded.
     return true;
 }

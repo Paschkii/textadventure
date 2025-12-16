@@ -96,10 +96,13 @@ namespace ColorHelper {
         inline const sf::Color Purple = sf::Color(0xC1, 0xA1, 0xFF);           // Primary accent used on highlighted UI edges.
         inline const sf::Color BlueDark = sf::Color(0x1C, 0x25, 0x44);         // Deep background tone for windows.
         inline const sf::Color BlueNearBlack = sf::Color(10, 12, 20);          // Near-black used for the highest contrast backdrops.
+        inline const sf::Color BlueAlsoNearBlack = sf::Color(0x1F, 0x2A, 0x3B);// Also Near Black Color
+        inline const sf::Color NavyBlue = sf::Color(0x4F, 0x6A, 0x8A);         // Navy Blue Color
         inline const sf::Color Blue = sf::Color(0x2F, 0x3B, 0x68);             // Mid-tone blue used for panels and text outlines.
         inline const sf::Color BlueLight = sf::Color(0x7C, 0x95, 0xCC);        // Light blue shading for highlights.
         inline const sf::Color MetalDark = sf::Color(0x2F, 0x32, 0x38);        // Steel tone for frame borders.
         inline const sf::Color Green = sf::Color(0x80, 0xB6, 0x63);            // Success/positive signal color.
+        inline const sf::Color Health = sf::Color(0xE4, 0x44, 0x44);           // Health indicator for HP bars.
         inline const sf::Color Orange = sf::Color(0xFF, 0xC7, 0x9F);           // Warm UI accent for buttons.
         inline const sf::Color SoftOrange = sf::Color(0xFF, 0xCE, 0xA2);       // Subtle orange for secondary accents.
         inline const sf::Color Pink = sf::Color(0xFF, 0xAD, 0xC6);             // Decorative pink used in overlays.
@@ -122,7 +125,7 @@ namespace ColorHelper {
         inline const sf::Color Subtitle = sf::Color(0xD0, 0xD0, 0xD0);         // Lighter grey used for subtitle text.
         inline const sf::Color Dim = sf::Color(0xAA, 0xAA, 0xAA);              // Dim grey for disabled UI elements.
         inline const sf::Color NpcHero = sf::Color(0x7C, 0xCC, 0xF9);          // Hero NPC speech color.
-        inline const sf::Color HP = sf::Color(0xFF, 0x66, 0x66);               // HP color.
+        inline const sf::Color SoftRed = sf::Color(0xFF, 0x66, 0x66);          // Soft Red color.
         inline const sf::Color NpcMage = sf::Color(0xB0, 0x7C, 0xFF);          // Mage speech color.
         inline const sf::Color NpcRogue = sf::Color(0xB4, 0xFF, 0xA1);         // Rogue speech color.
         inline const sf::Color Shadow40 = sf::Color(0, 0, 0, 40);              // Light shadow gradient at 16% alpha.

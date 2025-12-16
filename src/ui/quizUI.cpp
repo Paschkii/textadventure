@@ -1,14 +1,22 @@
-#include "quizUI.hpp"
-#include "core/game.hpp"
-#include "helper/colorHelper.hpp"
-#include "story/textStyles.hpp"
-#include "story/storyIntro.hpp"
-#include "helper/layoutHelpers.hpp"
-#include "ui/confirmationUI.hpp"
-#include "rendering/locations.hpp"
-#include <random>
-#include <array>
-#include <algorithm>
+// === C++ Libraries ===
+#include <algorithm>   // Uses std::equal and std::max when parsing command-line dialect requests.
+#include <array>       // Stores the fixed name/dialect lists referenced by CLI helpers.
+#include <cctype>      // Applies std::tolower when normalizing names and hotkeys.
+#include <iostream>    // Prints dialect diagnostics when command-line parsing fails.
+#include <optional>    // Returns optional speaker/Location IDs from helper lookups.
+#include <random>      // Creates dice rolls when selecting silly names and quiz orders.
+#include <string_view> // Parses command-line arguments without copying full strings.
+#include <utility>     // Moves replacement questions into place without copies.
+// === Header Files ===
+#include "quizUI.hpp"             // Declares quiz UI functions implemented in this file.
+#include "confirmationUI.hpp"     // Uses the confirmation modal for quiz transitions.
+#include "core/game.hpp"          // Mutates Game quiz state, dialog flow, and resources.
+#include "helper/colorHelper.hpp" // Applies palette colors for quiz text and prompts.
+#include "helper/layoutHelpers.hpp" // Recalculates UI layout when the quiz pops up.
+#include "rendering/locations.hpp" // Maps LocationId values to the correct dragon speaker info.
+#include "story/textStyles.hpp"   // Provides dragon speaker names/colors used by quizzes.
+#include "story/storyIntro.hpp"   // Retrieves quiz scripts and responses linked to each dragon.
+#include "ui/sillyRiddles.hpp"     // Supplies the silly riddle pool for bonus questions.
 
 namespace {
     const std::array<std::string, 20> kSillyNames{
@@ -17,6 +25,89 @@ namespace {
         "Luke Atmyaz", "May I. Tutchem", "Pat Myaz", "Clee Torres", "I. P. Freely",
         "Yuri Nator", "Annie Position", "Dil Doe", "Wilma Fingerdoo", "Lou Briccant"
     };
+
+    const std::array<TextStyles::SpeakerId, 4> kDialectSpeakers{
+        TextStyles::SpeakerId::FireDragon,
+        TextStyles::SpeakerId::WaterDragon,
+        TextStyles::SpeakerId::EarthDragon,
+        TextStyles::SpeakerId::AirDragon
+    };
+
+    std::string toLowerAscii(std::string_view input) {
+        std::string result;
+        result.reserve(input.size());
+        for (unsigned char c : input)
+            result.push_back(static_cast<char>(std::tolower(c)));
+        return result;
+    }
+
+    std::string_view stripPrefix(std::string_view value, std::string_view prefix) {
+        if (value.size() >= prefix.size() &&
+            std::equal(prefix.begin(), prefix.end(), value.begin()))
+        {
+            return value.substr(prefix.size());
+        }
+        return value;
+    }
+
+    std::optional<TextStyles::SpeakerId> speakerForName(const std::string& normalized) {
+        if (normalized == "fire" || normalized == "firedragon" || normalized == "fire-dragon" || normalized == "fire dragon")
+            return TextStyles::SpeakerId::FireDragon;
+        if (normalized == "water" || normalized == "waterdragon" || normalized == "water-dragon" || normalized == "water dragon")
+            return TextStyles::SpeakerId::WaterDragon;
+        if (normalized == "earth" || normalized == "earthdragon" || normalized == "earth-dragon" || normalized == "earth dragon")
+            return TextStyles::SpeakerId::EarthDragon;
+        if (normalized == "air" || normalized == "airdragon" || normalized == "air-dragon" || normalized == "air dragon")
+            return TextStyles::SpeakerId::AirDragon;
+        return std::nullopt;
+    }
+
+    struct DialectRequest {
+        bool showAll = true;
+        std::optional<TextStyles::SpeakerId> speaker;
+    };
+
+    DialectRequest parseDialectRequest(int argc, char** argv) {
+        DialectRequest request;
+        if (argc <= 2)
+            return request;
+
+        std::string_view raw{argv[2]};
+        auto candidate = stripPrefix(raw, "--dialect=");
+        candidate = stripPrefix(candidate, "--dragon=");
+        if (candidate.empty())
+            return request;
+
+        auto normalized = toLowerAscii(candidate);
+        if (normalized == "all" || normalized == "alldragons" || normalized == "all-dragons" || normalized == "all dragons")
+            return request;
+
+        if (auto speaker = speakerForName(normalized)) {
+            request.showAll = false;
+            request.speaker = *speaker;
+            return request;
+        }
+
+        std::cout << "Unknown dialect '" << raw << "'. Showing all dialects.\n";
+        return request;
+    }
+
+    void printDialectPreview(TextStyles::SpeakerId speaker) {
+        const auto& style = TextStyles::speakerStyle(speaker);
+        std::cout << style.name << " dialect:\n";
+        std::cout << "  math prompt: " << StoryIntro::quizMathPrompt(speaker) << "\n";
+        std::cout << "  correct response: " << StoryIntro::quizCorrectResponse(speaker) << "\n\n";
+    }
+
+    void printDialectPreviews(const DialectRequest& request) {
+        if (request.showAll) {
+            for (auto speaker : kDialectSpeakers)
+                printDialectPreview(speaker);
+            return;
+        }
+        if (request.speaker)
+            printDialectPreview(*request.speaker);
+    }
 
     std::size_t locIndex(LocationId id) {
         switch (id) {
@@ -75,6 +166,7 @@ namespace {
     constexpr float kSelectionLoggingDuration = 3.f;
     constexpr float kSelectionBlinkDuration = 3.f;
     constexpr float kSelectionBlinkInterval = 0.5f;
+    constexpr unsigned kQuizFontSize = 28;
 
     bool selectionBlinkHighlight(const Game::QuizData& quiz) {
         float elapsed = quiz.blinkClock.getElapsedTime().asSeconds();
@@ -235,7 +327,7 @@ namespace {
         game.dragonStoneCount++;
         if (game.dragonStoneCount >= 4)
             game.finalEncounterPending = true;
-        game.addDragonstoneIcon(game.quiz.targetLocation);
+        game.itemController.collectDragonstone(game.quiz.targetLocation);
         game.transientDialogue.clear();
         game.pendingTeleportToGonad = true;
 
@@ -298,7 +390,8 @@ namespace {
         bool retry = false;
         bool finish = false;
 
-        if (index == question->correctIndex) {
+        bool questionCorrect = question->acceptAnyAnswer || index == question->correctIndex;
+        if (questionCorrect) {
             if (isNameQuestion) {
                 feedback = feedbackFromStory(2, "Correct, my name is " + game.quiz.dragonName + "!");
             } else {
@@ -324,11 +417,32 @@ namespace {
                 game.quiz.pendingQuestionStartAnnouncement = true;
             }
 
-            advance = !isLastQuestion;
-            finish = isLastQuestion;
+        advance = !isLastQuestion;
+        finish = isLastQuestion;
         } else {
             feedback = feedbackFromStory(1, "Wrong!");
             retry = true;
+            game.totalRiddleFaults++;
+
+            if (question->category == quiz::Category::Silly) {
+                std::string currentPrompt = question->prompt;
+                std::optional<quiz::Question> replacement;
+                for (int attempts = 0; attempts < 8; ++attempts) {
+                    auto sample = sillyRiddles::sample(game.quiz.rng, 1);
+                    if (sample.empty())
+                        break;
+                    if (sample[0].prompt == currentPrompt)
+                        continue;
+                    replacement = std::move(sample[0]);
+                    break;
+                }
+                if (replacement)
+                    game.quiz.pendingSillyReplacement = std::move(replacement);
+                else
+                    game.quiz.pendingSillyReplacement.reset();
+            } else {
+                game.quiz.pendingSillyReplacement.reset();
+            }
         }
 
         game.quiz.pendingFeedback = {
@@ -341,7 +455,7 @@ namespace {
         };
         game.quiz.pendingFeedbackActive = true;
         game.quiz.selectionIndex = index;
-        game.quiz.selectionCorrect = (index == question->correctIndex);
+        game.quiz.selectionCorrect = questionCorrect;
         game.quiz.selectionPhase = Game::QuizData::SelectionPhase::Logging;
         game.quiz.selectionClock.restart();
         game.quiz.hoveredIndex = -1;
@@ -382,6 +496,35 @@ namespace {
     }
 }
 
+bool runQuizDevMode(int argc, char** argv) {
+    if (argc <= 1 || std::string(argv[1]) != "--quiz-dev")
+        return false;
+
+    auto dialectRequest = parseDialectRequest(argc, argv);
+    std::mt19937 rng(std::random_device{}());
+    auto questions = quiz::generateNumberQuiz(rng);
+    const char labels[] = { 'A', 'B', 'C', 'D' };
+
+    std::cout << "Generating " << questions.size() << " quiz questions.\n\n";
+    for (std::size_t i = 0; i < questions.size(); ++i) {
+        const auto& q = questions[i];
+        std::cout << "Question " << (i + 1) << " (" << quiz::toString(q.category) << ")\n";
+        std::cout << q.prompt << "\n";
+        for (int j = 0; j < 4; ++j) {
+            bool correct = j == q.correctIndex;
+            std::cout << "  " << labels[j] << ") " << q.options[j];
+            if (correct)
+                std::cout << "  <-- correct";
+            std::cout << "\n";
+        }
+        std::cout << "\n";
+    }
+
+    std::cout << "Dialect previews:\n";
+    printDialectPreviews(dialectRequest);
+    return true;
+}
+
 static void updateQuestionAudio(Game& game) {
     auto& quiz = game.quiz;
     if (quiz.questionAudioPhase != Game::QuizData::QuestionAudioPhase::QuestionStart)
@@ -402,9 +545,10 @@ void regenerateCurrentQuestion(Game& game) {
 }
 
 void startQuiz(Game& game, LocationId targetLocation, std::size_t questionIndex) {
-    std::mt19937 rng(std::random_device{}());
-
     auto& quiz = game.quiz;
+    quiz.rng.seed(std::random_device{}());
+    quiz.pendingSillyReplacement.reset();
+    auto& rng = quiz.rng;
     quiz.quizAutoStarted = false;
     quiz.intro.active = false;
     quiz.intro.dialogue = nullptr;
@@ -421,7 +565,13 @@ void startQuiz(Game& game, LocationId targetLocation, std::size_t questionIndex)
     game.quiz.questions.clear();
     game.quiz.questions.push_back(makeNameQuestion(game, rng));
     auto numberQuiz = quiz::generateNumberQuiz(rng);
+    std::shuffle(numberQuiz.begin(), numberQuiz.end(), rng);
+    if (numberQuiz.size() > 2)
+        numberQuiz.resize(2);
     game.quiz.questions.insert(game.quiz.questions.end(), numberQuiz.begin(), numberQuiz.end());
+
+    auto sillyQuestions = sillyRiddles::sample(rng, 2);
+    game.quiz.questions.insert(game.quiz.questions.end(), sillyQuestions.begin(), sillyQuestions.end());
     game.quiz.currentQuestion = 0;
     game.quiz.questionIndex = questionIndex;
     game.quiz.quizDialogue = game.currentDialogue;
@@ -490,6 +640,8 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
     if (!question)
         return;
 
+    const sf::Font& quizFont = game.resources.quizFont;
+
     auto textPos = game.textBox.getPosition();
     auto textSize = game.textBox.getSize();
     float padding = 14.f;
@@ -499,10 +651,10 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
     int totalQuestions = static_cast<int>(game.quiz.questions.size());
     std::string progressLabel = "Riddle " + std::to_string(game.quiz.currentQuestion + 1) + "/" + std::to_string(std::max(1, totalQuestions));
 
-    sf::Text progressTxt{ game.resources.uiFont, progressLabel, 24 };
+    sf::Text progressTxt{ quizFont, progressLabel, kQuizFontSize };
     progressTxt.setFillColor(ColorHelper::Palette::Normal);
 
-    sf::Text promptTxt{ game.resources.uiFont, question->prompt, 24 };
+    sf::Text promptTxt{ quizFont, question->prompt, kQuizFontSize };
     promptTxt.setFillColor(ColorHelper::Palette::Normal);
 
     auto progressBounds = progressTxt.getLocalBounds();
@@ -570,7 +722,7 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
             }
             else if (selectionPhase == Game::QuizData::SelectionPhase::Blinking) {
                 baseColor = blinkHighlight
-                    ? (game.quiz.selectionCorrect ? ColorHelper::Palette::Green : ColorHelper::Palette::NpcVillain)
+                    ? (game.quiz.selectionCorrect ? ColorHelper::Palette::Green : ColorHelper::Palette::SoftRed)
                     : TextStyles::UI::PanelDark;
                 fillAlpha = 0.95f;
             }
@@ -586,7 +738,7 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
         btn.setOutlineColor(ColorHelper::Palette::FrameGoldDark);
         target.draw(btn);
 
-        sf::Text txt{ game.resources.uiFont, label, 22 };
+        sf::Text txt{ quizFont, label, kQuizFontSize };
         txt.setFillColor(ColorHelper::Palette::Normal);
         auto tBounds = txt.getLocalBounds();
         txt.setOrigin({ 0.f, tBounds.position.y });
@@ -743,6 +895,8 @@ void drawFinalChoiceUI(Game& game, sf::RenderTarget& target) {
     if (!game.finalChoice.active)
         return;
 
+    const sf::Font& quizFont = game.resources.quizFont;
+
     auto textPos = game.textBox.getPosition();
     auto textSize = game.textBox.getSize();
     float padding = 14.f;
@@ -780,7 +934,7 @@ void drawFinalChoiceUI(Game& game, sf::RenderTarget& target) {
         btn.setOutlineColor(ColorHelper::Palette::FrameGoldDark);
         target.draw(btn);
 
-        sf::Text txt{ game.resources.uiFont, label, 22 };
+        sf::Text txt{ quizFont, label, kQuizFontSize };
         txt.setFillColor(ColorHelper::Palette::Normal);
         auto tBounds = txt.getLocalBounds();
         txt.setOrigin({ 0.f, tBounds.position.y });

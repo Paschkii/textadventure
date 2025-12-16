@@ -136,7 +136,7 @@ void handleTravel(Game& game, LocationId id) {
     game.holdMapDialogue = false;
 
     bool allStonesCollected = game.dragonStoneCount >= 4;
-    if (id == LocationId::Perigonal && allStonesCollected && game.finalEncounterPending) {
+    if (id == LocationId::Gonad && allStonesCollected && game.finalEncounterPending) {
         game.finalEncounterPending = false;
         game.finalEncounterActive = true;
         if (auto stronghold = Locations::findById(game.locations, LocationId::Seminiferous))
@@ -157,9 +157,9 @@ void handleTravel(Game& game, LocationId id) {
 
     game.setCurrentLocation(locPtr);
 
-    if (id == LocationId::Perigonal && game.lastCompletedLocation.has_value()) {
+    if (id == LocationId::Gonad && game.lastCompletedLocation.has_value()) {
         game.transientDialogue.clear();
-        for (const auto& line : perigonalWelcomeBack) {
+        for (const auto& line : gonadWelcomeBack) {
             game.transientDialogue.push_back(line);
         }
         game.currentDialogue = &game.transientDialogue;

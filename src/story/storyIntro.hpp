@@ -7,7 +7,6 @@
 // === Header Files ===
 #include "dialogueLine.hpp"         // Supplies DialogueLine definitions for the story arrays.
 #include "helper/colorHelper.hpp"   // Supplies palette colors referenced by color keywords.
-#include "story/textStyles.hpp"     // Provides speaker identifiers used by the story helpers.
 
 namespace StoryIntro {
 // Declares keywords that should glow in the intro text and their tinted colors.
@@ -22,7 +21,7 @@ inline const std::vector<ColorKeyword> kColorHighlights = {
     { { "DRAGON STONE", "DRAGON STONES", "DRRAGON STONE", "DRRAGON STONES" }, ColorHelper::Palette::Dim },
     { { "Dragonborn", "Dragon Scales", "smoky", "iron", "metal", "stone", "Stone" }, ColorHelper::Palette::Dim },
     { { "Master Bates", "Bates", "Ominous Castle", "castle", "shady figure", "Seminiferous" }, ColorHelper::Palette::DarkPurple },
-    { { "Noah", "Noah Lott", "Tory Tailor", "Wanda Rinn", "Will Figsid-Wright", "NoNameWanderer" }, ColorHelper::Palette::PurpleBlue },
+    { { "Noah", "Noah Lott", "Tory Tailor" }, ColorHelper::Palette::PurpleBlue },
     { { "Fire Dragon", "hottest", "burning", "crackling embers", "wildfire", "heat", "wall of flames", "Flames", "Blyathyroid" }, ColorHelper::Palette::FireDragon },
     { { "Water Dragon", "surface", "deep waters", "droplets", "flows", "riverbed", "currents", "cold stream", "Lacrimere" }, ColorHelper::Palette::WaterDragon },
     { { "Earth Dragon", "bedrock", "mountain wall", "rumbles", "shifting earth", "puddle of mud", "Cladrenal" }, ColorHelper::Palette::EarthDragon },
@@ -132,24 +131,21 @@ inline const std::vector<DialogueLine> intro = {
     { Speaker::StoryTeller, "Let's jump right in!" }
 };
 
-// Dialogue from Perigonal Fields - Wanda Rinn introducing the player’s awakening.
+// Dialogue from Gonad village NPC introducing the player’s awakening.
 inline const std::vector<DialogueLine> gonad = {
     { Speaker::NoNameNPC, "Hey...! Are you alright? Wake up...." },
     { Speaker::NoNameNPC, "Let me help you up. You look horrible!" },
-    { Speaker::VillageWanderer, "I am Wanda Rinn. What is your name?", true },
-    { Speaker::VillageWanderer, "Here, drink this. This will heal you in no time!" },
-    { Speaker::VillageWanderer, "Do you remember what happened to you?" },
-    { Speaker::Player, "I was fighting against the evil Sorcerer Master Bates. He kidnapped my {dragonSibling}, {dragonSiblingName}." },
-    { Speaker::Player, "He managed to knock {dragonSiblingName} out. I got so enraged, that I lost control of my powers..." },
-    { Speaker::Player, "I don't really remember what happened afterwards. But {dragonSiblingName}...! I have to save {her/him}..." },
-    { Speaker::VillageWanderer, "You are in no condition to fight! It also seems, that your weapons have been broken, look..!" },
-    // Display broken weapons after this DialogueLine
-    { Speaker::VillageWanderer, "In the village nearby, Perigonal Fields, lives a talented Blacksmith, Will Figsid-Wright, said to be one of the best in whole Glandular! " },
-    { Speaker::VillageWanderer, "Maybe he can help you restore your weapons. The Village Elder, Noah Lott, might also be of help as he has a lot of wisdom." },
-    { Speaker::Player, "Thank you, Wanda Rinn... Who knows what would have happened to me if you had not found me." },
-    { Speaker::VillageWanderer, "Don't worry about that. Let's head for Perigonal Fields. I'll help carrying your belongings." },
-    { Speaker::StoryTeller, "Wanda Rinn will help you along your journey. If you ever need her help, just open the Menu to the right" },
-    // Show tutorial for the Menu. Basic elements first. Map will be explained later, as well as dragons, quests, riddles
+    { Speaker::VillageWanderer, "Let me help you up. You look horrible!" },
+    { Speaker::VillageElder, "Before we begin, what is your name?", true },
+    { Speaker::VillageElder, "Hey, {playerName}. Are you awake?" },
+    { Speaker::VillageElder, "You have been asleep for a long time." },
+    { Speaker::VillageElder, "I was starting to worry about you." },
+    { Speaker::VillageElder, "You are in a small village called Gonad." },
+    { Speaker::VillageElder, "I am Noah Lott, the Elder of this village." },
+    { Speaker::VillageElder, "How I know you? {playerName}, you are a Dragonborn!" },
+    { Speaker::VillageElder, "Your skin is covered in Dragon Scales!" },
+    { Speaker::VillageElder, "And you are the only Dragonborn, that hasnt been captured by Master Bates, yet..." },
+    { Speaker::VillageElder, "So it was an easy guess for me!" },
 };
 
 // Brief dialogue prompting the player to name the found weapon.
@@ -184,17 +180,17 @@ inline const std::vector<DialogueLine> destination = {
     { Speaker::VillageElder, "Which dragon do you want to visit first?" },
 };
 
-// Greeting lines shown when the player returns to Perigonal Fields after a dungeon run.
+// Greeting lines shown when the player returns to Gonad after a dungeon run.
 inline const std::vector<DialogueLine> gonadWelcomeBack = {
     { Speaker::VillageElder, "Welcome back, {playerName}! You made it out of {lastLocation}!" },
     { Speaker::VillageElder, "I see you've retrieved the Dragon Stone from {lastDragonName}." },
     { Speaker::VillageElder, "Catch your breath, then head toward your next destination!" },
 };
 
-// Story-heavy dialogue triggered before the final battle in Perigonal Fields.
+// Story-heavy dialogue triggered before the final battle in Gonad.
 inline const std::vector<DialogueLine> finalEncounter = {
     { Speaker::StoryTeller, "Upon reaching ground, you freeze for a minute." },
-    { Speaker::StoryTeller, "Perigonal Fields is gone. And right where it used to be stands a dark, ominous Castle." },
+    { Speaker::StoryTeller, "Gonad is gone. And right where it used to be stands a dark, ominous Castle." },
     { Speaker::StoryTeller, "A shady figure steps out of the castle greeting you with an evil smirk." },
     { Speaker::MasterBates, "So you have finally come, {playerName}! I see you have retrieved all the Dragon Stones!" },
     { Speaker::MasterBates, "But you are too late! I have already absorbed the power of your Dragonborn siblings!" },
@@ -325,5 +321,5 @@ inline const std::vector<DialogueLine> dragonstone = {
     { Speaker::StoryTeller, "You now have {dragonstonecount} {dragonstoneword}!" },
     { Speaker::StoryTeller, "Your Dragon Scales grow even stronger!" },
     { Speaker::StoryTeller, "Your weapon has been upgraded! It can now use the power of the {dragonelement} Dragon." },
-    { Speaker::StoryTeller, "You will now be teleported back to Perigonal Fields." },
+    { Speaker::StoryTeller, "You will now be teleported back to Gonad." },
 };

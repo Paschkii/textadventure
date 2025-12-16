@@ -1,6 +1,8 @@
-#include "uiVisibility.hpp"
-#include "../core/game.hpp"
-#include <algorithm>
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::min when computing fade progress for UI visibility.
+// === Header Files ===
+#include "uiVisibility.hpp"  // Declares visibility helpers implemented in this translation unit.
+#include "../core/game.hpp"  // Reads/updates Game fade/timer flags used by the visibility logic.
 
 UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
     UiVisibility visibility{};
@@ -8,24 +10,55 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
     if (elements == static_cast<UiElementMask>(UiElement::None))
         return visibility;
 
+    if (game.endSequenceController.isActive() || game.endSequenceController.isScreenVisible()) {
+        visibility.alphaFactor = 0.f;
+        visibility.hidden = true;
+        return visibility;
+    }
+
     if (game.uiFadeInActive) {
         float fadeProgress = std::min(1.f, game.uiFadeClock.getElapsedTime().asSeconds() / game.uiFadeInDuration);
         visibility.alphaFactor = fadeProgress;
 
         if (fadeProgress >= 1.f) {
-                game.uiFadeInActive = false;
+            game.uiFadeInActive = false;
 
-                if (game.startGonadDialoguePending) {
-                    game.startGonadDialoguePending = false;
-                    game.currentDialogue = &gonad;
-                    game.dialogueIndex = 0;
-                    game.visibleText.clear();
-                    game.charIndex = 0;
-                    game.typewriterClock.restart();
-                    game.introDialogueFinished = false;
-                    game.state = GameState::Dialogue;
-                    game.setCurrentLocation(Locations::findById(game.locations, LocationId::Gonad));
-                }
+            auto startIntroDialogue = [&]() {
+                game.currentDialogue = &intro;
+                game.dialogueIndex = 0;
+                game.visibleText.clear();
+                game.charIndex = 0;
+                game.typewriterClock.restart();
+                game.introDialogueFinished = false;
+                game.state = GameState::Dialogue;
+                game.currentProcessedLine.clear();
+                game.askingName = false;
+                game.nameInput.clear();
+                game.audioManager.startIntroDialogueMusic();
+            };
+
+            auto startGonadDialogue = [&]() {
+                game.currentDialogue = &gonad;
+                game.dialogueIndex = 0;
+                game.visibleText.clear();
+                game.charIndex = 0;
+                game.typewriterClock.restart();
+                game.introDialogueFinished = false;
+                game.state = GameState::Dialogue;
+                game.setCurrentLocation(Locations::findById(game.locations, LocationId::Gonad));
+                game.currentProcessedLine.clear();
+                game.askingName = false;
+                game.nameInput.clear();
+            };
+
+            if (game.pendingIntroDialogue) {
+                game.pendingIntroDialogue = false;
+                startIntroDialogue();
+            }
+            else if (game.pendingGonadDialogue) {
+                game.pendingGonadDialogue = false;
+                startGonadDialogue();
+            }
         }
     }
     else if (game.introDialogueFinished) {
@@ -46,6 +79,11 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
                     game.backgroundFadeInActive = true;
                     game.backgroundFadeClock.restart();
                     visibility.backgroundFadeTriggered = true;
+                }
+                if (game.pendingGonadDialogue && !game.uiFadeInActive) {
+                    game.introDialogueFinished = false;
+                    game.uiFadeInActive = true;
+                    game.uiFadeClock.restart();
                 }
             }
         }

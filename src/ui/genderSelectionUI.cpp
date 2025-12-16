@@ -77,7 +77,7 @@ void choose(Game& game, int idx) {
     animation.selection = idx;
     animation.phase = Game::GenderSelectionAnimation::Phase::Approaching;
     animation.clock.restart();
-    animation.labelsHidden = false;
+    animation.labelsHidden = true;
 
     std::string currentLineText;
     if (game.currentDialogue && game.dialogueIndex < game.currentDialogue->size())

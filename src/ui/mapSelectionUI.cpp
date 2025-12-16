@@ -1,18 +1,20 @@
-#include "mapSelectionUI.hpp"
-#include "core/game.hpp"
-
-#include "story/textStyles.hpp"
-#include "story/storyIntro.hpp"
-#include "helper/colorHelper.hpp"
-#include "helper/textColorHelper.hpp"
-#include "rendering/textLayout.hpp"
-#include "ui/quizUI.hpp"
-#include <SFML/Window/Mouse.hpp>
-#include <SFML/Window/Keyboard.hpp>
-#include <cmath>
-#include <cctype>
-#include <algorithm>
-#include <optional>
+// === C++ Libraries ===
+#include <cmath>       // Uses trigonometric helpers when placing location icons on the map.
+#include <cctype>      // Applies std::tolower when normalizing location names for lookups.
+#include <algorithm>   // Uses std::clamp/max/min while sizing and positioning map elements.
+#include <optional>    // Returns optional LocationId values for keyboard/mouse handling.
+// === SFML Libraries ===
+#include <SFML/Window/Mouse.hpp>     // Reads mouse coordinates inside the map area.
+#include <SFML/Window/Keyboard.hpp>  // Processes direct key travel shortcuts.
+// === Header Files ===
+#include "mapSelectionUI.hpp"        // Declares the map UI functions defined here.
+#include "quizUI.hpp"                // Starts quizzes when a dragon destination is selected.
+#include "core/game.hpp"             // Accesses map/dialogue state, sprite bounds, and resources.
+#include "story/textStyles.hpp"      // Formats dragon names and colors shown in location popups.
+#include "story/storyIntro.hpp"      // Supplies dragon dialogue references used by the UI.
+#include "helper/colorHelper.hpp"    // Applies color palettes to map labels and node outlines.
+#include "helper/textColorHelper.hpp"// Draws highlighted text segments inside popups.
+#include "rendering/textLayout.hpp"  // Wraps multi-line descriptions shown near the map.
 
 namespace {
     constexpr std::size_t kLocationCount = 5;
@@ -378,13 +380,17 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
         target.draw(sprite);
 
         if (isCompleted) {
-            sf::Color crossColor = ColorHelper::Palette::NpcVillain;
+            sf::Color crossColor = ColorHelper::Palette::SoftRed;
             crossColor.a = 220;
             sf::Vertex lines[4];
-            lines[0] = sf::Vertex({ g.position.x, g.position.y }, crossColor);
-            lines[1] = sf::Vertex({ g.position.x + g.size.x, g.position.y + g.size.y }, crossColor);
-            lines[2] = sf::Vertex({ g.position.x + g.size.x, g.position.y }, crossColor);
-            lines[3] = sf::Vertex({ g.position.x, g.position.y + g.size.y }, crossColor);
+
+            lines[0].position = sf::Vector2f{ g.position.x, g.position.y };
+            lines[1].position = sf::Vector2f{ g.position.x + g.size.x, g.position.y + g.size.y };
+            lines[2].position = sf::Vector2f{ g.position.x + g.size.x, g.position.y };
+            lines[3].position = sf::Vector2f{ g.position.x, g.position.y + g.size.y };
+
+            for (auto& v : lines) v.color = crossColor;
+
             target.draw(lines, 2, sf::PrimitiveType::Lines);
             target.draw(lines + 2, 2, sf::PrimitiveType::Lines);
         }
@@ -399,8 +405,8 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
             std::string residentDesc;
 
             if (loc.name == "Gonad") {
-                auto villageNPC = TextStyles::speakerStyle(TextStyles::SpeakerId::VillageNPC).name;
-                shortDesc = "A sleepy village where your journey begins. " + villageNPC + " the Village Elder helps you searching for the Dragon Stones and defeat Master Bates.";
+                auto villageElderName = TextStyles::speakerStyle(TextStyles::SpeakerId::VillageElder).name;
+                shortDesc = "A sleepy village where your journey begins. " + villageElderName + " the Village Elder helps you search for the Dragon Stones and defeat Master Bates.";
             }
             else if (loc.name == "Lacrimere") {
                 auto dragonName = TextStyles::speakerStyle(TextStyles::SpeakerId::WaterDragon).name;

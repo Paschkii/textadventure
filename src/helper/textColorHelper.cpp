@@ -22,13 +22,11 @@ std::vector<ColoredTextSegment> buildColoredSegments(const std::string& text) {
         sf::Color color;
     };
 
-    const std::array<TextStyles::SpeakerId, 11> speakersToColor{
+    const std::array<TextStyles::SpeakerId, 9> speakersToColor{
         TextStyles::SpeakerId::StoryTeller,
         TextStyles::SpeakerId::NoNameNPC,
-        TextStyles::SpeakerId::NoNameWanderer,
         TextStyles::SpeakerId::VillageElder,
         TextStyles::SpeakerId::VillageWanderer,
-        TextStyles::SpeakerId::VillageSmith,
         TextStyles::SpeakerId::Player,
         TextStyles::SpeakerId::FireDragon,
         TextStyles::SpeakerId::WaterDragon,

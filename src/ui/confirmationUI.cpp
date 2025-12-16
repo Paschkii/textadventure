@@ -41,7 +41,7 @@ namespace {
         sf::Color outlineColor = ColorHelper::Palette::Amber;
 
         if (isActive)
-            baseColor = isPrimary ? ColorHelper::Palette::Green : ColorHelper::Palette::HP;
+            baseColor = isPrimary ? ColorHelper::Palette::Green : ColorHelper::Palette::SoftRed;
 
         baseColor = ColorHelper::applyAlphaFactor(baseColor, uiAlphaFactor * (isActive ? 0.9f : 0.7f));
         outlineColor = ColorHelper::applyAlphaFactor(outlineColor, uiAlphaFactor);

@@ -310,40 +310,48 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
         sf::Color hoverFill = ColorHelper::Palette::SoftYellow;
         sf::Color hoverOutline = TextStyles::UI::PanelDark;
 
-        float longestLabelWidth = 0.f;
-        for (const char* label : kIntroOptionLabels) {
-            sf::Text sample{ game.resources.uiFont, label, static_cast<unsigned int>(kOptionTextSize) };
-            sample.setStyle(sf::Text::Bold);
-            auto measureBounds = sample.getLocalBounds();
-            longestLabelWidth = std::max(longestLabelWidth, measureBounds.size.x);
-        }
-
-        float minBoxWidth = static_cast<float>(windowSize.x) * 0.35f;
-        float maxBoxWidth = static_cast<float>(windowSize.x) * 0.6f;
-        float optionBoxWidth = std::clamp(longestLabelWidth + 140.f, minBoxWidth, maxBoxWidth);
-        float optionBoxHeight = std::clamp(kOptionSpacing + 16.f, 52.f, 80.f);
+        constexpr float kHighlightWidthFactor = 0.25f;
+        constexpr float kHighlightWidthMaxFactor = 0.325f;
+        constexpr float kHighlightMinWidth = 180.f;
+        constexpr float kHighlightHeightFactor = 1.2f;
         float highlightWidth = std::clamp(
-            std::max(optionBoxWidth * 0.6f, longestLabelWidth + 80.f),
-            longestLabelWidth + 80.f,
-            optionBoxWidth
+            static_cast<float>(windowSize.x) * kHighlightWidthFactor,
+            kHighlightMinWidth,
+            static_cast<float>(windowSize.x) * kHighlightWidthMaxFactor
         );
-        game.optionsBox.setSize({ highlightWidth, optionBoxHeight });
-        sf::Color highlightColor = ColorHelper::applyAlphaFactor(sf::Color::White, optionsAlphaFactor);
-        float centerX = static_cast<float>(windowSize.x) * 0.5f;
+        float highlightHeight = kOptionSpacing * kHighlightHeightFactor;
+        float optionsStackHeight = static_cast<float>(kIntroOptionCount - 1) * kOptionSpacing;
+        float backdropWidth = highlightWidth + 20.f;
+        float backdropHeight = optionsStackHeight + kOptionTextSize + 60.f;
+        float backdropCenterY = startY + (optionsStackHeight * 0.5f);
+        float backdropLeft = static_cast<float>(windowSize.x) * 0.5f - (backdropWidth * 0.5f);
+        float backdropTop = backdropCenterY - (backdropHeight * 0.5f);
+        sf::Color backdropColor = ColorHelper::applyAlphaFactor({ 3, 3, 6, 100 }, optionsAlphaFactor);
+        game.introOptionBackdrop.setSize({ backdropWidth, backdropHeight });
+        game.introOptionBackdrop.setOrigin({ 0.f, 0.f });
+        game.introOptionBackdrop.setPosition({ backdropLeft, backdropTop });
+        game.introOptionBackdrop.setFillColor(backdropColor);
+        target.draw(game.introOptionBackdrop);
 
-        sf::Color fillColor;
-        sf::Color outlineColor;
-        float highlightBoxWidth = game.optionsBox.getSize().x;
+        float outlinePadding = 6.f;
+        sf::Vector2f size = game.introOptionBackdrop.getSize();
+        sf::Vector2f position = game.introOptionBackdrop.getPosition();
+        sf::Color borderColor = ColorHelper::applyAlphaFactor(sf::Color::Black, optionsAlphaFactor);
+        game.uiFrame.draw(
+            target,
+            { position.x - outlinePadding, position.y - outlinePadding },
+            { size.x + outlinePadding * 2.f, size.y + outlinePadding * 2.f },
+            borderColor);
 
         for (int idx = 0; idx < kIntroOptionCount; ++idx) {
             sf::Text optionText{ game.resources.uiFont, kIntroOptionLabels[idx], static_cast<unsigned int>(kOptionTextSize) };
             bool hovered = idx == game.introTitleHoveredOption;
-            fillColor = hovered ? hoverFill : baseFill;
-            outlineColor = hovered ? hoverOutline : baseOutline;
+            sf::Color fillColor = hovered ? baseFill : baseFill;
+            sf::Color outlineColor = hovered ? ColorHelper::Palette::BlueAlsoNearBlack : baseOutline;
 
             optionText.setFillColor(ColorHelper::applyAlphaFactor(fillColor, optionsAlphaFactor));
             optionText.setOutlineColor(ColorHelper::applyAlphaFactor(outlineColor, optionsAlphaFactor));
-            optionText.setOutlineThickness(1.f);
+            optionText.setOutlineThickness(2.f);
             optionText.setStyle(sf::Text::Bold);
 
             auto bounds = optionText.getLocalBounds();
@@ -354,14 +362,18 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
 
             float posY = startY + static_cast<float>(idx) * kOptionSpacing;
             optionText.setPosition({
-                centerX,
+                static_cast<float>(windowSize.x) * 0.5f,
                 posY
             });
 
             if (hovered) {
-                float boxX = centerX - (highlightBoxWidth * 0.5f);
-                float boxY = posY - (optionBoxHeight * 0.5f);
-                game.optionsBox.setPosition({ boxX, boxY });
+                game.optionsBox.setSize({ highlightWidth, highlightHeight });
+                game.optionsBox.setOrigin({ 0.f, 0.f });
+                game.optionsBox.setPosition({
+                    static_cast<float>(windowSize.x) * 0.5f - (highlightWidth * 0.5f),
+                    posY - (highlightHeight * 0.5f)
+                });
+                sf::Color highlightColor = TextStyles::Palette::SoftYellow;
                 game.uiFrame.draw(target, game.optionsBox, highlightColor);
             }
 

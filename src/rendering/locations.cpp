@@ -1,9 +1,11 @@
-#include "locations.hpp"
-#include "helper/colorHelper.hpp"
-#include "story/textStyles.hpp"
+// === Header Files ===
+#include "locations.hpp"              // Implements Location builder helpers declared in this header.
+#include "helper/colorHelper.hpp"     // Supplies palette colors referenced when creating locations.
+#include "story/textStyles.hpp"       // Provides speaker colors used as theme tints for certain locations.
 
 namespace Locations {
-    namespace {
+namespace {
+        // Helper to assemble a Location from its components.
         Location makeLocation(
             LocationId id,
             const std::string& name,
@@ -20,11 +22,13 @@ namespace Locations {
             };
         }
 
+        // Returns the color used for a speaker, reused for locations themed around them.
         sf::Color speakerColor(TextStyles::SpeakerId id) {
             return TextStyles::speakerStyle(id).color;
         }
     }
 
+    // Maps each enum value to a display name, color, and textures.
     std::vector<Location> buildLocations(Resources& resources) {
         std::vector<Location> locations;
         locations.reserve(6);
@@ -80,6 +84,7 @@ namespace Locations {
         return locations;
     }
 
+    // Finds a location by id or returns nullptr if not present.
     const Location* findById(const std::vector<Location>& locations, LocationId id) {
         for (const auto& location : locations) {
             if (location.id == id)

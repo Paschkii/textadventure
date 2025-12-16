@@ -105,18 +105,9 @@ namespace dialogDraw {
         Game& game
         , sf::RenderTarget& target
         , float uiAlphaFactor
-        , float glowElapsedSeconds
+        , const sf::Color& glowColor
     )
     {
-        sf::Color glowColor = uiEffects::computeGlowColor(
-            ColorHelper::Palette::BlueLight,
-            glowElapsedSeconds,
-            uiAlphaFactor,
-            140.f,
-            30.f,
-            { 25.f, 41.f }
-        );
-
         uiEffects::drawGlowFrame(
             target,
             game.uiFrame,

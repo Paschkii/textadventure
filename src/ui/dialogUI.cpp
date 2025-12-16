@@ -1,16 +1,21 @@
-#include "dialogUI.hpp"
-#include <algorithm>
-#include <array>
-#include <cstdint>
-#include <limits>
-#include <optional>
-#include "story/dialogInput.hpp"
-#include "story/storyIntro.hpp"
-#include "dialogDrawElements.hpp"
-#include "story/textStyles.hpp"
-#include "helper/colorHelper.hpp"
-#include "confirmationUI.hpp"
-#include "uiVisibility.hpp"
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::clamp/max when adjusting alpha values and selection handling.
+#include <array>      // Holds fixed sets of dragon line triggers and audio indexes.
+#include <cmath>      // Computes sine for HP blink timing.
+#include <cstdint>    // Provides uint8_t for opacity manipulation on sprites/text.
+#include <limits>     // Supplies std::numeric_limits for resetting showcase timers.
+#include <optional>   // Manages optional dragon indices/state used by the showcase logic.
+// === Header Files ===
+#include "dialogUI.hpp"             // Declares drawDialogueUI/related APIs implemented below.
+#include "dialogDrawElements.hpp"   // Renders the dialogue boxes, name labels, and text draws.
+#include "uiEffects.hpp"             // Computes glow/flicker colors reused by multiple UI elements.
+#include "confirmationUI.hpp"       // Displays the confirmation prompt triggered from dialogues.
+#include "ui/genderSelectionUI.hpp" // Handles the dragonborn selection panel overlay.
+#include "uiVisibility.hpp"         // Computes fade/visibility rules shared across UI modules.
+#include "story/dialogInput.hpp"    // Handles Enter logic and quiz transitions used in dialogue flow.
+#include "story/storyIntro.hpp"     // Drives the intro, dragon, and quiz dialogues referenced here.
+#include "story/textStyles.hpp"     // Provides speaker styles/colors for names and portraits.
+#include "helper/colorHelper.hpp"   // Applies palette colors when drawing names/dragon labels.
 
 namespace {
     UiVisibility computeDialogueVisibility(Game& game) {
@@ -248,36 +253,144 @@ namespace {
     }
 }
 
-void drawLocationBox(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
+namespace {
+    void drawPlayerStatus(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
+        if (game.playerStatusBox.getSize().x <= 0.f || game.playerStatusBox.getSize().y <= 0.f)
+            return;
+
+        sf::RectangleShape statusBox = game.playerStatusBox;
+        statusBox.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor));
+        statusBox.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::FrameGoldLight, uiAlphaFactor));
+        statusBox.setOutlineThickness(game.playerStatusBox.getOutlineThickness());
+        target.draw(statusBox);
+
+        constexpr float kBarHeight = 16.f;
+        constexpr float kPadding = 8.f;
+        constexpr float kLabelColumnWidth = 32.f;
+        constexpr float kBarSpacing = 5.f;
+        constexpr unsigned int kLabelTextSize = 16;
+
+        float barX = statusBox.getPosition().x + kPadding + kLabelColumnWidth;
+        float barWidth = std::max(0.f, statusBox.getSize().x - (kPadding * 2.f) - kLabelColumnWidth);
+        if (barWidth <= 0.f)
+            return;
+
+        float hpBarY = statusBox.getPosition().y + kPadding;
+        float xpBarY = hpBarY + kBarHeight + kBarSpacing;
+
+        sf::Text hpLabel{ game.resources.uiFont, "HP", kLabelTextSize };
+        hpLabel.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Health, uiAlphaFactor));
+        auto hpLabelBounds = hpLabel.getLocalBounds();
+        hpLabel.setOrigin({
+            hpLabelBounds.position.x,
+            hpLabelBounds.position.y + (hpLabelBounds.size.y * 0.5f)
+        });
+        hpLabel.setPosition({ statusBox.getPosition().x + kPadding, hpBarY + (kBarHeight * 0.5f) });
+        target.draw(hpLabel);
+
+        float hpRatio = (game.playerHpMax > 0.f)
+            ? std::clamp(game.playerHp / game.playerHpMax, 0.f, 1.f)
+            : 0.f;
+        float blinkAlpha = 1.f;
+        sf::Color hpColor = ColorHelper::Palette::Health;
+        if (hpRatio < 0.2f) {
+            float blinkPhase = (std::sin(game.uiGlowClock.getElapsedTime().asSeconds() * 8.f) + 1.f) * 0.5f;
+            blinkAlpha = 0.45f + (0.45f * blinkPhase);
+            hpColor = ColorHelper::lighten(hpColor, blinkPhase * 0.35f);
+        }
+        sf::RectangleShape hpFill({ barWidth * hpRatio, kBarHeight });
+        hpFill.setPosition({ barX, hpBarY });
+        hpFill.setFillColor(ColorHelper::applyAlphaFactor(hpColor, uiAlphaFactor * blinkAlpha));
+        target.draw(hpFill);
+
+        sf::RectangleShape hpBorder({ barWidth, kBarHeight });
+        hpBorder.setPosition({ barX, hpBarY });
+        hpBorder.setFillColor(sf::Color::Transparent);
+        hpBorder.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Dim, uiAlphaFactor));
+        hpBorder.setOutlineThickness(2.f);
+        target.draw(hpBorder);
+
+        sf::Text xpLabel{ game.resources.uiFont, "XP", kLabelTextSize };
+        xpLabel.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::DarkPurple, uiAlphaFactor));
+        auto xpLabelBounds = xpLabel.getLocalBounds();
+        xpLabel.setOrigin({
+            xpLabelBounds.position.x,
+            xpLabelBounds.position.y + (xpLabelBounds.size.y * 0.5f)
+        });
+        xpLabel.setPosition({ statusBox.getPosition().x + kPadding, xpBarY + (kBarHeight * 0.5f) });
+        target.draw(xpLabel);
+
+        float xpRatio = (game.playerXpMax > 0.f)
+            ? std::clamp(game.playerXp / game.playerXpMax, 0.f, 1.f)
+            : 0.f;
+        sf::RectangleShape xpFill({ barWidth * xpRatio, kBarHeight });
+        xpFill.setPosition({ barX, xpBarY });
+        xpFill.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::DarkPurple, uiAlphaFactor));
+        target.draw(xpFill);
+
+        sf::RectangleShape xpBorder({ barWidth, kBarHeight });
+        xpBorder.setPosition({ barX, xpBarY });
+        xpBorder.setFillColor(sf::Color::Transparent);
+        xpBorder.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Dim, uiAlphaFactor));
+        xpBorder.setOutlineThickness(2.f);
+        target.draw(xpBorder);
+    }
+}
+
+void drawLocationBox(Game& game, sf::RenderTarget& target, float uiAlphaFactor, const sf::Color& glowColor) {
     if (!game.currentLocation)
         return;
 
     constexpr unsigned int kLocationTextSize = 32;
-    constexpr float kLocationOutlineThickness = 1.f;
+    constexpr float kLocationTopInset = 12.f;
+    constexpr float kDividerGap = 20.f;
+    constexpr float kDividerSideInset = 6.f;
+
+    auto boxPos = game.locationBox.getPosition();
+    auto boxSize = game.locationBox.getSize();
 
     sf::Text locationName{ game.resources.uiFont, game.currentLocation->name, kLocationTextSize };
     locationName.setFillColor(ColorHelper::applyAlphaFactor(game.currentLocation->color, uiAlphaFactor));
     locationName.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor));
-    locationName.setOutlineThickness(kLocationOutlineThickness);
+    locationName.setOutlineThickness(1.f);
 
-    auto boxPos = game.locationBox.getPosition();
-    auto boxSize = game.locationBox.getSize();
-    sf::Vector2f boxCenter{ boxPos.x + (boxSize.x / 2.f), boxPos.y + (boxSize.y / 2.f) };
+    auto localBounds = locationName.getLocalBounds();
+    locationName.setOrigin({
+        localBounds.position.x + (localBounds.size.x * 0.5f),
+        localBounds.position.y + (localBounds.size.y * 0.5f)
+    });
+    float textY = boxPos.y + kLocationTopInset + (localBounds.size.y * 0.5f);
+    locationName.setPosition({ boxPos.x + (boxSize.x / 2.f), textY });
 
-    auto textBounds = locationName.getLocalBounds();
-    sf::Vector2f origin{
-        textBounds.position.x + (textBounds.size.x / 2.f),
-        textBounds.position.y + (textBounds.size.y / 2.f)
-    };
-    locationName.setOrigin(origin);
-    locationName.setPosition(boxCenter);
+    auto globalBounds = locationName.getGlobalBounds();
 
+    sf::Sprite leftDivider{ game.resources.dividerLeft };
+    sf::Sprite rightDivider{ game.resources.dividerRight };
+    leftDivider.setColor(glowColor);
+    rightDivider.setColor(glowColor);
+
+    auto leftSize = game.resources.dividerLeft.getSize();
+    auto rightSize = game.resources.dividerRight.getSize();
+    float leftY = textY - (static_cast<float>(leftSize.y) * 0.5f);
+    float rightY = textY - (static_cast<float>(rightSize.y) * 0.5f);
+
+    float leftX = globalBounds.position.x - kDividerGap - static_cast<float>(leftSize.x);
+    float rightX = globalBounds.position.x + globalBounds.size.x + kDividerGap;
+
+    leftDivider.setPosition({ leftX, leftY });
+    rightDivider.setPosition({ rightX, rightY });
+
+    target.draw(leftDivider);
+    target.draw(rightDivider);
     target.draw(locationName);
 }
 
 void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation, float* outAlpha) {
 
     UiVisibility visibility = computeDialogueVisibility(game);
+
+    if (game.state == GameState::IntroTitle && !game.uiFadeInActive)
+        return;
 
     if (visibility.hidden)
         return;
@@ -286,21 +399,25 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
     if (outAlpha)
         *outAlpha = uiAlphaFactor;
     float glowElapsedSeconds = game.uiGlowClock.getElapsedTime().asSeconds();
+    sf::Color glowColor = uiEffects::computeGlowColor(
+        ColorHelper::Palette::BlueLight,
+        glowElapsedSeconds,
+        uiAlphaFactor,
+        140.f,
+        30.f,
+        { 25.f, 41.f }
+    );
 
     // Hide location/item boxes during the intro title/state; they should only appear afterward.
     bool introTitleActive = game.state == GameState::IntroTitle || game.state == GameState::IntroScreen;
-    bool showLocationBox = !introTitleActive && game.currentDialogue != &intro;
-    bool showItemBox = !introTitleActive && game.currentDialogue != &intro;
+    bool inIntroTransition = game.pendingIntroDialogue || game.pendingGonadDialogue || game.uiFadeOutActive;
+    bool showLocationBox = !introTitleActive && !inIntroTransition && game.currentDialogue && game.currentDialogue != &intro;
 
-    dialogDraw::drawDialogueFrames(game, target, uiAlphaFactor, glowElapsedSeconds, showLocationBox, showItemBox);
+    dialogDraw::drawDialogueFrames(game, target, uiAlphaFactor, glowColor);
 
     if (showLocationBox) {
-        dialogDraw::drawBoxHeader(game, target, game.locationBox, "Location", uiAlphaFactor);
-        drawLocationBox(game, target, uiAlphaFactor);
-    }
-    if (showItemBox) {
-        dialogDraw::drawBoxHeader(game, target, game.itemBox, "Items", uiAlphaFactor);
-        dialogDraw::drawItemIcons(game, target, uiAlphaFactor);
+        drawPlayerStatus(game, target, uiAlphaFactor);
+        drawLocationBox(game, target, uiAlphaFactor, glowColor);
     }
 
     bool keepShowingLastFeedbackLine =
@@ -332,7 +449,11 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
 
     float delay = 0.02f;
     bool isTyping = false;
-    if (!game.teleportActive && !game.confirmationPrompt.active && hasDialogueLine)
+    bool allowTyping = !game.teleportController.active()
+        && !game.confirmationPrompt.active
+        && hasDialogueLine
+        && game.state != GameState::IntroTitle;
+    if (allowTyping)
         isTyping = updateTypewriter(game, fullText, delay);
 
     if (line) {
@@ -360,6 +481,15 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
         dialogDraw::drawDialogueText(target, game, textToDraw, uiAlphaFactor);
     }
 
+    if (line
+        && line->triggersGenderSelection
+        && !game.genderSelectionActive
+        && game.visibleText.size() >= fullText.size()) {
+        ui::genderSelection::start(game);
+    }
+
+    ui::genderSelection::draw(game, target, uiAlphaFactor);
+
     if (game.confirmationPrompt.active && !skipConfirmation) {
         drawConfirmationPrompt(game, target, uiAlphaFactor);
         return;
@@ -368,5 +498,6 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
     if (game.askingName)
         dialogDraw::drawNameInput(target, game, uiAlphaFactor);
 
-    dialogDraw::drawReturnPrompt(target, game, uiAlphaFactor, isTyping);
+    if (!game.genderSelectionActive)
+        dialogDraw::drawReturnPrompt(target, game, uiAlphaFactor, isTyping);
 }

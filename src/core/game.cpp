@@ -69,13 +69,19 @@ Game::Game()
     nameBox.setFillColor(sf::Color::Transparent);
     nameBox.setOutlineColor(ColorHelper::Palette::Normal);
     nameBox.setOutlineThickness(2.f);
+    playerStatusBox.setFillColor(TextStyles::UI::PanelDark);
+    playerStatusBox.setOutlineThickness(2.f);
+    playerStatusBox.setOutlineColor(ColorHelper::Palette::FrameGoldLight);
+    optionsBox.setFillColor(sf::Color::Transparent);
+    optionsBox.setOutlineThickness(0.f);
+    introOptionBackdrop.setFillColor(sf::Color(12, 12, 18, 210));
+    introOptionBackdrop.setOutlineThickness(0.f);
     // === TextBox Style setzen ===
     textBox.setFillColor(sf::Color::Transparent);
     textBox.setOutlineColor(ColorHelper::Palette::Normal);
     textBox.setOutlineThickness(2.f);
     // === LocationBox Style setzen ===
     locationBox.setFillColor(sf::Color::Transparent);
-    locationBox.setOutlineColor(ColorHelper::Palette::Normal);
     locationBox.setOutlineThickness(0.f);
     // === ItemBox Style setzen ===
     itemBox.setFillColor(sf::Color::Transparent);
@@ -85,11 +91,6 @@ Game::Game()
     weaponPanel.setFillColor(sf::Color::Transparent);
     weaponPanel.setOutlineColor(ColorHelper::Palette::Normal);
     weaponPanel.setOutlineThickness(2.f);
-
-    playerStatusBox.setFillColor(sf::Color::Transparent);
-    playerStatusBox.setOutlineThickness(0.f);
-    optionsBox.setFillColor(sf::Color::Transparent);
-    optionsBox.setOutlineThickness(0.f);
 
     currentDialogue = &intro;
 
