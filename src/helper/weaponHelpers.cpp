@@ -1,18 +1,22 @@
-#include "helper/weaponHelpers.hpp"
-#include <filesystem>
-#include <algorithm>
-#include <cctype>
+// === C++ Libraries ===
+#include <filesystem>  // Iterates over the weapon texture directory when loading options.
+#include <algorithm>    // Uses std::sort and std::transform while preparing weapon data.
+#include <cctype>       // Applies std::tolower for case-insensitive hotkey detection.
+// === Header Files ===
+#include "helper/weaponHelpers.hpp"  // Declares the helpers implemented in this file.
 
 namespace ui {
 namespace weapons {
 
 namespace {
+    // Returns a lowercase copy for hotkey detection.
     std::string toLower(std::string s) {
         std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         return s;
     }
 }
 
+// Clears existing options and reloads each weapon from the texture assets folder.
 void loadWeaponOptions(Game& game) {
     namespace fs = std::filesystem;
 
@@ -24,8 +28,15 @@ void loadWeaponOptions(Game& game) {
 
     std::vector<fs::path> weaponFiles;
     for (const auto& entry : fs::directory_iterator(weaponDir)) {
-        if (entry.is_regular_file())
-            weaponFiles.push_back(entry.path());
+        if (!entry.is_regular_file())
+            continue;
+
+        auto ext = entry.path().extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (ext != ".png" && ext != ".jpg" && ext != ".jpeg")
+            continue;
+
+        weaponFiles.push_back(entry.path());
     }
 
     std::sort(weaponFiles.begin(), weaponFiles.end());
@@ -66,6 +77,7 @@ void loadWeaponOptions(Game& game) {
     }
 }
 
+// Computes sizes/positions for each weapon sprite so they fit in the panel.
 void layoutWeaponSelection(Game& game) {
     if (game.weaponOptions.empty()) {
         game.hoveredWeaponIndex = -1;

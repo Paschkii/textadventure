@@ -1,10 +1,13 @@
-#include "textStyles.hpp"
-#include <algorithm>
-#include <cctype>
+// === C++ Libraries ===
+#include <algorithm>  // Provides std::equal used in case-insensitive name matching.
+#include <cctype>     // Used for std::tolower calls in speaker matching helpers.
+// === Header Files ===
+#include "textStyles.hpp" // Declares the public speaker utilities defined here.
 
 namespace TextStyles {
 
     namespace {
+        // Case-insensitive comparison used when matching speaker names.
         bool equalsIgnoreCase(const std::string& a, const std::string& b) {
             return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), b.end(), [](char lhs, char rhs) {
                 return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs));
@@ -12,6 +15,7 @@ namespace TextStyles {
         }
     }
 
+    // Resolves a string back into the corresponding speaker enum.
     SpeakerId speakerFromName(const std::string& name) {
         if (name.empty())
             return SpeakerId::Unknown;
@@ -24,7 +28,9 @@ namespace TextStyles {
         if (equalsIgnoreCase(name, "?????"))
             return SpeakerId::NoNameNPC;
         if (equalsIgnoreCase(name, "Noah Lott"))
-            return SpeakerId::VillageNPC;
+            return SpeakerId::VillageElder;
+        if (equalsIgnoreCase(name, "Wanda Rinn"))
+            return SpeakerId::VillageWanderer;
         if (equalsIgnoreCase(name, "Master Bates"))
             return SpeakerId::MasterBates;
         if (equalsIgnoreCase(name, "Noah Bates"))
@@ -41,14 +47,17 @@ namespace TextStyles {
         return SpeakerId::Unknown;
     }
 
+    // Returns the display name and color for a speaker identifier.
     SpeakerStyle speakerStyle(SpeakerId speaker) {
         switch (speaker) {
                 case SpeakerId::StoryTeller:
                     return { "Tory Tailor", ColorHelper::Palette::PurpleBlue };
                 case SpeakerId::NoNameNPC:
                     return { "?????", ColorHelper::Palette::PurpleBlue };
-                case SpeakerId::VillageNPC:
+                case SpeakerId::VillageElder:
                     return { "Noah Lott", ColorHelper::Palette::PurpleBlue };
+                case SpeakerId::VillageWanderer:
+                    return { "Wanda Rinn", ColorHelper::Palette::PurpleBlue };
                 case SpeakerId::MasterBates:
                     return { "Master Bates", ColorHelper::Palette::DarkPurple };
                 case SpeakerId::NoahBates:
@@ -69,6 +78,7 @@ namespace TextStyles {
         }
     }
 
+    // Applies the speaker's display name/color to the provided text object.
     void applySpeakerStyle(sf::Text& text, SpeakerId speaker) {
         SpeakerStyle style = speakerStyle(speaker);
         text.setFillColor(style.color);

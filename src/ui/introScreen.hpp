@@ -1,6 +1,8 @@
 #pragma once
-#include <SFML/Graphics.hpp>
-#include <string>
+// === C++ Libraries ===
+#include <string>  // Holds the body/prompt strings passed to renderIntroScreen.
+// === SFML Libraries ===
+#include <SFML/Graphics.hpp>  // Provides sf::Text and related drawables used when rendering.
 
 class Game;
 

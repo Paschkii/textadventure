@@ -1,7 +1,9 @@
-#include "quizGenerator.hpp"
-#include <algorithm>
-#include <cmath>
-#include <set>
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::max/min/shuffle when choosing variants and shuffling answers.
+#include <cmath>      // Computes ranges for random adjustments like `randomNear`.
+#include <set>        // Tracks used values to ensure each option stays unique during generation.
+// === Header Files ===
+#include "quizGenerator.hpp"  // Declares quiz helper APIs defined below.
 
 namespace quiz {
 namespace {
@@ -418,6 +420,7 @@ std::string toString(Category category) {
         case Category::Division: return "Division";
         case Category::Addition: return "Addition";
         case Category::Subtraction: return "Subtraction";
+        case Category::Silly: return "Silly";
         default: return "Unknown";
     }
 }

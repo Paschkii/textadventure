@@ -1,10 +1,13 @@
-#include "confirmationUI.hpp"
-#include "../core/game.hpp"
-#include "helper/colorHelper.hpp"
-#include "story/textStyles.hpp"
-#include <SFML/Window/Mouse.hpp>
-#include <SFML/Window/Keyboard.hpp>
-#include <algorithm>
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::max when sizing the popup and button layout.
+// === SFML Libraries ===
+#include <SFML/Window/Mouse.hpp>     // Reads mouse position when updating hover/click state.
+#include <SFML/Window/Keyboard.hpp>  // Handles key scans for confirm/cancel shortcuts.
+// === Header Files ===
+#include "../core/game.hpp"          // Pulls in Game/UI state mutated by the prompt helpers.
+#include "confirmationUI.hpp"        // Declares show/hide/draw/handle functions implemented here.
+#include "helper/colorHelper.hpp"    // Applies shared palette colors to the popup visuals.
+#include "story/textStyles.hpp"      // Uses TextStyles::UI colors when rendering text/button outlines.
 
 namespace {
     constexpr float kButtonHeight = 44.f;
@@ -38,7 +41,7 @@ namespace {
         sf::Color outlineColor = ColorHelper::Palette::Amber;
 
         if (isActive)
-            baseColor = isPrimary ? ColorHelper::Palette::Green : ColorHelper::Palette::NpcVillain;
+            baseColor = isPrimary ? ColorHelper::Palette::Green : ColorHelper::Palette::HP;
 
         baseColor = ColorHelper::applyAlphaFactor(baseColor, uiAlphaFactor * (isActive ? 0.9f : 0.7f));
         outlineColor = ColorHelper::applyAlphaFactor(outlineColor, uiAlphaFactor);

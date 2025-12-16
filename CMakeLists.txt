@@ -10,20 +10,29 @@ find_package(SFML 3 COMPONENTS Graphics Window System Audio REQUIRED)
 add_executable(Glandular
     src/core/main.cpp
     src/core/game.cpp
+    src/core/teleportController.cpp
+    src/core/endSequenceController.cpp
+    src/core/ranking.cpp
+    src/core/itemController.cpp
 
     src/ui/introScreen.cpp
     src/ui/introTitle.cpp
     src/ui/confirmationUI.cpp
     src/ui/dialogDrawElements.cpp
     src/ui/dialogUI.cpp
+    src/ui/genderSelectionUI.cpp
     src/ui/uiEffects.cpp
     src/ui/uiVisibility.cpp
     src/helper/weaponHelpers.cpp
     src/helper/dragonHelpers.cpp
     src/helper/layoutHelpers.cpp
+    src/helper/soundHelper.cpp
+    src/audio/audioManager.cpp
     src/ui/mapSelectionUI.cpp
     src/ui/quizGenerator.cpp
+    src/ui/sillyRiddles.cpp
     src/ui/quizUI.cpp
+    src/ui/rankingUI.cpp
     src/ui/weaponSelectionUI.cpp
 
     src/helper/textColorHelper.cpp
@@ -31,6 +40,7 @@ add_executable(Glandular
     src/rendering/locations.cpp
 
     src/story/textStyles.cpp
+    src/story/locationDialogues.cpp
 
     src/resources/resources.cpp
 )
@@ -41,9 +51,10 @@ target_include_directories(Glandular PRIVATE
 
 # Assets kopieren
 add_custom_target(copy_textadventure_assets ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_CURRENT_SOURCE_DIR}/assets
-            ${CMAKE_BINARY_DIR}/assets
+    COMMAND ${CMAKE_COMMAND}
+            -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+            -DDEST_DIR=${CMAKE_BINARY_DIR}
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/copy_assets_with_rankings.cmake"
 )
 
 add_dependencies(Glandular copy_textadventure_assets)

@@ -8,7 +8,8 @@ namespace ui {
 namespace layout {
 namespace {
 void layoutItemIcons(Game& game) {
-    if (game.itemIcons.empty())
+    auto& icons = game.itemController.icons();
+    if (icons.empty())
         return;
 
     constexpr std::size_t kMaxItems = 5;
@@ -21,8 +22,8 @@ void layoutItemIcons(Game& game) {
 
     float slotHeight = innerHeight / static_cast<float>(kMaxItems);
 
-    for (std::size_t i = 0; i < game.itemIcons.size(); ++i) {
-        auto& item = game.itemIcons[i];
+    for (std::size_t i = 0; i < icons.size(); ++i) {
+        auto& item = icons[i];
         const sf::Texture& tex = item.sprite.getTexture();
         item.sprite.setScale({ 1.f, 1.f });
 
@@ -59,6 +60,10 @@ void updateLayout(Game& game) {
     float textWidth = w * 0.70f;    // TextBox: 70% Breite (896)
     float locationWidth = w * 0.20f; // LocationBox 30% Breite
     float itemWidth = (w * 0.20f) * 0.5f; // ItemBox: 50% der bisherigen Breite
+    constexpr float kStatusBarHeight = 16.f;
+    constexpr float kStatusBarPadding = 12.f;
+    constexpr float kStatusRowSpacing = kStatusBarHeight + 12.f;
+    float statusHeight = (kStatusRowSpacing + kStatusBarHeight) + (kStatusBarPadding * 2.f);
 
     // === NameBox: links unten, 5% Abstand ===
     game.nameBox.setSize({ nameWidth, boxHeight });
@@ -80,6 +85,14 @@ void updateLayout(Game& game) {
         marginY
     });
 
+    // statusHeight already computed above
+    constexpr float statusMargin = 12.f;
+    game.playerStatusBox.setSize({ nameWidth, statusHeight });
+    game.playerStatusBox.setPosition({
+        marginX,
+        game.nameBox.getPosition().y - statusHeight - statusMargin
+    });
+
     // === ItemBox: rechts oben, gleicher Abstand zu Top/Right wie TextBox ===
     float itemHeight = boxHeight * 2.25f; // nochmals 50% höher als zuvor
     game.itemBox.setSize({ itemWidth, itemHeight });
@@ -91,7 +104,7 @@ void updateLayout(Game& game) {
     float weaponPanelHeight = game.nameBox.getSize().y * 0.9f;
     float weaponPanelWidth = (game.textBox.getPosition().x + game.textBox.getSize().x) - game.nameBox.getPosition().x - itemWidth - 20.f; // kürzer um ItemBox-Breite
     weaponPanelWidth = std::max(0.f, weaponPanelWidth);
-    float weaponPanelY = game.nameBox.getPosition().y - weaponPanelHeight - (marginY * 0.5f);
+    float weaponPanelY = game.playerStatusBox.getPosition().y - weaponPanelHeight - (marginY * 0.5f);
 
     game.weaponPanel.setSize({ weaponPanelWidth, weaponPanelHeight });
     game.weaponPanel.setPosition({ game.nameBox.getPosition().x, weaponPanelY });

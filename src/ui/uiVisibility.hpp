@@ -1,5 +1,6 @@
 #pragma once
-#include <cstdint>
+// === C++ Libraries ===
+#include <cstdint>  // Defines UiElementMask and bitmask helpers using uint32_t storage.
 
 class Game;
 

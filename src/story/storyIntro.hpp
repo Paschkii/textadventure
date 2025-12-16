@@ -1,23 +1,28 @@
 #pragma once
-#include <array>
-#include <string>
-#include <utility>
-#include <vector>
-#include "dialogueLine.hpp"
-#include "helper/colorHelper.hpp"
+// === C++ Libraries ===
+#include <array>                    // Stores quiz speech entries in fixed-size arrays.
+#include <string>                   // Holds narration strings for dialogue lines.
+#include <utility>                  // Provides std::pair used by color token helpers.
+#include <vector>                   // Aggregates dialogue sequences and color keywords.
+// === Header Files ===
+#include "dialogueLine.hpp"         // Supplies DialogueLine definitions for the story arrays.
+#include "helper/colorHelper.hpp"   // Supplies palette colors referenced by color keywords.
+#include "story/textStyles.hpp"     // Provides speaker identifiers used by the story helpers.
 
 namespace StoryIntro {
+// Declares keywords that should glow in the intro text and their tinted colors.
 struct ColorKeyword {
     std::vector<std::string> words;
     sf::Color color;
 };
 
+// Colorized keyword groups used in the intro/quiz text draw helper.
 inline const std::vector<ColorKeyword> kColorHighlights = {
     { { "Dragon Stone", "Dragon Stones", "Dragon Stones!", "Dragon stone", "Dragon stones" }, ColorHelper::Palette::Dim },
     { { "DRAGON STONE", "DRAGON STONES", "DRRAGON STONE", "DRRAGON STONES" }, ColorHelper::Palette::Dim },
     { { "Dragonborn", "Dragon Scales", "smoky", "iron", "metal", "stone", "Stone" }, ColorHelper::Palette::Dim },
     { { "Master Bates", "Bates", "Ominous Castle", "castle", "shady figure", "Seminiferous" }, ColorHelper::Palette::DarkPurple },
-    { { "Noah", "Noah Lott", "Tory Tailor" }, ColorHelper::Palette::PurpleBlue },
+    { { "Noah", "Noah Lott", "Tory Tailor", "Wanda Rinn", "Will Figsid-Wright", "NoNameWanderer" }, ColorHelper::Palette::PurpleBlue },
     { { "Fire Dragon", "hottest", "burning", "crackling embers", "wildfire", "heat", "wall of flames", "Flames", "Blyathyroid" }, ColorHelper::Palette::FireDragon },
     { { "Water Dragon", "surface", "deep waters", "droplets", "flows", "riverbed", "currents", "cold stream", "Lacrimere" }, ColorHelper::Palette::WaterDragon },
     { { "Earth Dragon", "bedrock", "mountain wall", "rumbles", "shifting earth", "puddle of mud", "Cladrenal" }, ColorHelper::Palette::EarthDragon },
@@ -25,6 +30,7 @@ inline const std::vector<ColorKeyword> kColorHighlights = {
     { { "Gonad", "Glandular", "Holmabir", "Kattkavar", "Stiggedin", "destination", "weapon", "Who wants tyo be", "Hu vants to be a", "Who wants-a to be a", "Who wants to be a" }, ColorHelper::Palette::TitleAccent },
 };
 
+// Returns a flattened list of tokens/colors for quicker lookup while typing.
 inline const std::vector<std::pair<std::string, sf::Color>>& colorTokens() {
     static const std::vector<std::pair<std::string, sf::Color>> tokens = [] {
         std::vector<std::pair<std::string, sf::Color>> flattened;
@@ -41,12 +47,14 @@ inline const std::vector<std::pair<std::string, sf::Color>>& colorTokens() {
     return tokens;
 }
 
+// Represents scripted quiz prompts keyed by dragon speaker identity.
 struct QuizSpeech {
     TextStyles::SpeakerId speaker;
     std::string mathPrompt;
     std::string correctResponse;
 };
 
+// Hard-coded speech lines used when quiz questions are presented by each dragon.
 inline const std::array<QuizSpeech, 4> kQuizSpeeches = {
     QuizSpeech{
         TextStyles::SpeakerId::FireDragon,
@@ -70,6 +78,7 @@ inline const std::array<QuizSpeech, 4> kQuizSpeeches = {
     }
 };
 
+// Looks up the quiz speech entry belonging to a specific dragon.
 inline const QuizSpeech* quizSpeechFor(TextStyles::SpeakerId speaker) {
     for (const auto& entry : kQuizSpeeches) {
         if (entry.speaker == speaker)
@@ -78,6 +87,7 @@ inline const QuizSpeech* quizSpeechFor(TextStyles::SpeakerId speaker) {
     return nullptr;
 }
 
+// Returns the math prompt string that matches the dragon speaker.
 inline const std::string& quizMathPrompt(TextStyles::SpeakerId speaker) {
     static const std::string kDefault = "What is the solution to this math riddle?";
     if (auto* speech = quizSpeechFor(speaker))
@@ -85,21 +95,35 @@ inline const std::string& quizMathPrompt(TextStyles::SpeakerId speaker) {
     return kDefault;
 }
 
+// Returns the custom celebration text for the specified dragon speaker.
 inline std::string quizCorrectResponse(TextStyles::SpeakerId speaker) {
     if (auto* speech = quizSpeechFor(speaker))
         return speech->correctResponse;
-    return "Correct!";
+    if (speaker == TextStyles::SpeakerId::AirDragon) {
+        return "Corretto!";
+    }
+    if (speaker == TextStyles::SpeakerId::EarthDragon) {
+        return "Correct!";
+    }
+    if (speaker == TextStyles::SpeakerId::FireDragon) {
+        return "Korrektnyj!";
+    }
+    if (speaker == TextStyles::SpeakerId::WaterDragon) {
+        return "Korrekt!";
+    }
+    return {};
 }
 } // namespace StoryIntro
 
 using Speaker = TextStyles::SpeakerId;
 
+// Introductory dialogue seen when the game first loads.
 inline const std::vector<DialogueLine> intro = {
     { Speaker::NoNameNPC, "Welcome to this tiny fictional adventure." },
     { Speaker::NoNameNPC, "I am Tory Tailor, your guide and storyteller." },
     { Speaker::StoryTeller, "I will help you on your journey." },
-    { Speaker::StoryTeller, "Before we begin, what is your name?", true },
-    { Speaker::StoryTeller, "Alright, {playerName}! Let's get started!" },
+    { Speaker::StoryTeller, "Which one of those do you prefer?", false, true, false },
+    { Speaker::StoryTeller, "Alright, let's get started!" },
     { Speaker::StoryTeller, "You will now step into the world of Glandular." },
     { Speaker::StoryTeller, "This is a world of magic, dragons, and adventure." },
     { Speaker::StoryTeller, "You are a Dragonborn, a hero destined to save the world from evil." },
@@ -108,56 +132,69 @@ inline const std::vector<DialogueLine> intro = {
     { Speaker::StoryTeller, "Let's jump right in!" }
 };
 
+// Dialogue from Perigonal Fields - Wanda Rinn introducing the player’s awakening.
 inline const std::vector<DialogueLine> gonad = {
-    { Speaker::VillageNPC, "Hey, {playerName}. Are you awake?" },
-    { Speaker::VillageNPC, "You have been asleep for a long time." },
-    { Speaker::VillageNPC, "I was starting to worry about you." },
-    { Speaker::VillageNPC, "You are in a small village called Gonad." },
-    { Speaker::VillageNPC, "I am Noah Lott, the Elder of this village." },
-    { Speaker::VillageNPC, "How I know you? {playerName}, you are a Dragonborn!" },
-    { Speaker::VillageNPC, "Your skin is covered in Dragon Scales!" },
-    { Speaker::VillageNPC, "And you are the only Dragonborn, that hasnt been captured by Master Bates, yet..." },
-    { Speaker::VillageNPC, "So it was an easy guess for me!" },
+    { Speaker::NoNameNPC, "Hey...! Are you alright? Wake up...." },
+    { Speaker::NoNameNPC, "Let me help you up. You look horrible!" },
+    { Speaker::VillageWanderer, "I am Wanda Rinn. What is your name?", true },
+    { Speaker::VillageWanderer, "Here, drink this. This will heal you in no time!" },
+    { Speaker::VillageWanderer, "Do you remember what happened to you?" },
+    { Speaker::Player, "I was fighting against the evil Sorcerer Master Bates. He kidnapped my {dragonSibling}, {dragonSiblingName}." },
+    { Speaker::Player, "He managed to knock {dragonSiblingName} out. I got so enraged, that I lost control of my powers..." },
+    { Speaker::Player, "I don't really remember what happened afterwards. But {dragonSiblingName}...! I have to save {her/him}..." },
+    { Speaker::VillageWanderer, "You are in no condition to fight! It also seems, that your weapons have been broken, look..!" },
+    // Display broken weapons after this DialogueLine
+    { Speaker::VillageWanderer, "In the village nearby, Perigonal Fields, lives a talented Blacksmith, Will Figsid-Wright, said to be one of the best in whole Glandular! " },
+    { Speaker::VillageWanderer, "Maybe he can help you restore your weapons. The Village Elder, Noah Lott, might also be of help as he has a lot of wisdom." },
+    { Speaker::Player, "Thank you, Wanda Rinn... Who knows what would have happened to me if you had not found me." },
+    { Speaker::VillageWanderer, "Don't worry about that. Let's head for Perigonal Fields. I'll help carrying your belongings." },
+    { Speaker::StoryTeller, "Wanda Rinn will help you along your journey. If you ever need her help, just open the Menu to the right" },
+    // Show tutorial for the Menu. Basic elements first. Map will be explained later, as well as dragons, quests, riddles
 };
 
+// Brief dialogue prompting the player to name the found weapon.
 inline const std::vector<DialogueLine> weapon = {
-    { Speaker::VillageNPC, "Oh! And I found this weapon beside your body. Can you tell me its name?" }
+    { Speaker::VillageElder, "Oh! And I found this weapon beside your body. Can you tell me its name?" }
 };
 
+// Extended village narrator text describing each dragon’s personality.
 inline const std::vector<DialogueLine> dragon = {
-    { Speaker::VillageNPC, "You have to ask the dragons for their help. These are the 4 dragons:" },
-    { Speaker::VillageNPC, "Rowsted Sheacane - The Fire Dragon" },
-    { Speaker::VillageNPC, "This is the hottest temper among the Four, burning through every room he enters." },
-    { Speaker::VillageNPC, "His tongue is thick-rolled and smoky, spitting sounds like crackling embers - every R erupts like a small wildfire." },
-    { Speaker::VillageNPC, "Blunt, heavy, and scorching, his words hit with the heat of molten iron." },
-    { Speaker::VillageNPC, "Flawtin Seamen - The Water Dragon" },
-    { Speaker::VillageNPC, "Calm on the surface, tidal underneath - he carries the quiet weight of deep waters." },
-    { Speaker::VillageNPC, "His tongue is sharp, crisp, and clean-cut, with consonants hitting like droplets on metal." },
-    { Speaker::VillageNPC, "Every sentence flows steady and precise, like a cold stream running over polished stone." },
-    { Speaker::VillageNPC, "Grounded Claymore - The Earth Dragon" },
-    { Speaker::VillageNPC, "Steady as bedrock and stubborn as a mountain wall." },
-    { Speaker::VillageNPC, "His tongue is broad, relaxed, and gravel-warm, sliding through words with a slow drawl that rumbles like shifting earth." },
-    { Speaker::VillageNPC, "He speaks in solid chunks, every syllable dropping like a stone." },
-    { Speaker::VillageNPC, "Gustavo Windimaess - The Air Dragon" },
-    { Speaker::VillageNPC, "Lively, airy, and constantly in motion - the breeze itself can't keep up with him." },
-    { Speaker::VillageNPC, "His tongue is melodic, rolling, and feather-light, dancing through vowels like swirling gusts." },
-    { Speaker::VillageNPC, "Every phrase rises and falls like a warm Mediterranean wind." },
+    { Speaker::VillageElder, "You have to ask the dragons for their help. These are the 4 dragons:" },
+    { Speaker::VillageElder, "Rowsted Sheacane - The Fire Dragon" },
+    { Speaker::VillageElder, "This is the hottest temper among the Four, burning through every room he enters." },
+    { Speaker::VillageElder, "His tongue is thick-rolled and smoky, spitting sounds like crackling embers - every R erupts like a small wildfire." },
+    { Speaker::VillageElder, "Blunt, heavy, and scorching, his words hit with the heat of molten iron." },
+    { Speaker::VillageElder, "Flawtin Seamen - The Water Dragon" },
+    { Speaker::VillageElder, "Calm on the surface, tidal underneath - he carries the quiet weight of deep waters." },
+    { Speaker::VillageElder, "His tongue is sharp, crisp, and clean-cut, with consonants hitting like droplets on metal." },
+    { Speaker::VillageElder, "Every sentence flows steady and precise, like a cold stream running over polished stone." },
+    { Speaker::VillageElder, "Grounded Claymore - The Earth Dragon" },
+    { Speaker::VillageElder, "Steady as bedrock and stubborn as a mountain wall." },
+    { Speaker::VillageElder, "His tongue is broad, relaxed, and gravel-warm, sliding through words with a slow drawl that rumbles like shifting earth." },
+    { Speaker::VillageElder, "He speaks in solid chunks, every syllable dropping like a stone." },
+    { Speaker::VillageElder, "Gustavo Windimaess - The Air Dragon" },
+    { Speaker::VillageElder, "Lively, airy, and constantly in motion - the breeze itself can't keep up with him." },
+    { Speaker::VillageElder, "His tongue is melodic, rolling, and feather-light, dancing through vowels like swirling gusts." },
+    { Speaker::VillageElder, "Every phrase rises and falls like a warm Mediterranean wind." },
 };
 
+// Dialogue asking which dragon location to visit first.
 inline const std::vector<DialogueLine> destination = {
-    { Speaker::VillageNPC, "You are all set now. It is up to you to choose your first destination." },
-    { Speaker::VillageNPC, "Which dragon do you want to visit first?" },
+    { Speaker::VillageElder, "You are all set now. It is up to you to choose your first destination." },
+    { Speaker::VillageElder, "Which dragon do you want to visit first?" },
 };
 
+// Greeting lines shown when the player returns to Perigonal Fields after a dungeon run.
 inline const std::vector<DialogueLine> gonadWelcomeBack = {
-    { Speaker::VillageNPC, "Welcome back, {playerName}! You made it out of {lastLocation}!" },
-    { Speaker::VillageNPC, "I see you've retrieved the Dragon Stone from {lastDragonName}." },
-    { Speaker::VillageNPC, "Catch your breath, then head toward your next destination!" },
+    { Speaker::VillageElder, "Welcome back, {playerName}! You made it out of {lastLocation}!" },
+    { Speaker::VillageElder, "I see you've retrieved the Dragon Stone from {lastDragonName}." },
+    { Speaker::VillageElder, "Catch your breath, then head toward your next destination!" },
 };
 
+// Story-heavy dialogue triggered before the final battle in Perigonal Fields.
 inline const std::vector<DialogueLine> finalEncounter = {
     { Speaker::StoryTeller, "Upon reaching ground, you freeze for a minute." },
-    { Speaker::StoryTeller, "Gonad is gone. And right where it used to be stands a dark, ominous Castle." },
+    { Speaker::StoryTeller, "Perigonal Fields is gone. And right where it used to be stands a dark, ominous Castle." },
     { Speaker::StoryTeller, "A shady figure steps out of the castle greeting you with an evil smirk." },
     { Speaker::MasterBates, "So you have finally come, {playerName}! I see you have retrieved all the Dragon Stones!" },
     { Speaker::MasterBates, "But you are too late! I have already absorbed the power of your Dragonborn siblings!" },
@@ -174,23 +211,27 @@ inline const std::vector<DialogueLine> finalEncounter = {
     { Speaker::Player, "No! You have to pay for what you have done!" },
 };
 
+// Closing thank-you lines played after beating the game.
 inline const std::vector<DialogueLine> finalThanks = {
     { Speaker::StoryTeller, "Thank you {playerName} for playing my SFML text adventure game!" },
     { Speaker::StoryTeller, "I hope you enjoyed it!" },
 };
 
+// Dialogue branch shown when the player chooses to kill Noah Bates.
 inline const std::vector<DialogueLine> finalChoiceKill = {
     { Speaker::Player, "The world is a better place without you!" },
     { Speaker::StoryTeller, "You are using {weapon} to kill Noah Bates!" },
     { Speaker::StoryTeller, "You have saved the world!" },
 };
 
+// Dialogue branch seen when the player spares Noah Bates.
 inline const std::vector<DialogueLine> finalChoiceSpare = {
     { Speaker::Player, "You will die soon anyways! I wont dirty my hands with your blood!" },
     { Speaker::StoryTeller, "You have let Noah Bates survive... Your {weapon} is glowing!" },
     { Speaker::StoryTeller, "Your siblings have been freed!" },
 };
 
+// Dialogue branch for the corrupted absorb ending.
 inline const std::vector<DialogueLine> finalChoiceAbsorb = {
     { Speaker::Player, "I will absorb your power and thus the power of my siblings!" },
     { Speaker::StoryTeller, "You are using {weapon} to absorb Noah Bates!" },
@@ -284,5 +325,5 @@ inline const std::vector<DialogueLine> dragonstone = {
     { Speaker::StoryTeller, "You now have {dragonstonecount} {dragonstoneword}!" },
     { Speaker::StoryTeller, "Your Dragon Scales grow even stronger!" },
     { Speaker::StoryTeller, "Your weapon has been upgraded! It can now use the power of the {dragonelement} Dragon." },
-    { Speaker::StoryTeller, "You will now be teleported back to Gonad." },
+    { Speaker::StoryTeller, "You will now be teleported back to Perigonal Fields." },
 };

@@ -1,9 +1,11 @@
 #pragma once
-#include <SFML/Graphics/RenderTarget.hpp>
-#include "core/game.hpp"
+// === SFML Libraries ===
+#include <SFML/Graphics/RenderTarget.hpp>  // Provides sf::RenderTarget parameter used by every draw function.
+// === Header Files ===
+#include "core/game.hpp"  // Accesses Game for dialogue state, boxes, and resources rendered by the UI.
 
 class Game;
 
 void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation = false, float* outAlpha = nullptr);
 
-void drawLocationBox(Game& game, sf::RenderTarget& target, float uiAlphaFactor);
+void drawLocationBox(Game& game, sf::RenderTarget& target, float uiAlphaFactor, float glowElapsedSeconds);

@@ -1,6 +1,6 @@
 #pragma once
-
-#include "core/game.hpp"
+// === Header Files ===
+#include "core/game.hpp"  // Supplies the Game structure whose UI boxes this helper repositions.
 
 namespace ui {
 namespace layout {

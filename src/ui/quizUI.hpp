@@ -1,7 +1,9 @@
 #pragma once
-#include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Window/Event.hpp>
-#include "rendering/locations.hpp"
+// === SFML Libraries ===
+#include <SFML/Graphics/RenderTarget.hpp>  // Provides the rendering target used when drawing quizzes/final choice screens.
+#include <SFML/Window/Event.hpp>           // Handles quiz and final-choice keyboard/mouse events.
+// === Header Files ===
+#include "rendering/locations.hpp"         // Uses LocationId values when starting and resolving quiz routes.
 
 inline constexpr std::size_t kDragonQuizIntroLine = 10;
 inline constexpr std::size_t kDragonQuizQuestionLine = 11;
@@ -17,6 +19,7 @@ void handleQuizEvent(Game& game, const sf::Event& event);
 void startQuiz(Game& game, LocationId targetLocation, std::size_t questionIndex);
 void completeQuizSuccess(Game& game);
 void regenerateCurrentQuestion(Game& game);
+bool runQuizDevMode(int argc, char** argv);
 
 void startFinalChoice(Game& game);
 void handleFinalChoiceEvent(Game& game, const sf::Event& event);

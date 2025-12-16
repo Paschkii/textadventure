@@ -1,18 +1,21 @@
-#include "weaponSelectionUI.hpp"
-#include "core/game.hpp"
-#include "uiEffects.hpp"
-#include "uiVisibility.hpp"
-#include "helper/colorHelper.hpp"
-#include "story/textStyles.hpp"
-#include "story/storyIntro.hpp"
-#include "confirmationUI.hpp"
-#include "story/dialogInput.hpp"
-#include <cstdint>
-#include <algorithm>
-#include <cctype>
-#include <optional>
-#include <SFML/Window/Mouse.hpp>
-#include <SFML/Window/Keyboard.hpp>
+// === C++ Libraries ===
+#include <cstdint>     // Uses fixed-size ints when adjusting alpha channels for sprites.
+#include <algorithm>   // Applies std::transform/std::clamp while computing button states.
+#include <cctype>      // Converts letters to lower-case when matching hotkeys.
+#include <optional>    // Returns optional hotkey selections and index lookups.
+// === SFML Libraries ===
+#include <SFML/Window/Mouse.hpp>     // Reads mouse movement and clicks for hover/selection logic.
+#include <SFML/Window/Keyboard.hpp>  // Processes keyboard hotkeys to pick weapons.
+// === Header Files ===
+#include "confirmationUI.hpp"    // Shows confirm prompts when choosing a weapon.
+#include "uiEffects.hpp"         // Draws the glowing weapon panel background.
+#include "uiVisibility.hpp"      // Determines fade state while the weapon UI is shown.
+#include "weaponSelectionUI.hpp" // Declares draw/handle functions implemented here.
+#include "core/game.hpp"         // Reads/writes Game weapon state, resources, and dialogue progression.
+#include "helper/colorHelper.hpp"// Applies palette colors to outlines and selection highlights.
+#include "story/textStyles.hpp"  // Names dragons when announcing choices.
+#include "story/storyIntro.hpp"  // Accesses dialogue branches triggered by weapon picks.
+#include "story/dialogInput.hpp" // Re-uses waitForEnter helpers when restarting dialogue after selection.
 
 namespace {
     void startDragonDialogue(Game& game) {
@@ -94,7 +97,7 @@ namespace {
             [](Game& confirmedGame) {
                 if (!confirmedGame.weaponItemAdded && confirmedGame.selectedWeaponIndex >= 0 && static_cast<std::size_t>(confirmedGame.selectedWeaponIndex) < confirmedGame.weaponOptions.size()) {
                     const auto& tex = confirmedGame.weaponOptions[confirmedGame.selectedWeaponIndex].texture;
-                    confirmedGame.addItemIcon(tex);
+                    confirmedGame.itemController.addIcon(tex);
                     confirmedGame.weaponItemAdded = true;
                 }
                 startDragonDialogue(confirmedGame);

@@ -70,7 +70,7 @@ namespace Locations {
         ));
 
         locations.push_back(makeLocation(
-            LocationId::MasterBatesStronghold,
+            LocationId::Seminiferous,
             "Seminiferous",
             ColorHelper::Palette::DarkPurple,
             resources.locationSeminiferousColored,

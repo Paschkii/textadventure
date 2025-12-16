@@ -1,6 +1,8 @@
 #pragma once
-#include <initializer_list>
-#include <SFML/Graphics.hpp>
+// === C++ Libraries ===
+#include <initializer_list>  // Accepts frequency lists for the glow/flicker helpers.
+// === SFML Libraries ===
+#include <SFML/Graphics.hpp>  // Provides sf::Color and RenderTarget used by the UI effects.
 
 class NineSliceBox;
 

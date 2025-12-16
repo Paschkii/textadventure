@@ -1,8 +1,12 @@
 #pragma once
-#include <SFML/Graphics.hpp>
-#include <vector>
-#include "helper/textColorHelper.hpp"
+// === C++ Libraries ===
+#include <vector>                 // Stores the list of ColoredTextSegment inputs to draw.
+// === SFML Libraries ===
+#include <SFML/Graphics.hpp>      // Provides the font, RenderTarget, Text, and Color helpers for drawing.
+// === Header Files ===
+#include "helper/textColorHelper.hpp"  // Defines ColoredTextSegment used by drawColoredSegments.
 
+// Draws colored text segments with wrapping/alpha handling and returns the new cursor.
 sf::Vector2f drawColoredSegments(
     sf::RenderTarget& target,
     const sf::Font& font,

@@ -1,14 +1,19 @@
+// === C++ Libraries ===
 #include <iostream>
 #include <random>
 #include <string>
 #include <filesystem>
+// === SFML Libraries ===
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>
 #include <SFML/Window.hpp>
+// === Header Files ===
 #include "game.hpp"
 #include "ui/quizGenerator.hpp"
+#include "ui/quizUI.hpp"
 
+// Bootstraps the application: fixes the working directory, handles dev flags, then runs Game.
 int main(int argc, char** argv) {
     namespace fs = std::filesystem;
 
@@ -20,26 +25,9 @@ int main(int argc, char** argv) {
         // falls canonical() aus irgendeinem Grund nicht geht: egal, dann läuft's wie bisher
     }
 
-    if (argc > 1 && std::string(argv[1]) == "--quiz-dev") {
-        std::mt19937 rng(std::random_device{}());
-        auto questions = quiz::generateNumberQuiz(rng);
-        const char labels[] = { 'A', 'B', 'C', 'D' };
-
-        for (std::size_t i = 0; i < questions.size(); ++i) {
-            const auto& q = questions[i];
-            std::cout << "Question " << (i + 1) << " (" << quiz::toString(q.category) << ")\n";
-            std::cout << q.prompt << "\n";
-            for (int j = 0; j < 4; ++j) {
-                bool correct = j == q.correctIndex;
-                std::cout << "  " << labels[j] << ") " << q.options[j];
-                if (correct)
-                    std::cout << "  <-- correct";
-                std::cout << "\n";
-            }
-            std::cout << "\n";
-        }
+    // Exit early if the quiz dev-mode flag is present so we can skip the full game.
+    if (runQuizDevMode(argc, argv))
         return 0;
-    }
 
     Game game;
     game.run();

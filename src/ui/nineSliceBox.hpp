@@ -1,7 +1,10 @@
 #pragma once
-#include <SFML/Graphics.hpp>
-#include <stdexcept>
-#include "story/textStyles.hpp"
+// === C++ Libraries ===
+#include <stdexcept>  // Throws if the 9-slice texture fails to load.
+// === SFML Libraries ===
+#include <SFML/Graphics.hpp>  // Provides texture, color, sprite, and shape helpers for drawing frames.
+// === Header Files ===
+#include "story/textStyles.hpp"  // Supplies UI palette colors for the default frame tint.
 
 class NineSliceBox {
     public:

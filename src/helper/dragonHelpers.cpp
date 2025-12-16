@@ -1,9 +1,12 @@
-#include "helper/dragonHelpers.hpp"
-#include <algorithm>
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::min when scaling dragon sprites to fit the panel.
+// === Header Files ===
+#include "helper/dragonHelpers.hpp"  // Declares the dragon helpers and their Game dependency.
 
 namespace ui {
 namespace dragons {
 
+// Populates Game::dragonPortraits from the texture/name list.
 void loadDragonPortraits(Game& game) {
     game.dragonPortraits.clear();
 
@@ -29,6 +32,7 @@ void loadDragonPortraits(Game& game) {
     }
 }
 
+// Computes positions/scales so each portrait sits nicely inside the weapon panel.
 void layoutDragonPortraits(Game& game) {
     if (game.dragonPortraits.empty())
         return;

@@ -1,17 +1,98 @@
+// === C++ Libraries ===
+#include <array>      // Stores the intro menu labels and bounds.
+#include <algorithm>  // Uses std::clamp when computing fade progress and pointer targets.
+
+// === SFML Libraries ===
+#include <SFML/Graphics/Text.hpp>   // Renders the option labels and outlines.
+#include <SFML/Window/Keyboard.hpp> // Reads keyboard scancodes used in navigation.
+#include <SFML/Window/Mouse.hpp>    // Reads mouse position when hovering intro options.
+
+// === Header Files ===
 #include "introTitle.hpp"
 #include "core/game.hpp"
-#include <algorithm>
+#include "helper/colorHelper.hpp"
+#include "ui/confirmationUI.hpp"
+#include "ui/rankingUI.hpp"
 
-bool introTitleDropComplete(const Game& game) {
-    if (!game.titleDropStarted)
-        return false;
+namespace {
+    constexpr std::array<const char*, 5> kIntroOptionLabels = {
+        "Start Game",
+        "Load Game",
+        "Settings",
+        "Rankings",
+        "Quit"
+    };
 
-    constexpr float firstDropDuration = 1.0f;
-    constexpr float secondDropDelay = 0.15f;
-    constexpr float secondDropDuration = 1.0f;
+    constexpr int kIntroOptionCount = static_cast<int>(kIntroOptionLabels.size());
 
-    float totalDuration = firstDropDuration + secondDropDelay + secondDropDuration;
-    return game.titleDropClock.getElapsedTime().asSeconds() >= totalDuration;
+    enum class IntroOption {
+        Start,
+        Load,
+        Settings,
+        Rankings,
+        Quit,
+    };
+
+    constexpr float kOptionTextSize = 32.f;
+    constexpr float kOptionSpacing = 46.f;
+
+    bool introMenuReady(const Game& game) {
+        return game.introTitleRevealComplete && game.introTitleOptionsFadeProgress >= 1.f;
+    }
+
+    void clampHovered(Game& game) {
+        if (game.introTitleHoveredOption < 0)
+            game.introTitleHoveredOption = 0;
+        if (game.introTitleHoveredOption >= kIntroOptionCount)
+            game.introTitleHoveredOption = kIntroOptionCount - 1;
+    }
+
+    void playIntroTitleHoverSound(Game& game) {
+        if (!game.introTitleHoverSound)
+            return;
+        game.introTitleHoverSound->stop();
+        game.introTitleHoverSound->play();
+    }
+
+    void executeIntroOption(Game& game, IntroOption option) {
+        switch (option) {
+            case IntroOption::Start:
+                triggerIntroTitleExit(game);
+                break;
+            case IntroOption::Load:
+            case IntroOption::Settings:
+                break;
+            case IntroOption::Rankings:
+                game.rankingOverlay.playerRank = game.lastRecordedRank;
+                ui::ranking::activateOverlay(game.rankingOverlay, true);
+                break;
+            case IntroOption::Quit:
+                showConfirmationPrompt(game, "Quit the game?", [](Game& g) {
+                    g.window.close();
+                }, [](Game&) {});
+                break;
+        }
+    }
+
+    int optionIndexAt(const Game& game, const sf::Vector2f& point) {
+        for (int idx = 0; idx < kIntroOptionCount; ++idx) {
+            if (game.introTitleOptionBounds[idx].contains(point))
+                return idx;
+        }
+        return -1;
+    }
+
+    void updateHoveredFromMouse(Game& game, const sf::Vector2f& point) {
+        int found = optionIndexAt(game, point);
+        if (found < 0) {
+            game.introTitleHoveredOption = -1;
+            return;
+        }
+        if (found == game.introTitleHoveredOption)
+            return;
+        game.introTitleHoveredOption = found;
+        playIntroTitleHoverSound(game);
+    }
 }
 
 void triggerIntroTitleExit(Game& game) {
@@ -30,12 +111,70 @@ void triggerIntroTitleExit(Game& game) {
         if (game.introTitleHidden) {
             game.uiFadeInActive = true;
             game.uiFadeClock.restart();
-            game.startGonadDialoguePending = true;
+            game.pendingIntroDialogue = true;
         }
         else {
             game.uiFadeInQueued = true;
         }
     }
+}
+
+bool handleIntroTitleEvent(Game& game, const sf::Event& event) {
+    if (!introMenuReady(game))
+        return false;
+
+    if (auto move = event.getIf<sf::Event::MouseMoved>()) {
+        auto mousePos = game.window.mapPixelToCoords(move->position);
+        updateHoveredFromMouse(game, mousePos);
+        return false;
+    }
+
+    if (auto button = event.getIf<sf::Event::MouseButtonReleased>()) {
+        if (button->button == sf::Mouse::Button::Left) {
+            auto mousePos = game.window.mapPixelToCoords(button->position);
+            int clicked = optionIndexAt(game, mousePos);
+            if (clicked >= 0) {
+                executeIntroOption(game, static_cast<IntroOption>(clicked));
+                return true;
+            }
+        }
+    }
+
+    if (auto key = event.getIf<sf::Event::KeyReleased>()) {
+        switch (key->scancode) {
+            case sf::Keyboard::Scan::Up: {
+                int previous = game.introTitleHoveredOption;
+                if (game.introTitleHoveredOption <= 0)
+                    game.introTitleHoveredOption = kIntroOptionCount - 1;
+                else
+                    --game.introTitleHoveredOption;
+                clampHovered(game);
+                if (game.introTitleHoveredOption >= 0 && game.introTitleHoveredOption != previous)
+                    playIntroTitleHoverSound(game);
+                return true;
+            }
+            case sf::Keyboard::Scan::Down: {
+                int previous = game.introTitleHoveredOption;
+                if (game.introTitleHoveredOption < 0)
+                    game.introTitleHoveredOption = 0;
+                else if (game.introTitleHoveredOption >= kIntroOptionCount - 1)
+                    game.introTitleHoveredOption = 0;
+                else
+                    ++game.introTitleHoveredOption;
+                clampHovered(game);
+                if (game.introTitleHoveredOption >= 0 && game.introTitleHoveredOption != previous)
+                    playIntroTitleHoverSound(game);
+                return true;
+            }
+            case sf::Keyboard::Scan::Enter:
+                clampHovered(game);
+                executeIntroOption(game, static_cast<IntroOption>(game.introTitleHoveredOption));
+                return true;
+            default:
+                break;
+        }
+    }
+    return false;
 }
 
 void drawIntroTitle(Game& game, sf::RenderTarget& target) {
@@ -44,12 +183,16 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
 
     game.startTitleScreenMusic();
 
-    if (!game.titleDropStarted
+    bool backgroundActive = game.backgroundFadeInActive || game.backgroundVisible;
+    if (!game.introTitleRevealStarted
         && game.state == GameState::IntroTitle
-        && (game.backgroundFadeInActive || game.backgroundVisible)) {
-        game.titleDropStarted = true;
-        game.titleDropComplete = false;
-        game.titleDropClock.restart();
+        && backgroundActive) {
+        game.introTitleRevealStarted = true;
+        game.introTitleRevealComplete = false;
+        game.introTitleRevealClock.restart();
+        game.introTitleOptionsFadeTriggered = false;
+        game.introTitleOptionsFadeProgress = 0.f;
+        game.introTitleHoveredOption = 0;
     }
 
     float globalFade = 1.f;
@@ -65,13 +208,13 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
                 game.uiFadeInQueued = false;
                 game.uiFadeInActive = true;
                 game.uiFadeClock.restart();
-                game.startGonadDialoguePending = true;
+                game.pendingIntroDialogue = true;
             }
             return;
         }
     }
-    bool backgroundActive = game.backgroundFadeInActive || game.backgroundVisible;
-    if (backgroundActive && game.background) {  // <- background existiert?
+
+    if (backgroundActive && game.background) {
         float fadeProgress = 1.f;
         if (game.backgroundFadeInActive) {
             float t = game.backgroundFadeClock.getElapsedTime().asSeconds() / game.introFadeDuration;
@@ -99,153 +242,134 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
         target.draw(*game.background);
     }
 
-    bool dropFinished = game.titleDropComplete;
-    bool introPromptJustActivated = false;
+    float revealProgress = game.introTitleRevealStarted
+        ? std::clamp(game.introTitleRevealClock.getElapsedTime().asSeconds() / game.introTitleRevealDuration, 0.f, 1.f)
+        : 0.f;
+    if (revealProgress >= 1.f)
+        game.introTitleRevealComplete = true;
 
-    if (game.titleDropStarted) {
-        float elapsed = game.titleDropClock.getElapsedTime().asSeconds();
-        constexpr float firstDropDuration = 1.0f;
-        constexpr float secondDropDelay = 0.15f;
-        constexpr float secondDropDuration = 1.0f;
-        constexpr float totalDropDuration = firstDropDuration + secondDropDelay + secondDropDuration;
+    if (game.introTitleRevealComplete
+        && !game.introTitleOptionsFadeTriggered
+        && game.introTitleOptionsFadeProgress < 1.f) {
+        game.introTitleOptionsFadeTriggered = true;
+        game.introTitleOptionsFadeActive = true;
+        game.introTitleOptionsFadeClock.restart();
+        game.introTitleHoveredOption = 0;
+    }
 
-        auto windowSize = target.getSize();
+    if (game.introTitleOptionsFadeActive) {
+        float optionProgress = std::clamp(game.introTitleOptionsFadeClock.getElapsedTime().asSeconds() / game.introTitleOptionsFadeDuration, 0.f, 1.f);
+        game.introTitleOptionsFadeProgress = optionProgress;
+        if (optionProgress >= 1.f)
+            game.introTitleOptionsFadeActive = false;
+    }
+
+    float titleAlphaFactor = revealProgress * globalFade;
+    float optionsAlphaFactor = game.introTitleOptionsFadeProgress * globalFade;
+
+    auto drawTitleLine = [&](const std::string& text, unsigned int size, float offsetY) {
+        sf::Text back{ game.resources.titleFontExtrude, text, size };
+        sf::Text front{ game.resources.titleFont, text, size };
+
+        back.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::TitleBack, titleAlphaFactor));
+        front.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::TitleAccent, titleAlphaFactor));
+
+        auto centerOrigin = [](sf::Text& t) {
+            auto bounds = t.getLocalBounds();
+            t.setOrigin({
+                bounds.position.x + bounds.size.x * 0.5f,
+                bounds.position.y + bounds.size.y * 0.5f
+            });
+        };
+
+        centerOrigin(back);
+        centerOrigin(front);
+
+        float centerX = static_cast<float>(target.getSize().x) * 0.5f;
+        float centerY = offsetY;
+        back.setPosition({ centerX, centerY });
+        front.setPosition({ centerX, centerY });
+
+        target.draw(back);
+        target.draw(front);
+    };
+
+    auto windowSize = target.getSize();
+    float firstLineY = static_cast<float>(windowSize.y) * 0.33f - 100.f;
+    float secondLineY = firstLineY + 80.f;
+    drawTitleLine("Glandular Chronicles", 100, firstLineY);
+    drawTitleLine("The Dragonborn", 60, secondLineY);
+
+    for (auto& bounds : game.introTitleOptionBounds)
+        bounds = {};
+
+    if (optionsAlphaFactor > 0.f) {
+        float startY = static_cast<float>(windowSize.y) * 0.63f;
+        sf::Color baseFill = ColorHelper::Palette::Amber;
+        sf::Color baseOutline = ColorHelper::Palette::DarkBrown;
+        sf::Color hoverFill = ColorHelper::Palette::SoftYellow;
+        sf::Color hoverOutline = TextStyles::UI::PanelDark;
+
+        float longestLabelWidth = 0.f;
+        for (const char* label : kIntroOptionLabels) {
+            sf::Text sample{ game.resources.uiFont, label, static_cast<unsigned int>(kOptionTextSize) };
+            sample.setStyle(sf::Text::Bold);
+            auto measureBounds = sample.getLocalBounds();
+            longestLabelWidth = std::max(longestLabelWidth, measureBounds.size.x);
+        }
+
+        float minBoxWidth = static_cast<float>(windowSize.x) * 0.35f;
+        float maxBoxWidth = static_cast<float>(windowSize.x) * 0.6f;
+        float optionBoxWidth = std::clamp(longestLabelWidth + 140.f, minBoxWidth, maxBoxWidth);
+        float optionBoxHeight = std::clamp(kOptionSpacing + 16.f, 52.f, 80.f);
+        float highlightWidth = std::clamp(
+            std::max(optionBoxWidth * 0.6f, longestLabelWidth + 80.f),
+            longestLabelWidth + 80.f,
+            optionBoxWidth
+        );
+        game.optionsBox.setSize({ highlightWidth, optionBoxHeight });
+        sf::Color highlightColor = ColorHelper::applyAlphaFactor(sf::Color::White, optionsAlphaFactor);
         float centerX = static_cast<float>(windowSize.x) * 0.5f;
-        float firstTargetY = static_cast<float>(windowSize.y) * 0.45f;
-        float secondTargetY = firstTargetY + 110.f;
-        float startY = -200.f;
 
-        auto easeOutCubic = [](float t) {
-            float inv = 1.f - t;
-            return 1.f - inv * inv * inv;
-        };
+        sf::Color fillColor;
+        sf::Color outlineColor;
+        float highlightBoxWidth = game.optionsBox.getSize().x;
 
-        auto computeY = [&](float dropElapsed, float duration, float targetY) {
-            if (dropElapsed <= 0.f)
-                return startY;
+        for (int idx = 0; idx < kIntroOptionCount; ++idx) {
+            sf::Text optionText{ game.resources.uiFont, kIntroOptionLabels[idx], static_cast<unsigned int>(kOptionTextSize) };
+            bool hovered = idx == game.introTitleHoveredOption;
+            fillColor = hovered ? hoverFill : baseFill;
+            outlineColor = hovered ? hoverOutline : baseOutline;
 
-            float t = std::clamp(dropElapsed / duration, 0.f, 1.f);
-            float eased = easeOutCubic(t);
-            return startY + (targetY - startY) * eased;
-        };
+            optionText.setFillColor(ColorHelper::applyAlphaFactor(fillColor, optionsAlphaFactor));
+            optionText.setOutlineColor(ColorHelper::applyAlphaFactor(outlineColor, optionsAlphaFactor));
+            optionText.setOutlineThickness(1.f);
+            optionText.setStyle(sf::Text::Bold);
 
-        auto drawTitle = [&](const std::string& text, unsigned int size, sf::Vector2f position) {
-            sf::Text backLayer{ game.resources.titleFontExtrude, text, size };
-            sf::Text frontLayer{ game.resources.titleFont,       text, size };
+            auto bounds = optionText.getLocalBounds();
+            optionText.setOrigin({
+                bounds.position.x + bounds.size.x * 0.5f,
+                bounds.position.y + bounds.size.y * 0.5f
+            });
 
-            frontLayer.setFillColor(ColorHelper::Palette::TitleAccent);
-            backLayer.setFillColor(ColorHelper::Palette::TitleBack);
+            float posY = startY + static_cast<float>(idx) * kOptionSpacing;
+            optionText.setPosition({
+                centerX,
+                posY
+            });
 
-            auto centerOrigin = [](sf::Text& t) {
-                auto b = t.getLocalBounds();
-                t.setOrigin({
-                    b.position.x + b.size.x * 0.5f,
-                    b.position.y + b.size.y * 0.5f
-                });
-            };
-
-            centerOrigin(frontLayer);
-            centerOrigin(backLayer);
-
-            float offsetY = -200.f;
-            sf::Vector2f finalPos = { position.x, position.y + offsetY };
-
-            frontLayer.setPosition(finalPos);
-            backLayer.setPosition(finalPos);
-
-            auto applyFade = [&](sf::Text& t) {
-                sf::Color c = t.getFillColor();
-                c.a = static_cast<std::uint8_t>(static_cast<float>(c.a) * globalFade);
-                t.setFillColor(c);
-            };
-
-            applyFade(backLayer);
-            applyFade(frontLayer);
-
-            target.draw(backLayer);
-            target.draw(frontLayer);
-        };
-
-        float lineSpacing = -40.f;
-
-        float firstY = computeY(elapsed, firstDropDuration, firstTargetY);
-        drawTitle("Glandular Chronicles", 100, { centerX, firstY });
-
-        float secondElapsed = elapsed - firstDropDuration - secondDropDelay;
-        if (secondElapsed > 0.f) {
-            float secondY = computeY(secondElapsed, secondDropDuration, secondTargetY);
-            drawTitle("The Dragonborn", 60, { centerX, secondY + lineSpacing });
-
-            if (secondElapsed >= secondDropDuration && !game.titleDropComplete) {
-                game.titleDropComplete = true;
-                introPromptJustActivated = true;
+            if (hovered) {
+                float boxX = centerX - (highlightBoxWidth * 0.5f);
+                float boxY = posY - (optionBoxHeight * 0.5f);
+                game.optionsBox.setPosition({ boxX, boxY });
+                game.uiFrame.draw(target, game.optionsBox, highlightColor);
             }
-        }
 
-        dropFinished = elapsed >= totalDropDuration;
-    }
-
-    if (introPromptJustActivated) {
-        game.introPromptVisible = false;
-        game.introPromptFade = 0.f;
-        game.introPromptBlinkActive = true;
-        game.introPromptInputEnabled = false;
-        game.introPromptFadingIn = true;
-        game.introPromptBlinkClock.restart();
-    }
-
-    if (game.titleDropComplete) {
-        auto windowSize = target.getSize();
-        float centerX = static_cast<float>(windowSize.x) * 0.5f;
-        // Center the intro prompt vertically in the window (move it up from 82% to 50%)
-        float centerY = static_cast<float>(windowSize.y) * 0.5f;
-
-        if (game.introPromptBlinkActive) {
-            float elapsed = game.introPromptBlinkClock.getElapsedTime().asSeconds();
-            float progress = std::clamp(elapsed / game.introPromptBlinkInterval, 0.f, 1.f);
-
-            if (game.introPromptFadingIn) {
-                game.introPromptFade = progress;
-
-                if (progress >= 1.f) {
-                    game.introPromptFadingIn = false;
-                    game.introPromptVisible = true;
-                    game.introPromptInputEnabled = true;
-                    game.introPromptBlinkClock.restart();
-                }
-            }
-            else {
-                game.introPromptFade = 1.f - progress;
-
-                if (progress >= 1.f) {
-                    game.introPromptFadingIn = true;
-                    game.introPromptVisible = false;
-                    game.introPromptBlinkClock.restart();
-                }
-            }
-        }
-
-        if (game.introPromptVisible || game.introPromptBlinkActive) {
-            const std::string promptText = "Press Enter to Continue.";
-            sf::Text prompt{ game.resources.introFont, promptText, 28 };
-            prompt.setFillColor(ColorHelper::Palette::SoftYellow);
-
-            auto centerText = [](sf::Text& text, float x, float y) {
-                auto bounds = text.getLocalBounds();
-                text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y + bounds.size.y * 0.5f});
-                text.setPosition({ x, y });
-            };
-
-            auto applyPromptFade = [&](sf::Text& text) {
-                sf::Color color = text.getFillColor();
-                float fade = game.introPromptBlinkActive ? game.introPromptFade : 1.f;
-                color.a = static_cast<std::uint8_t>(static_cast<float>(color.a) * fade * globalFade);
-                text.setFillColor(color);
-            };
-
-            centerText(prompt, centerX, centerY);
-            applyPromptFade(prompt);
-            target.draw(prompt);
+            target.draw(optionText);
+            game.introTitleOptionBounds[idx] = optionText.getGlobalBounds();
         }
     }
+
+    if (game.confirmationPrompt.active)
+        drawConfirmationPrompt(game, target, 1.f);
 }

@@ -1,12 +1,14 @@
-#include "dialogDrawElements.hpp"
-#include "dialogUI.hpp"
-#include "uiEffects.hpp"
-#include "helper/textColorHelper.hpp"
-#include "helper/colorHelper.hpp"
-#include "rendering/textLayout.hpp"
-#include "story/textStyles.hpp"
-#include <algorithm>
-#include <vector>
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::min and std::clamp when sizing portraits and layout helpers.
+#include <vector>     // Builds temporary sets of texts/colors when drawing speaker names.
+// === Header Files ===
+#include "dialogDrawElements.hpp"  // Declares the draw helpers implemented in this file.
+#include "dialogUI.hpp"            // Coordinates drawing order with the main dialogue UI.
+#include "uiEffects.hpp"           // Computes glow colors for the dialogue frames.
+#include "helper/textColorHelper.hpp"  // Breaks speaker names into colored segments when rendering.
+#include "helper/colorHelper.hpp"  // Applies palette colors for outlines, text, and frames.
+#include "rendering/textLayout.hpp"  // Lays out multi-line colored text segments inside boxes.
+#include "story/textStyles.hpp"    // Retrieves speaker styles for portraits and name labels.
 
 namespace {
     constexpr float kTextBoxPadding = 20.f;
@@ -22,14 +24,18 @@ namespace {
             case SpeakerId::StoryTeller:
             case SpeakerId::NoNameNPC:
                 return &game.resources.portraitStoryTeller;
-            case SpeakerId::VillageNPC:
-                return &game.resources.portraitVillageNPC;
+            case SpeakerId::VillageElder:
+                return &game.resources.portraitVillageElder;
+            case SpeakerId::VillageWanderer:
+                return &game.resources.portraitVillageWanderer;
             case SpeakerId::MasterBates:
                 return &game.resources.portraitMasterBates;
             case SpeakerId::NoahBates:
                 return &game.resources.portraitNoahBates;
             case SpeakerId::Player:
-                return &game.resources.portraitPlayer;
+                if (game.playerGender == Game::DragonbornGender::Female)
+                    return &game.resources.portraitDragonbornFemale;
+                return &game.resources.portraitDragonbornMale;
             case SpeakerId::FireDragon:
                 return &game.resources.portraitFireDragon;
             case SpeakerId::WaterDragon:
@@ -100,8 +106,6 @@ namespace dialogDraw {
         , sf::RenderTarget& target
         , float uiAlphaFactor
         , float glowElapsedSeconds
-        , bool showLocationBox
-        , bool showItemBox
     )
     {
         sf::Color glowColor = uiEffects::computeGlowColor(
@@ -131,34 +135,9 @@ namespace dialogDraw {
             2.f
         );
 
-        if (showLocationBox) {
-            uiEffects::drawGlowFrame(
-                target,
-                game.uiFrame,
-                game.locationBox.getPosition(),
-                game.locationBox.getSize(),
-                glowColor,
-                2.f
-            );
-        }
-        if (showItemBox) {
-            uiEffects::drawGlowFrame(
-                target,
-                game.uiFrame,
-                game.itemBox.getPosition(),
-                game.itemBox.getSize(),
-                glowColor,
-                2.f
-            );
-        }
-
         sf::Color frameColor = game.frameColor(uiAlphaFactor);
         game.uiFrame.draw(target, game.nameBox, frameColor);
         game.uiFrame.draw(target, game.textBox, frameColor);
-        if (showLocationBox)
-            game.uiFrame.draw(target, game.locationBox, frameColor);
-        if (showItemBox)
-            game.uiFrame.draw(target, game.itemBox, frameColor);
     }
 
     void drawSpeakerName(
@@ -337,7 +316,7 @@ namespace dialogDraw {
     }
 
     void drawItemIcons(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
-        for (auto& item : game.itemIcons) {
+        for (auto& item : game.itemController.icons()) {
             sf::Color color = item.sprite.getColor();
             color.a = static_cast<std::uint8_t>(255.f * uiAlphaFactor);
             item.sprite.setColor(color);

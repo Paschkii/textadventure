@@ -12,7 +12,7 @@ enum class LocationId {
     Lacrimere,
     Cladrenal,
     Aerobronchi,
-    MasterBatesStronghold,
+    Seminiferous,
 };
 
 struct Location {

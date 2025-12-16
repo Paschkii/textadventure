@@ -1,8 +1,10 @@
-#include "uiEffects.hpp"
-#include <algorithm>
-#include <cmath>
-#include "helper/colorHelper.hpp"
-#include "ui/nineSliceBox.hpp"
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::clamp for alpha/fade calculations.
+#include <cmath>      // Computes trig functions when generating flickering glow effects.
+// === Header Files ===
+#include "nineSliceBox.hpp"        // Draws the glow frame using the 9-slice helper.
+#include "uiEffects.hpp"           // Declares the glow/flicker helpers implemented here.
+#include "helper/colorHelper.hpp"  // Uses the shared palette when tinting glow colors.
 
 namespace uiEffects {
     float computeFlickerAlpha(

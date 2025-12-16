@@ -1,46 +1,15 @@
-#include "helper/textColorHelper.hpp"
-#include <algorithm>
-#include <array>
-#include <cctype>
-#include <utility>
-#include "story/textStyles.hpp"
-#include "story/storyIntro.hpp"
-#include "helper/colorHelper.hpp"
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::sort when ordering matched tokens.
+#include <array>      // Holds the fixed set of speakers to color.
+#include <cctype>     // Applies std::isalnum to validate token boundaries.
+#include <utility>    // Uses std::pair to associate tokens with colors.
+// === Header Files ===
+#include "story/textStyles.hpp"    // Provides speaker-specific color/style metadata.
+#include "story/storyIntro.hpp"    // Adds extra tokens that should be colored for story text.
+#include "helper/colorHelper.hpp"  // References the normal palette for default text segments.
+#include "helper/textColorHelper.hpp"  // Declares buildColoredSegments implemented below.
 
-namespace {
-std::size_t longestPartialSpeakerPrefix(
-    const std::string& text,
-    const std::vector<std::pair<std::string, sf::Color>>& tokens,
-    sf::Color& outColor
-) {
-    std::size_t bestLength = 0;
-
-    for (const auto& token : tokens) {
-        if (token.first.empty())
-            continue;
-
-        unsigned char firstChar = static_cast<unsigned char>(token.first.front());
-        if (!std::isalpha(firstChar))
-            continue;
-
-        std::size_t maxLength = std::min(token.first.size(), text.size());
-        if (maxLength == 0)
-            continue;
-
-        for (std::size_t len = 1; len < token.first.size() && len <= maxLength; ++len) {
-            if (text.compare(text.size() - len, len, token.first, 0, len) == 0) {
-                if (len > bestLength) {
-                    bestLength = len;
-                    outColor = token.second;
-                }
-            }
-        }
-    }
-
-    return bestLength;
-}
-} // namespace
-
+// Scans for speaker/story tokens and returns pre-colored segments for rendering.
 std::vector<ColoredTextSegment> buildColoredSegments(const std::string& text) {
     std::vector<ColoredTextSegment> segments;
 
@@ -53,10 +22,13 @@ std::vector<ColoredTextSegment> buildColoredSegments(const std::string& text) {
         sf::Color color;
     };
 
-    const std::array<TextStyles::SpeakerId, 8> speakersToColor{
+    const std::array<TextStyles::SpeakerId, 11> speakersToColor{
         TextStyles::SpeakerId::StoryTeller,
         TextStyles::SpeakerId::NoNameNPC,
-        TextStyles::SpeakerId::VillageNPC,
+        TextStyles::SpeakerId::NoNameWanderer,
+        TextStyles::SpeakerId::VillageElder,
+        TextStyles::SpeakerId::VillageWanderer,
+        TextStyles::SpeakerId::VillageSmith,
         TextStyles::SpeakerId::Player,
         TextStyles::SpeakerId::FireDragon,
         TextStyles::SpeakerId::WaterDragon,
@@ -115,33 +87,6 @@ std::vector<ColoredTextSegment> buildColoredSegments(const std::string& text) {
 
     if (segments.empty())
         segments.push_back({ text, ColorHelper::Palette::Normal });
-
-    // Only allow partial matches for speaker names so generic words like
-    // "Dragon" do not inherit colors from semantic tokens.
-    std::vector<std::pair<std::string, sf::Color>> partialTokens(
-        tokens.begin(),
-        tokens.begin() + speakerTokenCount
-    );
-
-    sf::Color partialColor = ColorHelper::Palette::Normal;
-    std::size_t partialLength = longestPartialSpeakerPrefix(text, partialTokens, partialColor);
-    if (partialLength > 0) {
-        std::string trailing = text.substr(text.size() - partialLength);
-        std::size_t remaining = partialLength;
-
-        while (remaining > 0 && !segments.empty()) {
-            auto& last = segments.back();
-            if (last.text.size() <= remaining) {
-                remaining -= last.text.size();
-                segments.pop_back();
-            } else {
-                last.text.erase(last.text.size() - remaining);
-                remaining = 0;
-            }
-        }
-
-        segments.push_back({ trailing, partialColor });
-    }
 
     return segments;
 }

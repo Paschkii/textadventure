@@ -1,7 +1,9 @@
 #pragma once
-#include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
-#include <string>
+// === C++ Libraries ===
+#include <string>  // Passes label/text strings such as box headers and dialogue names.
+// === SFML Libraries ===
+#include <SFML/Graphics/RenderTarget.hpp>  // Draws portraits, text, and boxes into the UI area.
+#include <SFML/Graphics/RectangleShape.hpp>  // Describes box boundaries used when drawing UI frames.
 
 class Game;
 
@@ -15,8 +17,6 @@ namespace dialogDraw {
         , sf::RenderTarget& target
         , float uiAlphaFactor
         , float glowElapsedSeconds
-        , bool showLocationBox
-        , bool showItemBox
     );
     void drawSpeakerName(
         sf::RenderTarget& target

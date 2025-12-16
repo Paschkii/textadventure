@@ -1,9 +1,11 @@
 #pragma once
-#include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/Rect.hpp>
-#include <SFML/Window/Event.hpp>
-#include <optional>
-#include <string>
+// === C++ Libraries ===
+#include <optional>  // Returns LocationId selections from keyboard/mouse helpers.
+#include <string>    // Stores text shown inside popups describing each location.
+// === SFML Libraries ===
+#include <SFML/Graphics/RenderTarget.hpp>  // Draws the map and popup overlays.
+#include <SFML/Graphics/Rect.hpp>             // Represents map and icon bounds.
+#include <SFML/Window/Event.hpp>              // Processes map-specific mouse and keyboard events.
 
 struct Game;
 

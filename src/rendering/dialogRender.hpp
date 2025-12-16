@@ -1,34 +1,29 @@
 #pragma once
-#include "ui/dialogUI.hpp"
-#include "core/game.hpp"
-#include "ui/introScreen.hpp"
-#include "ui/introTitle.hpp"
-#include "ui/mapSelectionUI.hpp"
-#include "ui/quizUI.hpp"
-#include "ui/weaponSelectionUI.hpp"
-#include "helper/colorHelper.hpp"
-#include <algorithm>
-#include <cstdint>
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::clamp when modulating overlay alpha values.
+#include <cstdint>    // Reads/writes std::uint8_t when computing overlay colors.
+// === Header Files ===
+#include "core/game.hpp"                   // Supplies Game state, resources, and controllers for rendering.
+#include "helper/colorHelper.hpp"          // Supplies ColorHelper::Palette colors used while drawing text.
+#include "ui/dialogUI.hpp"                 // Draws the dialogue UI during most GameState modes.
+#include "ui/introScreen.hpp"              // Renders the intro screen when GameState is IntroScreen.
+#include "ui/introTitle.hpp"               // Handles the intro title overlay used before dialogue.
+#include "ui/mapSelectionUI.hpp"           // Displays the map UI and popup when in map selection.
+#include "ui/quizUI.hpp"                   // Draws the quiz UI when GameState is Quiz.
+#include "ui/rankingUI.hpp"                // Renders the leaderboard once the ending finishes.
+#include "ui/weaponSelectionUI.hpp"        // Renders weapon selection graphics when active.
 
+// Returns the current overlay opacity driven by the end-sequence controller.
 inline float endOverlayAlpha(const Game& game) {
-    if (!game.endSequenceActive && !game.endScreenVisible)
-        return 0.f;
-
-    if (game.endFadeOutActive) {
-        return std::min(1.f, game.endClock.getElapsedTime().asSeconds() / game.endFadeOutDuration);
-    }
-    return 1.f;
+    return game.endSequenceController.overlayAlpha();
 }
 
+// Returns the current text opacity the end-screen should use based on its fade state.
 inline float endTextAlpha(const Game& game) {
-    if (game.endFadeInActive) {
-        return std::min(1.f, game.endClock.getElapsedTime().asSeconds() / game.endFadeInDuration);
-    }
-    if (game.endScreenVisible)
-        return 1.f;
-    return 0.f;
+    return game.endSequenceController.textAlpha();
 }
 
+// Draws the "THE END" overlay once the ending fade has progressed enough.
 inline void drawEndScreen(Game& game) {
     float overlayA = endOverlayAlpha(game);
     if (overlayA <= 0.f)
@@ -68,20 +63,12 @@ inline void drawEndScreen(Game& game) {
     game.window.draw(front);
 }
 
+// Returns the opacity of the teleport mask while the sequence runs.
 inline float teleportOverlayAlpha(const Game& game) {
-    switch (game.teleportPhase) {
-        case Game::TeleportPhase::FadeOut:
-            return std::min(1.f, game.teleportClock.getElapsedTime().asSeconds() / game.teleportFadeOutDuration);
-        case Game::TeleportPhase::Cooldown:
-            return 1.f;
-        case Game::TeleportPhase::FadeIn:
-            return 1.f - std::min(1.f, game.teleportClock.getElapsedTime().asSeconds() / game.teleportFadeInDuration);
-        case Game::TeleportPhase::None:
-        default:
-            return 0.f;
-    }
+    return game.teleportController.overlayAlpha();
 }
 
+// Renders the fullscreen teleport fade using the overlay alpha.
 inline void drawTeleportOverlay(Game& game) {
     float alphaFactor = teleportOverlayAlpha(game);
     if (alphaFactor <= 0.f)
@@ -93,6 +80,7 @@ inline void drawTeleportOverlay(Game& game) {
     game.window.draw(overlay);
 }
 
+// Chooses the correct UI screens based on the current GameState and adds overlays.
 inline void renderGame(Game& game) {
     switch (game.state) {
         case GameState::IntroScreen:
@@ -134,4 +122,9 @@ inline void renderGame(Game& game) {
 
     drawTeleportOverlay(game);
     drawEndScreen(game);
+    const auto& entries = game.rankingManager.entries();
+    int highlightIndex = -1;
+    if (game.lastRecordedRank > 0 && game.lastRecordedRank <= static_cast<int>(entries.size()))
+        highlightIndex = game.lastRecordedRank - 1;
+    ui::ranking::drawOverlay(game.rankingOverlay, game.window, game.resources.uiFont, entries, highlightIndex, game.playerName);
 }

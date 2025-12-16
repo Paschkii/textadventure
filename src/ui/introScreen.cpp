@@ -1,9 +1,11 @@
-#include "introScreen.hpp"
-#include "core/game.hpp"
-#include "helper/colorHelper.hpp"
-#include <algorithm>
-#include <sstream>
-#include <vector>
+// === C++ Libraries ===
+#include <algorithm>  // Uses std::min to clamp fade progress and layout spacing.
+#include <sstream>    // Splits the intro text into lines for multi-line rendering.
+#include <vector>     // Stores the body text lines extracted from the stringstream.
+// === Header Files ===
+#include "introScreen.hpp"  // Declares the renderIntroScreen helper defined here.
+#include "core/game.hpp"     // Accesses Game timers, window, and resource handles needed for drawing.
+#include "helper/colorHelper.hpp"  // Applies palette colors for body/prompt text and outlines.
 
 void renderIntroScreen(Game& game) {
     const std::string titleText = "IMPORTANT! PLEASE READ!";
@@ -40,6 +42,10 @@ void renderIntroScreen(Game& game) {
             game.visibleText.clear();
             game.charIndex = 0;
             game.typewriterClock.restart();
+            if (!game.backgroundFadeInActive && !game.backgroundVisible) {
+                game.backgroundFadeInActive = true;
+                game.backgroundFadeClock.restart();
+            }
             return;
         }
     }

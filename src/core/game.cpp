@@ -1,49 +1,37 @@
-#include "game.hpp"
-#include "story/dialogueLine.hpp"
-#include "story/dialogInput.hpp"
-#include "rendering/dialogRender.hpp"
-#include "story/storyIntro.hpp"
-#include "story/textStyles.hpp"
-#include "ui/confirmationUI.hpp"
-#include "ui/introTitle.hpp"
-#include "ui/weaponSelectionUI.hpp"
-#include "ui/mapSelectionUI.hpp"
-#include "ui/quizUI.hpp"
-#include "helper/layoutHelpers.hpp"
-#include "helper/colorHelper.hpp"
-#include "helper/weaponHelpers.hpp"
-#include "helper/dragonHelpers.hpp"
-#include <iostream>
-#include <algorithm>
-#include <filesystem>
+// === C++ Libraries ===
+#include <cstddef>    // Needed for std::size_t definitions like playerNameMaxLength.
+#include <cstdlib>    // Provides std::exit for the fatal resource-loading failure path.
+#include <ctime>      // Formats the start timestamp stored for each run.
+#include <iostream>   // Used for logging resource errors via std::cout.
+#include <chrono>     // Tracks session start/finish times for the leaderboard.
+// === SFML Libraries ===
+#include <SFML/Graphics.hpp>  // Provides sf::Color for palette logic applied to UI boxes.
+#include <SFML/Window.hpp>    // Supplies sf::Event, sf::Keyboard, and sf::Style used in the event loop.
+// === Header Files ===
+#include "game.hpp"                   // Declares the Game class whose body is defined here.
+#include "teleportController.hpp"     // Needed for the teleport controller member and travel helpers.
+#include "helper/colorHelper.hpp"     // Supplies ColorHelper::Palette/alpha helpers used when drawing UI boxes.
+#include "helper/dragonHelpers.hpp"   // Provides ui::dragons::loadDragonPortraits called during initialization.
+#include "helper/layoutHelpers.hpp"   // Defines ui::layout::updateLayout used by Game::updateLayout.
+#include "helper/weaponHelpers.hpp"   // Offers ui::weapons::loadWeaponOptions for weapon setup.
+#include "rendering/dialogRender.hpp" // Renders the dialog UI via renderGame in the game loop.
+#include "story/dialogInput.hpp"      // Contains waitForEnter and dialog flow helpers used in the loop.
+#include "story/dialogueLine.hpp"     // Supplies the DialogueLine type processed while waiting for Enter.
+#include "story/storyIntro.hpp"       // Provides the intro dialogue vector that Game starts with.
+#include "story/textStyles.hpp"       // Gives TextStyles used for speaker colors and UI states.
+#include "ui/confirmationUI.hpp"      // Declares confirmationPrompt handling invoked while running the loop.
+#include "ui/introTitle.hpp"          // Declares intro title helpers used during the intro screen.
+#include "ui/genderSelectionUI.hpp"   // Handles the dragonborn selection overlay.
+#include "ui/mapSelectionUI.hpp"      // Declares handleMapSelectionEvent invoked for map choices.
+#include "ui/quizUI.hpp"              // Declares handleQuizEvent triggered while in quiz mode.
+#include "ui/weaponSelectionUI.hpp"   // Declares handleWeaponSelectionEvent and related callbacks.
 
 constexpr unsigned int windowWidth = 1280;
 constexpr unsigned int windowHeight = 720;
 constexpr unsigned int fpsLimit = 60;
 constexpr std::size_t playerNameMaxLength = 18;
 
-namespace {
-    const sf::SoundBuffer* locationMusicBuffer(const Resources& resources, LocationId id) {
-        switch (id) {
-            case LocationId::Gonad: return &resources.locationMusicGonad;
-            case LocationId::Blyathyroid: return &resources.locationMusicBlyathyroid;
-            case LocationId::Lacrimere: return &resources.locationMusicLacrimere;
-            case LocationId::Cladrenal: return &resources.locationMusicCladrenal;
-            case LocationId::Aerobronchi: return &resources.locationMusicAerobronchi;
-            case LocationId::MasterBatesStronghold: return &resources.locationMusicSeminiferous;
-            default: return nullptr;
-        }
-    }
-
-    void startFade(SoundFadeState& fade, float startVolume, float targetVolume, float duration) {
-        fade.active = true;
-        fade.startVolume = startVolume;
-        fade.targetVolume = targetVolume;
-        fade.duration = std::max(duration, 0.f);
-        fade.clock.restart();
-    }
-}
-
+// Sets up resources, audio, and UI state for a new Game instance.
 Game::Game()
 : window(sf::VideoMode({windowWidth, windowHeight}), "Glandular", sf::Style::Titlebar | sf::Style::Close)
 {
@@ -51,21 +39,23 @@ Game::Game()
         std::cout << "Fatal: konnte Ressourcen nicht laden.\n";
         std::exit(1);
     }
+    audioManager.init(resources);
+    itemController.init(resources);
+    teleportController.loadResources(resources);
     background.emplace(resources.introBackground);
     returnSprite.emplace(resources.returnSymbol);
     returnSprite->setColor(ColorHelper::Palette::IconGray);
 
     locations = Locations::buildLocations(resources);
 
-    textBlipSound.emplace(resources.typewriter);
     enterSound.emplace(resources.enterKey);
     confirmSound.emplace(resources.confirm);
     rejectSound.emplace(resources.reject);
     startGameSound.emplace(resources.startGame);
-    acquireSound.emplace(resources.acquire);
-    teleportStartSound.emplace(resources.teleportStart);
-    teleportMiddleSound.emplace(resources.teleportMiddle);
-    teleportStopSound.emplace(resources.teleportStop);
+    buttonHoverSound.emplace(resources.buttonHovered);
+    buttonHoverSound->setVolume(120.f);
+    introTitleHoverSound.emplace(resources.titleButtons);
+    introTitleHoverSound->setVolume(120.f);
     quizLoggingSound.emplace(resources.quizLoggingAnswer);
     quizCorrectSound.emplace(resources.quizAnswerCorrect);
     quizIncorrectSound.emplace(resources.quizAnswerIncorrect);
@@ -73,9 +63,6 @@ Game::Game()
     quizQuestionStartSound.emplace(resources.quizQuestionStart);
     quizQuestionThinkingSound.emplace(resources.quizQuestionThinking);
     quizEndSound.emplace(resources.quizEnd);
-    titleScreenSound.emplace(resources.titleScreen);
-    titleScreenSound->setLooping(true);
-    titleScreenSound->setVolume(0.f);
     // === Framerate limitieren ===
     window.setFramerateLimit(fpsLimit);
     // === NameBox Style setzen ===
@@ -89,7 +76,7 @@ Game::Game()
     // === LocationBox Style setzen ===
     locationBox.setFillColor(sf::Color::Transparent);
     locationBox.setOutlineColor(ColorHelper::Palette::Normal);
-    locationBox.setOutlineThickness(2.f);
+    locationBox.setOutlineThickness(0.f);
     // === ItemBox Style setzen ===
     itemBox.setFillColor(sf::Color::Transparent);
     itemBox.setOutlineColor(ColorHelper::Palette::Normal);
@@ -99,319 +86,114 @@ Game::Game()
     weaponPanel.setOutlineColor(ColorHelper::Palette::Normal);
     weaponPanel.setOutlineThickness(2.f);
 
+    playerStatusBox.setFillColor(sf::Color::Transparent);
+    playerStatusBox.setOutlineThickness(0.f);
+    optionsBox.setFillColor(sf::Color::Transparent);
+    optionsBox.setOutlineThickness(0.f);
+
     currentDialogue = &intro;
 
     ui::weapons::loadWeaponOptions(*this);
     ui::dragons::loadDragonPortraits(*this);
+    rankingManager.load("assets/data/rankings.json");
 }
 
-namespace {
-    const std::vector<DialogueLine>* dialogueForLocation(LocationId id) {
-        switch (id) {
-            case LocationId::Blyathyroid: return &firedragon;
-            case LocationId::Aerobronchi: return &airdragon;
-            case LocationId::Lacrimere: return &waterdragon;
-            case LocationId::Cladrenal: return &earthdragon;
-            case LocationId::Gonad: return &gonad;
-            default: return nullptr;
-        }
-    }
-}
-
+// Tracks the active location and starts its music.
 void Game::setCurrentLocation(const Location* location) {
     currentLocation = location;
     if (location)
-        startLocationMusic(location->id);
+        audioManager.startLocationMusic(location->id);
 }
 
-void Game::startLocationMusic(LocationId id) {
-    const sf::SoundBuffer* buffer = locationMusicBuffer(resources, id);
-    if (!buffer)
-        return;
-
-    locationMusicFade.active = false; // reset any old fades before starting a new track
-
-    if (!locationMusic)
-        locationMusic.emplace(*buffer);
-    else
-        locationMusic->setBuffer(*buffer);
-
-    locationMusic->setLooping(true);
-    locationMusic->setVolume(0.f);
-    locationMusic->play();
-    locationMusicId = id;
-
-    startFade(locationMusicFade, 0.f, 100.f, 1.5f);
-}
-
-void Game::fadeOutLocationMusic(float duration) {
-    if (!locationMusic || locationMusic->getStatus() != sf::Sound::Status::Playing)
-        return;
-
-    float startVol = locationMusic->getVolume();
-    if (startVol <= 0.f) {
-        locationMusic->stop();
-        locationMusicId.reset();
-        return;
-    }
-
-    startFade(locationMusicFade, startVol, 0.f, duration);
-}
-
+// Begins the looping title-screen music.
 void Game::startTitleScreenMusic() {
-    if (titleScreenMusicStarted || !titleScreenSound)
-        return;
-
-    titleScreenSound->setLooping(true);
-    titleScreenSound->setVolume(0.f);
-    titleScreenSound->play();
-    startFade(titleScreenFade, 0.f, 100.f, 2.0f);
-    titleScreenMusicStarted = true;
+    audioManager.startTitleScreenMusic();
 }
 
+// Fades the title music smoothly over the provided duration.
 void Game::fadeOutTitleScreenMusic(float duration) {
-    if (!titleScreenSound)
-        return;
-
-    float startVol = titleScreenSound->getVolume();
-    if (titleScreenSound->getStatus() != sf::Sound::Status::Playing && startVol <= 0.f)
-        return;
-
-    if (startVol <= 0.f) {
-        titleScreenSound->stop();
-        return;
-    }
-
-    startFade(titleScreenFade, startVol, 0.f, duration);
+    audioManager.fadeOutTitleScreenMusic(duration);
 }
 
-void Game::updateSoundFades() {
-    auto applyFade = [](std::optional<sf::Sound>& sound, SoundFadeState& fade, auto onStop) {
-        if (!fade.active || !sound)
-            return;
-
-        float duration = fade.duration > 0.f ? fade.duration : 0.f;
-        float t = duration > 0.f ? std::min(1.f, fade.clock.getElapsedTime().asSeconds() / duration) : 1.f;
-        float volume = fade.startVolume + (fade.targetVolume - fade.startVolume) * t;
-        volume = std::clamp(volume, 0.f, 100.f);
-
-        sound->setVolume(volume);
-
-        if (t >= 1.f) {
-            fade.active = false;
-            if (fade.targetVolume <= 0.f) {
-                sound->stop();
-                onStop();
-            }
-        }
-    };
-
-    applyFade(locationMusic, locationMusicFade, [this]() { locationMusicId.reset(); });
-    applyFade(titleScreenSound, titleScreenFade, []() {});
-}
-
+// Triggers travel handling once a destination is selected.
 void Game::startTravel(LocationId id) {
-    auto locPtr = Locations::findById(locations, id);
-    const std::vector<DialogueLine>* dialog = dialogueForLocation(id);
-    if (!locPtr || !dialog)
-        return;
-
-    holdMapDialogue = false;
-
-    bool allStonesCollected = dragonStoneCount >= 4;
-    if (id == LocationId::Gonad && allStonesCollected && finalEncounterPending) {
-        finalEncounterPending = false;
-        finalEncounterActive = true;
-        if (auto stronghold = Locations::findById(locations, LocationId::MasterBatesStronghold))
-            setCurrentLocation(stronghold);
-        else
-            setCurrentLocation(locPtr);
-
-        transientDialogue.clear();
-        transientDialogue.insert(transientDialogue.end(), finalEncounter.begin(), finalEncounter.end());
-        currentDialogue = &transientDialogue;
-        dialogueIndex = 0;
-        visibleText.clear();
-        charIndex = 0;
-        typewriterClock.restart();
-        state = GameState::Dialogue;
-        return;
-    }
-
-    setCurrentLocation(locPtr);
-
-    if (id == LocationId::Gonad && lastCompletedLocation.has_value()) {
-        transientDialogue.clear();
-        for (const auto& line : gonadWelcomeBack) {
-            transientDialogue.push_back(line);
-        }
-        currentDialogue = &transientDialogue;
-        transientReturnToMap = true;
-    } else {
-        currentDialogue = dialog;
-    }
-
-    dialogueIndex = 0;
-    visibleText.clear();
-    charIndex = 0;
-    typewriterClock.restart();
-    state = GameState::Dialogue;
+    core::handleTravel(*this, id);
 }
 
+// Launches the teleport overlay, stopping typing audio first.
 void Game::beginTeleport(LocationId id) {
-    if (teleportActive)
+    if (teleportController.active())
         return;
 
     stopTypingSound();
     transientReturnToMap = false;
-    fadeOutLocationMusic(teleportFadeOutDuration);
-    teleportTarget = id;
-    teleportPhase = TeleportPhase::FadeOut;
-    teleportActive = true;
-    teleportClock.restart();
-    teleportMiddleStarted = false;
-    teleportStopPlayed = false;
-
-    if (teleportStartSound) {
-        teleportStartSound->stop();
-        teleportStartSound->play();
-    }
-    if (teleportMiddleSound)
-        teleportMiddleSound->stop();
-    if (teleportStopSound)
-        teleportStopSound->stop();
+    teleportController.begin(id, audioManager);
 }
 
+// Advances the teleport sequence and invokes callbacks when ready.
 void Game::updateTeleport() {
-    if (!teleportActive || teleportPhase == TeleportPhase::None)
-        return;
-
-    float elapsed = teleportClock.getElapsedTime().asSeconds();
-
-    if (teleportPhase == TeleportPhase::FadeOut) {
-        if (!teleportMiddleStarted && elapsed >= 3.0f && teleportMiddleSound) {
-            teleportMiddleSound->stop();
-            teleportMiddleSound->play();
-            teleportMiddleStarted = true;
-        }
-
-        if (elapsed >= teleportFadeOutDuration) {
-            teleportPhase = TeleportPhase::Cooldown;
-            teleportClock.restart();
-
-            if (teleportStartSound)
-                teleportStartSound->stop();
-
-            if (teleportTarget)
-                startTravel(*teleportTarget);
-        }
-    }
-    else if (teleportPhase == TeleportPhase::Cooldown) {
-        if (elapsed >= teleportCooldownDuration) {
-            teleportPhase = TeleportPhase::FadeIn;
-            teleportClock.restart();
-
-            if (teleportStopSound && !teleportStopPlayed) {
-                teleportStopSound->stop();
-                teleportStopSound->play();
-                teleportStopPlayed = true;
-            }
-        }
-    }
-    else if (teleportPhase == TeleportPhase::FadeIn) {
-        if (elapsed >= teleportFadeInDuration) {
-            teleportPhase = TeleportPhase::None;
-            teleportActive = false;
-            if (teleportMiddleSound)
-                teleportMiddleSound->stop();
-            teleportTarget.reset();
-            teleportMiddleStarted = false;
-            teleportStopPlayed = false;
-        }
-    }
+    teleportController.update([this](LocationId id) {
+        startTravel(id);
+    });
 }
 
-void Game::updateEndSequence() {
-    if (!endSequenceActive && !endScreenVisible)
-        return;
-
-    float elapsed = endClock.getElapsedTime().asSeconds();
-
-    if (endFadeOutActive) {
-        float progress = std::min(1.f, elapsed / endFadeOutDuration);
-        if (progress >= 1.f) {
-            endFadeOutActive = false;
-            endFadeInActive = true;
-            endClock.restart();
-        }
-    }
-    else if (endFadeInActive) {
-        float progress = std::min(1.f, elapsed / endFadeInDuration);
-        if (progress >= 1.f) {
-            endFadeInActive = false;
-            endSequenceActive = false;
-            endScreenVisible = true;
-        }
-    }
-}
-
+// Picks the base UI frame color based on the current location.
 sf::Color Game::frameBaseColor() const {
-    if (currentLocation && currentLocation->id == LocationId::MasterBatesStronghold)
+    if (currentLocation && currentLocation->id == LocationId::Seminiferous)
         return ColorHelper::Palette::DarkPurple;
 
     return TextStyles::UI::PanelDark;
 }
 
+// Applies the given alpha factor to the base frame color.
 sf::Color Game::frameColor(float uiAlphaFactor) const {
     return ColorHelper::applyAlphaFactor(frameBaseColor(), uiAlphaFactor);
 }
 
-void Game::addItemIcon(const sf::Texture& texture) {
-    itemIcons.emplace_back(texture);
-    if (acquireSound) {
-        acquireSound->stop();
-        acquireSound->play();
-    }
-}
-
-void Game::addDragonstoneIcon(LocationId id) {
-    const sf::Texture* tex = nullptr;
-    std::size_t idx = 0;
-    switch (id) {
-        case LocationId::Blyathyroid:
-            tex = &resources.dragonstoneFire;
-            idx = 0;
-            break;
-        case LocationId::Aerobronchi:
-            tex = &resources.dragonstoneAir;
-            idx = 1;
-            break;
-        case LocationId::Lacrimere:
-            tex = &resources.dragonstoneWater;
-            idx = 2;
-            break;
-        case LocationId::Cladrenal:
-            tex = &resources.dragonstoneEarth;
-            idx = 3;
-            break;
-        default:
-            return;
-    }
-
-    if (!tex || idx >= dragonstoneIconAdded.size() || dragonstoneIconAdded[idx])
-        return;
-
-    dragonstoneIconAdded[idx] = true;
-    addItemIcon(*tex);
-}
-
-// === Layout updaten je nach Fenstergröße ===
+// Recomputes the layout whenever the window geometry changes (Not happening right now, window is limited to fixed size).
 void Game::updateLayout() {
     ui::layout::updateLayout(*this);
 }
 
+void Game::beginSessionTimer() {
+    rankingSession.started = true;
+    rankingSession.timer.restart();
+    rankingSession.startTime = std::chrono::system_clock::now();
+    totalRiddleFaults = 0;
+}
 
-// === Öffnet das Fenster und führt Tasks aus ===
+int Game::recordSessionRanking() {
+    if (!rankingSession.started)
+        return -1;
+
+    rankingSession.started = false;
+    core::RankingEntry entry;
+    auto now = std::chrono::system_clock::now();
+    entry.id = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
+    entry.playerName = playerName.empty() ? "Player" : playerName;
+    entry.totalSeconds = rankingSession.timer.getElapsedTime().asSeconds();
+    entry.faults = totalRiddleFaults;
+
+    std::time_t startTime = std::chrono::system_clock::to_time_t(rankingSession.startTime);
+    std::tm timeBuffer{};
+#if defined(_MSC_VER)
+    localtime_s(&timeBuffer, &startTime);
+#else
+    localtime_r(&startTime, &timeBuffer);
+#endif
+
+    char formatted[64];
+    std::strftime(formatted, sizeof(formatted), "%Y-%m-%d %H:%M:%S", &timeBuffer);
+    entry.started = formatted;
+
+    lastRecordedEntryId = entry.id;
+    lastRecordedRank = rankingManager.recordEntry(entry);
+    ui::ranking::triggerOverlay(rankingOverlay, lastRecordedRank);
+    return lastRecordedRank;
+}
+
+
+// Drives the main event/render loop until the window closes.
 void Game::run() {
     while (window.isOpen()) {
         while (auto event = window.pollEvent()) {
@@ -422,7 +204,14 @@ void Game::run() {
                 continue;
             }
 
-            if (teleportActive || endSequenceActive || endScreenVisible)
+            if (ui::ranking::isOverlayActive(rankingOverlay)) {
+                ui::ranking::handleOverlayEvent(rankingOverlay, *event);
+                continue;
+            }
+
+            if (teleportController.active()
+                || endSequenceController.isActive()
+                || endSequenceController.isScreenVisible())
                 continue;
 
             bool confirmationHandled = confirmationPrompt.active && handleConfirmationEvent(*this, *event);
@@ -446,6 +235,14 @@ void Game::run() {
                         nameInput.push_back(static_cast<char>(code));
                 }
             }
+            if (genderSelectionActive) {
+                if (ui::genderSelection::handleEvent(*this, *event))
+                    continue;
+            }
+            if (state == GameState::IntroTitle && !confirmationPrompt.active) {
+                if (handleIntroTitleEvent(*this, *event))
+                    continue;
+            }
 
             if (auto key = event->getIf<sf::Event::KeyReleased>()) {
                 if (key->scancode == sf::Keyboard::Scan::Enter) {
@@ -453,20 +250,6 @@ void Game::run() {
                     // accidental confirmation via keyboard (prevent misclicks).
                     if (confirmationPrompt.active)
                         continue;
-
-                    if (state == GameState::IntroTitle) {
-                        if (titleDropStarted && !introTitleDropComplete(*this))
-                            continue;
-
-                        if (introPromptBlinkActive) {
-                            if (!introPromptInputEnabled)
-                                continue;
-
-                            introPromptBlinkActive = false;
-                            introPromptVisible = true;
-                            introPromptFade = 1.f;
-                        }
-                    }
 
                     // Enter sound is played only when a new dialogue line actually starts.
                     // The logic for playing the sound is handled inside `waitForEnter`.
@@ -477,17 +260,6 @@ void Game::run() {
                             introClock.restart();
                         }
                         eventConsumed = true;
-                    }
-                    else if (state == GameState::IntroTitle) {
-                        if (introDialogueFinished && introTitleDropComplete(*this)) {
-                            triggerIntroTitleExit(*this);
-                            eventConsumed = true;
-                        }
-                        else if (currentDialogue && dialogueIndex < currentDialogue->size()) {
-                            eventConsumed = waitForEnter(*this, (*currentDialogue)[dialogueIndex]);
-                        }
-                        // If the intro dialogue finished and we are waiting for the title
-                        // drop to complete, ignore Enter to avoid null dialogue access.
                     }
                     else if (state == GameState::Dialogue || state == GameState::MapSelection) {
                         if (currentDialogue && dialogueIndex < currentDialogue->size()) {
@@ -513,8 +285,11 @@ void Game::run() {
         // sf::Sprite returnSprite(returnSymbol);
 
         updateTeleport();
-        updateEndSequence();
-        updateSoundFades();
+        endSequenceController.update();
+        if (endSequenceController.isScreenVisible() && rankingOverlay.pending)
+            ui::ranking::activateOverlay(rankingOverlay);
+        ui::ranking::updateOverlay(rankingOverlay);
+        audioManager.update();
         updateQuizIntro(*this);
         updateLayout();
 
@@ -524,16 +299,12 @@ void Game::run() {
     }
 }
 
+// Plays the typing effect sound to match dialogue text.
 void Game::startTypingSound() {
-    if (textBlipSound->getStatus() != sf::Sound::Status::Playing) {
-        // std::cout << "start on " << this << " / sound " << &textBlipSound << "\n";
-        textBlipSound->play();
-    }
+    audioManager.startTypingSound();
 }
 
+// Stops the typing effect so it does not linger.
 void Game::stopTypingSound() {
-    if (textBlipSound->getStatus() == sf::Sound::Status::Playing) {
-        // std::cout << "end on " << this << " / sound " << &textBlipSound << "\n";
-        textBlipSound->stop();
-    }
+    audioManager.stopTypingSound();
 }

@@ -1,8 +1,9 @@
 #pragma once
-#include <array>
-#include <random>
-#include <string>
-#include <vector>
+// === C++ Libraries ===
+#include <array>   // Stores the fixed-answer slots for each quiz question.
+#include <random>  // Generates randomness for question variants and option ordering.
+#include <string>  // Holds prompts, explanations, and generated text for questions.
+#include <vector>  // Returns collections of generated quiz questions.
 
 namespace quiz {
 
@@ -11,7 +12,8 @@ enum class Category {
     Multiplication,
     Division,
     Addition,
-    Subtraction
+    Subtraction,
+    Silly
 };
 
 struct Question {
@@ -20,6 +22,7 @@ struct Question {
     int correctIndex = 0;
     Category category = Category::Multiplication;
     std::string explanation;
+    bool acceptAnyAnswer = false;
 };
 
 // Build a full quiz consisting of four questions (one per category) with
