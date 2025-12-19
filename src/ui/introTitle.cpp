@@ -105,6 +105,7 @@ void triggerIntroTitleExit(Game& game) {
         game.fadeOutTitleScreenMusic(game.introTitleFadeOutDuration + 0.5f);
         game.introTitleFadeOutActive = true;
         game.introTitleFadeClock.restart();
+        game.queuedBackgroundTexture = &game.resources.backgroundToryTailor;
     }
 
     if (!game.uiFadeInActive) {
@@ -202,6 +203,10 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
 
         if (fadeProgress >= 1.f) {
             game.introTitleFadeOutActive = false;
+            if (game.queuedBackgroundTexture) {
+                game.setBackgroundTexture(*game.queuedBackgroundTexture);
+                game.queuedBackgroundTexture = nullptr;
+            }
             game.introTitleHidden = true;
 
             if (game.uiFadeInQueued && !game.uiFadeInActive) {

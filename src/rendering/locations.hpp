@@ -10,6 +10,7 @@
 
 // Unique identifier for every in-game location that can be visited.
 enum class LocationId {
+    Perigonal,
     Gonad,
     Blyathyroid,
     Lacrimere,

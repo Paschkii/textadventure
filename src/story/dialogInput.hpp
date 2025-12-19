@@ -5,6 +5,8 @@
 #include "textStyles.hpp"             // Formats speaker names and checks speaker IDs.
 #include "ui/confirmationUI.hpp"      // Shows the name-confirmation modal.
 #include "ui/quizUI.hpp"              // References quiz controls triggered mid-dialogue.
+#include "ui/brokenWeaponPreview.hpp"  // Controls the broken weapon popup shown during Perigonal dialogue.
+#include "helper/healingPotion.hpp"    // Starts the potion timer that restores health.
 
 // Collects the actions triggered by pressing Enter during dialogue or name entry.
 struct EnterAction {
@@ -12,6 +14,13 @@ struct EnterAction {
     bool skipToEnd = false;
     bool nextLine = false;
 };
+
+namespace {
+constexpr std::size_t kBrokenWeaponPreviewLineIndex = 18;
+constexpr std::size_t kWillFigsidLineIndex = 20;
+constexpr std::size_t kInventoryArrowLineIndex = 23;
+constexpr std::size_t kHealingPotionLineIndex = 4;
+}
 
 // Replaces placeholder tokens with the correct speaker names (e.g., player input).
 inline std::string injectSpeakerNames(const std::string& text, const Game& game);
@@ -124,6 +133,35 @@ inline bool advanceDialogueLine(Game& game) {
             startQuizIntroSequence(game, kDragonQuizQuestionLine);
         maybeTriggerFinalCheer(game);
     }
+
+    if (game.currentDialogue == &perigonal) {
+        if (game.dialogueIndex == kBrokenWeaponPreviewLineIndex) {
+            ui::brokenweapon::showPreview(game);
+            if (!game.brokenWeaponsStored) {
+                game.itemController.addIcon(game.resources.weaponHolmabirBroken);
+                game.itemController.addIcon(game.resources.weaponKattkavarBroken);
+                game.itemController.addIcon(game.resources.weaponStiggedinBroken);
+                game.brokenWeaponsStored = true;
+            }
+        }
+        else if (game.dialogueIndex == kWillFigsidLineIndex) {
+            ui::brokenweapon::hidePreview(game);
+        }
+        if (game.dialogueIndex == kInventoryArrowLineIndex) {
+            game.inventoryArrowActive = true;
+            game.inventoryTutorialPending = true;
+            game.inventoryTutorialPopupActive = false;
+            game.inventoryTutorialCompleted = false;
+            game.inventoryArrowBlinkClock.restart();
+            game.inventoryArrowVisible = true;
+            if (!game.menuButtonUnlocked) {
+                game.menuButtonUnlocked = true;
+                game.menuButtonAlpha = 0.f;
+                game.menuButtonFadeActive = true;
+                game.menuButtonFadeClock.restart();
+            }
+        }
+    }
     return true;
 }
 
@@ -182,6 +220,24 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
         && game.dialogueIndex == kDragonQuizIntroLine
         && game.quiz.intro.active)
         return true;
+    if (game.inventoryTutorialPopupActive && game.menuActive)
+        return true;
+    if (game.inventoryArrowActive
+        && game.currentDialogue == &perigonal
+        && game.dialogueIndex == kInventoryArrowLineIndex
+        && !game.inventoryTutorialCompleted)
+        return true;
+    if (game.healingPotionActive)
+        return true;
+
+    bool startingHealingPotion = game.currentDialogue == &perigonal
+        && game.dialogueIndex == kHealingPotionLineIndex
+        && action.nextLine
+        && !game.healingPotionReceived;
+    if (startingHealingPotion) {
+        if (helper::healingPotion::start(game))
+            return true;
+    }
 
     // Detect when we are replaying the return-to-map dialogue after teleporting.
     bool isReturnToMapDialogue = game.transientReturnToMap && game.currentDialogue == &game.transientDialogue;
@@ -394,11 +450,49 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
         return true;
     }
 
+    if (game.state == GameState::Dialogue
+        && game.bookshelf.awaitingDragonstoneReward
+        && game.bookshelf.promptDialogueActive
+        && game.currentDialogue == &game.transientDialogue
+        && game.dialogueIndex + 1 >= game.currentDialogue->size())
+    {
+        game.bookshelf.promptDialogueActive = false;
+        game.startBookshelfQuest();
+        return true;
+    }
+
+    if (game.bookshelf.returnAfterBookDialogue
+        && game.currentDialogue == &game.transientDialogue
+        && game.dialogueIndex + 1 >= game.currentDialogue->size())
+    {
+        game.bookshelf.returnAfterBookDialogue = false;
+        game.stopTypingSound();
+        game.visibleText.clear();
+        game.charIndex = 0;
+        game.currentDialogue = nullptr;
+        game.state = GameState::Bookshelf;
+        return true;
+    }
+
     // Handle transitions between the fixed dialogue pools once a sequence completes.
     if (game.currentDialogue == &intro && !game.introDialogueFinished) {
         game.introDialogueFinished = true;
         game.audioManager.stopIntroDialogueMusic();
+        game.pendingPerigonalDialogue = true;
+        game.queuedBackgroundTexture = &game.resources.backgroundPetrigonal;
+        game.uiFadeOutActive = true;
+        game.uiFadeClock.restart();
+        // Clear any lingering speaker/text so no portrait/name shows during the transition.
+        game.currentDialogue = nullptr;
+        game.lastSpeaker.reset();
+        game.visibleText.clear();
+        game.currentProcessedLine.clear();
+        game.charIndex = 0;
+    }
+    else if (game.currentDialogue == &perigonal) {
+        game.introDialogueFinished = true;
         game.pendingGonadDialogue = true;
+        game.queuedBackgroundTexture = &game.resources.backgroundGonad;
         game.uiFadeOutActive = true;
         game.uiFadeClock.restart();
         // Clear any lingering speaker/text so no portrait/name shows during the transition.
@@ -507,6 +601,7 @@ inline std::string injectSpeakerNames(const std::string& text, const Game& game)
     auto otherPossessivePronoun = (otherGender == Game::DragonbornGender::Male) ? "his" : "hers";
     auto otherSibling = (otherGender == Game::DragonbornGender::Male) ? "brother" : "sister";
     auto otherSiblingName = (otherGender == Game::DragonbornGender::Male) ? "Asha" : "Ember";
+    auto ownPossessive = (otherGender == Game::DragonbornGender::Male) ? "her" : "his";
 
     StoryIntro::refreshDynamicDragonbornTokens(
         game.playerName,
@@ -516,7 +611,8 @@ inline std::string injectSpeakerNames(const std::string& text, const Game& game)
         otherPossessive,
         otherPossessivePronoun,
         otherSibling,
-        otherSiblingName
+        otherSiblingName,
+        ownPossessive
     );
     replaceToken("{dragonbornName}", otherName);
     replaceToken("{dragonbornSubject}", otherSubject);
@@ -525,5 +621,6 @@ inline std::string injectSpeakerNames(const std::string& text, const Game& game)
     replaceToken("{dragonbornPossessivePronoun}", otherPossessivePronoun);
     replaceToken("{dragonbornSibling}", otherSibling);
     replaceToken("{dragonbornSiblingName}", otherSiblingName);
+    replaceToken("{dragonbornOwnPossessive}", ownPossessive);
     return out;
 }

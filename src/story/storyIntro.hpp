@@ -17,6 +17,7 @@
 //   {dragonbornSubject}         – uses he/she for the leftover Dragonborn.
 //   {dragonbornObject}          – uses him/her for the leftover Dragonborn.
 //   {dragonbornPossessive}      – uses his/her for the leftover Dragonborn.
+//   {dragonbornOwnPossesive}    - uses her/his for the leftover Dragonborn (used if speaking of itself)
 //   {dragonbornPossessivePronoun}- uses his/hers for the leftover Dragonborn.
 //   {dragonbornSibling}         – uses brother/sister based on that Dragonborn's gender.
 //
@@ -31,15 +32,15 @@ struct ColorKeyword {
 inline const std::vector<ColorKeyword> kColorHighlights = {
     { { "Dragon Stone", "Dragon Stones", "Dragon Stones!", "Dragon stone", "Dragon stones" }, ColorHelper::Palette::Dim },
     { { "DRAGON STONE", "DRAGON STONES", "DRRAGON STONE", "DRRAGON STONES" }, ColorHelper::Palette::Dim },
-    { { "Dragonborn", "Dragon Scales", "smoky", "iron", "metal", "stone", "Stone" }, ColorHelper::Palette::Dim },
-    { { "Asha Scale", "Ember Scale", } },
+    { { "Dragonborn", "Dragonborns", "Dragon Scales", "Dragonscales", "smoky", "iron", "metal", "stone", "Stone" }, ColorHelper::Palette::Dim },
+    { { "Asha Scale", "Ember Scale", "Asha", "Ember", "Umbra Ossea", "brother", "sister", "his", "her" }, ColorHelper::Palette::SoftRed },
     { { "Master Bates", "Bates", "Ominous Castle", "castle", "shady figure", "Seminiferous" }, ColorHelper::Palette::DarkPurple },
-    { { "Noah", "Noah Lott", "Tory Tailor", "Wanda Rinn", "Will Figsid" }, ColorHelper::Palette::PurpleBlue },
+    { { "Noah", "Noah Lott", "Village Elder" "Tory Tailor", "Wanda Rinn", "Will Figsid", "Blacksmith", "smithcraft" }, ColorHelper::Palette::PurpleBlue },
     { { "Fire Dragon", "hottest", "burning", "crackling embers", "wildfire", "heat", "wall of flames", "Flames", "Blyathyroid" }, ColorHelper::Palette::FireDragon },
     { { "Water Dragon", "surface", "deep waters", "droplets", "flows", "riverbed", "currents", "cold stream", "Lacrimere" }, ColorHelper::Palette::WaterDragon },
     { { "Earth Dragon", "bedrock", "mountain wall", "rumbles", "shifting earth", "puddle of mud", "Cladrenal" }, ColorHelper::Palette::EarthDragon },
     { { "Air Dragon", "airy", "breeze", "swirling gusts", "wind", "winds", "Aerobronchi" }, ColorHelper::Palette::AirDragon },
-    { { "Gonad", "Glandular", "Holmabir", "Kattkavar", "Stiggedin", "destination", "weapon", "Who wants tyo be", "Hu vants to be a", "Who wants-a to be a", "Who wants to be a" }, ColorHelper::Palette::TitleAccent },
+    { { "Gonad", "Glandular", "Perigonal", "Holmabir", "Kattkavar", "Stiggedin", "destination", "village", "weapon", "weapons", "spatial magic", "Who wants tyo be", "Hu vants to be a", "Who wants-a to be a", "Who wants to be a" }, ColorHelper::Palette::TitleAccent },
 };
 
 // Returns a flattened list of tokens/colors for quicker lookup while typing.
@@ -76,6 +77,7 @@ inline void refreshDynamicDragonbornTokens(
     std::string dragonbornObject,
     std::string dragonbornPossessive,
     std::string dragonbornPossessivePronoun,
+    std::string dragonbornOwnPossessive,
     std::string dragonbornSibling,
     std::string dragonbornSiblingName
 ) {
@@ -91,6 +93,7 @@ inline void refreshDynamicDragonbornTokens(
     add(dragonbornObject);
     add(dragonbornPossessive);
     add(dragonbornPossessivePronoun);
+    add(dragonbornOwnPossessive);
     add(dragonbornSibling);
     add(dragonbornSiblingName);
 }
@@ -180,13 +183,36 @@ inline const std::vector<DialogueLine> intro = {
     { Speaker::StoryTeller, "Let's jump right in!" }
 };
 
+inline const std::vector<DialogueLine> perigonal = {
+    { Speaker::NoNameWanderer, "Hey...! Are you alright? Wake up...." },
+    { Speaker::NoNameWanderer, "Easy now - don't move. You're bleeding." },
+    { Speaker::NoNameWanderer, "My name is Wanda Rinn. What is your name?", true }, // Name Insertion
+    { Speaker::Player, "Ugghhhh.... My whole body hurts..." },
+    { Speaker::VillageWanderer, "Here, drink. This will stitch you up in no time." }, // Potion Handling Needed here, fill players health back up to 100%
+    { Speaker::VillageWanderer, "What on Glandular happened to you {playerName}?" },
+    { Speaker::Player, "My {dragonbornSibling} and I found traces of Umbra Ossea in an old book, but..." },
+    { Speaker::Player, "We weren't the only ones following them." },
+    { Speaker::Player, "That's when Master Bates attacked us... His magic was evil and dangerous..." },
+    { Speaker::VillageWanderer, "I've heard Tales of Umbra Ossea. Many have searched for it, but noone ever found it. What happened to your {dragonbornSibling}?" },
+    { Speaker::Player, "My {dragonbornSibling} got knocked out during the fight. I didn't think. I just charged in." },
+    { Speaker::Player, "Next thing I know is you waking me up. {dragonbornSiblingName} must have used {dragonbornPossessive} spatial magic to teleport me here..." },
+    { Speaker::VillageWanderer, "If you're telling the truth... then you're in more danger than you know." },
+    { Speaker::VillageWanderer, "But please tell me. Why were you searching for Umbra Ossea? And what made you sure you could find it?" },
+    { Speaker::Player, "Look closely. These aren't scars. **Pulls back sleeve, scales glinting**" },
+    { Speaker::VillageWanderer, "By the glands of Glandular... Are you a Dragonborn?!" },
+    { Speaker::Player, "Yes, that's why we are sure it must exist. There must be others of our kind. We have it in our guts." },
+    { Speaker::Player, "But as of now, I first need to save {dragonbornSiblingName}. Where are my weapons?" },
+    { Speaker::VillageWanderer, "They are here. But they've been scattered. I will take care of them." },
+    { Speaker::VillageWanderer, "There is a village nearby named Gonad. A mighty Blacksmith resides there. His name is Will Figsid." },
+    { Speaker::VillageWanderer, "He is well known across Glandular for his smithcraft. I'm sure he can fix them!" },
+    { Speaker::VillageWanderer, "Get up {playerName}. Gonad isn't far - and if Master Bates is involved, we don't have much time." },
+    { Speaker::StoryTeller, "Wanda Rinn is a very helpful companion. She will handle your inventory and can give you hints and explanations along your travel." },
+    { Speaker::StoryTeller, "You can open your inventory through this menu button." },
+    { Speaker::StoryTeller, "This is all for now. Once a new Menu Shortcut unlocks, I will explain it to you." },
+};
+
 // Dialogue from Gonad village NPC introducing the player’s awakening.
 inline const std::vector<DialogueLine> gonad = {
-    { Speaker::NoNameNPC, "Hey...! Are you alright? Wake up...." },
-    { Speaker::NoNameNPC, "You look horrible! Let me help you up..." },
-    { Speaker::NoNameNPC, "My name is Wanda Rinn. What is your name?", true },
-    { Speaker::VillageWanderer, "Nice to meet you, {playerName}. What on Glandular happened to you?" },
-    { Speaker::Player, "Me and my {dragonbornSibling} were travelling towards " },
     { Speaker::VillageElder, "Hey, {playerName}. Are you awake?" },
     { Speaker::VillageElder, "You have been asleep for a long time." },
     { Speaker::VillageElder, "I was starting to worry about you." },
@@ -196,10 +222,6 @@ inline const std::vector<DialogueLine> gonad = {
     { Speaker::VillageElder, "Your skin is covered in Dragon Scales!" },
     { Speaker::VillageElder, "And you are the only Dragonborn, that hasnt been captured by Master Bates, yet..." },
     { Speaker::VillageElder, "So it was an easy guess for me!" },
-};
-
-inline const std::vector<DialogueLine> perigonal = {
-
 };
 
 // Brief dialogue prompting the player to name the found weapon.

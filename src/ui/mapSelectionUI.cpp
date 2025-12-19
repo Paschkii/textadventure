@@ -2,8 +2,9 @@
 #include <cmath>       // Uses trigonometric helpers when placing location icons on the map.
 #include <cctype>      // Applies std::tolower when normalizing location names for lookups.
 #include <algorithm>   // Uses std::clamp/max/min while sizing and positioning map elements.
+#include <limits>
 #include <optional>    // Returns optional LocationId values for keyboard/mouse handling.
-// === SFML Libraries ===
+#include <SFML/Graphics/Image.hpp>    // Loads texture pixels when deriving overlay hitboxes.
 #include <SFML/Window/Mouse.hpp>     // Reads mouse coordinates inside the map area.
 #include <SFML/Window/Keyboard.hpp>  // Processes direct key travel shortcuts.
 // === Header Files ===
@@ -19,11 +20,50 @@
 namespace {
     constexpr std::size_t kLocationCount = 5;
 
+    std::optional<sf::FloatRect> computeNormalizedContentBounds(const sf::Texture* texture) {
+        if (!texture)
+            return std::nullopt;
+        sf::Image image = texture->copyToImage();
+        auto size = image.getSize();
+        if (size.x == 0 || size.y == 0)
+            return std::nullopt;
+
+        unsigned int minX = size.x;
+        unsigned int minY = size.y;
+        unsigned int maxX = 0;
+        unsigned int maxY = 0;
+        bool found = false;
+
+        for (unsigned int y = 0; y < size.y; ++y) {
+            for (unsigned int x = 0; x < size.x; ++x) {
+                if (image.getPixel({ x, y }).a <= 16)
+                    continue;
+                found = true;
+                minX = std::min(minX, x);
+                minY = std::min(minY, y);
+                maxX = std::max(maxX, x);
+                maxY = std::max(maxY, y);
+            }
+        }
+
+        if (!found)
+            return std::nullopt;
+
+        float width = static_cast<float>(std::max(1u, maxX - minX + 1));
+        float height = static_cast<float>(std::max(1u, maxY - minY + 1));
+
+        return sf::FloatRect{
+            { static_cast<float>(minX) / static_cast<float>(size.x), static_cast<float>(minY) / static_cast<float>(size.y) },
+            { width / static_cast<float>(size.x), height / static_cast<float>(size.y) }
+        };
+    }
+
     struct LocationItem {
-        const sf::Texture* sepia = nullptr;
-        const sf::Texture* color = nullptr;
+        const sf::Texture* overlay = nullptr;
+        std::optional<LocationId> id;
         sf::Vector2f mapRelativePos; // x,y in [-0.5..0.5] relative to map center
         std::string name;
+        std::optional<sf::FloatRect> normalizedContentBounds;
     };
 
     // Build the five locations with relative positions on the map
@@ -32,43 +72,55 @@ namespace {
 
         // Gonad - center
         LocationItem gonad;
-        gonad.sepia = &game.resources.locationGonadSepia;
-        gonad.color = &game.resources.locationGonadColored;
+        gonad.overlay = &game.resources.menuMapGonad;
+        gonad.id = LocationId::Gonad;
         gonad.mapRelativePos = { 0.f, 0.f };
         gonad.name = "Gonad";
+        gonad.normalizedContentBounds = computeNormalizedContentBounds(gonad.overlay);
         out.push_back(std::move(gonad));
 
         // Lacrimere - top (move close to border, keep 2% margin)
         LocationItem lac;
-        lac.sepia = &game.resources.locationLacrimereSepia;
-        lac.color = &game.resources.locationLacrimereColored;
+        lac.overlay = &game.resources.menuMapLacrimere;
+        lac.id = LocationId::Lacrimere;
         lac.mapRelativePos = { 0.f, -0.48f };
         lac.name = "Lacrimere";
+        lac.normalizedContentBounds = computeNormalizedContentBounds(lac.overlay);
         out.push_back(std::move(lac));
 
         // Blyathyroid - right (move close to border)
         LocationItem bly;
-        bly.sepia = &game.resources.locationBlyathyroidSepia;
-        bly.color = &game.resources.locationBlyathyroidColored;
+        bly.overlay = &game.resources.menuMapBlyathyroid;
+        bly.id = LocationId::Blyathyroid;
         bly.mapRelativePos = { 0.48f, 0.f };
         bly.name = "Blyathyroid";
+        bly.normalizedContentBounds = computeNormalizedContentBounds(bly.overlay);
         out.push_back(std::move(bly));
 
         // Aerobronchi - bottom (move close to border)
         LocationItem aero;
-        aero.sepia = &game.resources.locationAerobronchiSepia;
-        aero.color = &game.resources.locationAerobronchiColored;
+        aero.overlay = &game.resources.menuMapAerobronchi;
+        aero.id = LocationId::Aerobronchi;
         aero.mapRelativePos = { 0.f, 0.48f };
         aero.name = "Aerobronchi";
+        aero.normalizedContentBounds = computeNormalizedContentBounds(aero.overlay);
         out.push_back(std::move(aero));
 
         // Cladrenal - left (move close to border)
         LocationItem cla;
-        cla.sepia = &game.resources.locationCladrenalSepia;
-        cla.color = &game.resources.locationCladrenalColored;
+        cla.overlay = &game.resources.menuMapCladrenal;
+        cla.id = LocationId::Cladrenal;
         cla.mapRelativePos = { -0.48f, 0.f };
         cla.name = "Cladrenal";
+        cla.normalizedContentBounds = computeNormalizedContentBounds(cla.overlay);
         out.push_back(std::move(cla));
+
+        LocationItem petri;
+        petri.overlay = &game.resources.menuMapPetrigonal;
+        petri.mapRelativePos = { 0.f, 0.1f };
+        petri.name = "Petrigonal";
+        petri.normalizedContentBounds = computeNormalizedContentBounds(petri.overlay);
+        out.push_back(std::move(petri));
 
         return out;
     }
@@ -78,15 +130,6 @@ namespace {
         sf::RenderTarget& target,
         const MapPopupRenderData& popup
     );
-
-    std::optional<LocationId> locationIdFromName(const std::string& name) {
-        if (name == "Gonad") return LocationId::Gonad;
-        if (name == "Blyathyroid") return LocationId::Blyathyroid;
-        if (name == "Lacrimere") return LocationId::Lacrimere;
-        if (name == "Cladrenal") return LocationId::Cladrenal;
-        if (name == "Aerobronchi") return LocationId::Aerobronchi;
-        return std::nullopt;
-    }
 
     std::size_t locationIndex(LocationId id) {
         switch (id) {
@@ -135,48 +178,62 @@ namespace {
         game.charIndex = prevChar;
     }
 
-    std::optional<LocationId> locationAtPoint(const Game& game, sf::Vector2f pt) {
-        const std::array<LocationId, kLocationCount> ids{
-            LocationId::Gonad,
-            LocationId::Lacrimere,
-            LocationId::Blyathyroid,
-            LocationId::Aerobronchi,
-            LocationId::Cladrenal
-        };
+std::optional<LocationId> locationAtPoint(const Game& game, sf::Vector2f pt) {
+    const std::array<LocationId, kLocationCount> ids{
+        LocationId::Gonad,
+        LocationId::Lacrimere,
+        LocationId::Blyathyroid,
+        LocationId::Aerobronchi,
+        LocationId::Cladrenal
+    };
 
-        for (std::size_t i = 0; i < ids.size(); ++i) {
-            const auto& rect = game.mapLocationHitboxes[i];
-            if (rect.size.x <= 0.f || rect.size.y <= 0.f)
-                continue;
-            if (rect.contains(pt))
-                return ids[i];
+    std::optional<LocationId> best;
+    float bestArea = std::numeric_limits<float>::infinity();
+    for (std::size_t i = 0; i < ids.size(); ++i) {
+        const auto& rect = game.mapLocationHitboxes[i];
+        if (rect.size.x <= 0.f || rect.size.y <= 0.f)
+            continue;
+        if (!rect.contains(pt))
+            continue;
+
+        LocationId id = ids[i];
+        if (game.locationCompleted[locationIndex(id)])
+            continue;
+
+        float area = rect.size.x * rect.size.y;
+        if (area <= 0.f)
+            continue;
+
+        if (area < bestArea) {
+            bestArea = area;
+            best = id;
         }
-        return std::nullopt;
     }
+    return best;
 }
+
+} // namespace
 
 std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarget& target) {
     // Draw the map background centered above the name/text boxes
-    const sf::Texture& mapTex = game.resources.mapBackground;
+    const sf::Texture& mapTex = game.resources.menuMapBackground;
     sf::Sprite mapSprite(mapTex);
 
-    // Determine desired map width (use ~60% of window width) and keep aspect
-    float winW = static_cast<float>(game.window.getSize().x);
-    float winH = static_cast<float>(game.window.getSize().y);
-    // Make the map 30% smaller than before and shrink another ~5% for testing
-    float desiredWidth = winW * 0.6f * 0.7f * 0.95f; // ~0.399 of window width
+    // Determine desired map size based on the current view (menu panel)
+    sf::Vector2f viewSize = target.getView().getSize();
+    float winW = viewSize.x;
+    float winH = viewSize.y;
     auto texSize = mapTex.getSize();
-    float mapScale = desiredWidth / static_cast<float>(texSize.x);
+    float desiredWidth = winW * 0.95f;
+    float desiredHeight = winH * 0.95f;
+    float mapScale = std::min(desiredWidth / static_cast<float>(texSize.x), desiredHeight / static_cast<float>(texSize.y));
     mapSprite.setScale({ mapScale, mapScale });
 
     auto localBounds = mapSprite.getLocalBounds();
     mapSprite.setOrigin({ localBounds.position.x + localBounds.size.x / 2.f, localBounds.position.y + localBounds.size.y / 2.f });
 
-    // Position map so its top aligns with the top border (y = 0)
-    float mapWidthPx = static_cast<float>(texSize.x) * mapScale;
-    float mapHeightPx = static_cast<float>(texSize.y) * mapScale;
-    float mapX = winW / 2.f;
-    float mapY = mapHeightPx / 2.f; // top will be at 0
+    float mapX = winW * 0.5f;
+    float mapY = winH * 0.5f;
     mapSprite.setPosition({ mapX, mapY });
 
     // Draw map
@@ -206,59 +263,34 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
         return sf::Vector2f{ point.x + (dir.x * distance), point.y + (dir.y * distance) };
     };
 
-    auto drawLocationLabel = [&](const std::string& name, char hotkey, const sf::FloatRect& bounds, bool highlight, bool dimmed) {
-        const unsigned int labelSize = 22;
-        sf::Color labelColor = ColorHelper::Palette::TitleAccent;
-        if (highlight)
-            labelColor = ColorHelper::Palette::SoftYellow;
-        if (dimmed)
-            labelColor = ColorHelper::applyAlphaFactor(labelColor, 0.6f);
-
-        sf::Text label{ game.resources.uiFont, name, labelSize };
-        label.setFillColor(labelColor);
-        auto b = label.getLocalBounds();
-        label.setOrigin({ b.position.x + (b.size.x * 0.5f), b.position.y + b.size.y });
-
-        float baseX = bounds.position.x + (bounds.size.x * 0.5f);
-        float baseY = bounds.position.y + bounds.size.y + 20.f;
-        label.setPosition({ baseX, baseY });
-        target.draw(label);
-
-        // Draw a manual underline under the hotkey character to avoid shifting text.
-        std::size_t hotkeyIndex = 0;
-        for (std::size_t i = 0; i < name.size(); ++i) {
-            if (std::toupper(static_cast<unsigned char>(name[i])) == std::toupper(static_cast<unsigned char>(hotkey))) {
-                hotkeyIndex = i;
-                break;
-            }
-        }
-
-        sf::Vector2f firstPos = label.findCharacterPos(static_cast<unsigned>(hotkeyIndex));
-        sf::Vector2f nextPos = label.findCharacterPos(static_cast<unsigned>(std::min(name.size(), hotkeyIndex + 1)));
-        float underlineStartX = firstPos.x;
-        float underlineEndX = nextPos.x;
-        if (underlineEndX <= underlineStartX)
-            underlineEndX = underlineStartX + b.size.x * 0.08f;
-
-        float underlineY = baseY + 3.f;
-        float underlineThickness = 2.f;
-        sf::Color underlineColor = sf::Color::White;
-        if (dimmed)
-            underlineColor.a = static_cast<std::uint8_t>(underlineColor.a * 0.6f);
-
-        sf::RectangleShape underline({ underlineEndX - underlineStartX, underlineThickness });
-        underline.setPosition({ underlineStartX, underlineY });
-        underline.setFillColor(underlineColor);
-        target.draw(underline);
-    };
-
     std::optional<MapPopupRenderData> pendingPopup;
     game.mouseMapHover.reset();
+    std::optional<std::size_t> highlightedOverlayIndex;
+    std::optional<std::size_t> bestHoverIndex;
+    float bestHoverArea = std::numeric_limits<float>::infinity();
 
-    for (auto& loc : locationsCache) {
-        auto locIdOpt = locationIdFromName(loc.name);
-        // compute positions relative to the map bounds (use normalized [0..1])
-        float marginRatio = 0.10f; // 10% inside the edges (closer to center)
+    auto drawOverlaySprite = [&](const sf::Texture* texture, const sf::Color& color) {
+        if (!texture)
+            return;
+        sf::Sprite overlaySprite(*texture);
+        overlaySprite.setScale(mapSprite.getScale());
+        overlaySprite.setOrigin(mapSprite.getOrigin());
+        overlaySprite.setPosition(mapSprite.getPosition());
+        overlaySprite.setColor(color);
+        target.draw(overlaySprite);
+    };
+
+    auto toGlobalRect = [&](const sf::FloatRect& normalized) {
+        return sf::FloatRect{
+            { mapBounds.position.x + (normalized.position.x * mapBounds.size.x), mapBounds.position.y + (normalized.position.y * mapBounds.size.y) },
+            { normalized.size.x * mapBounds.size.x, normalized.size.y * mapBounds.size.y }
+        };
+    };
+
+    for (std::size_t idx = 0; idx < locationsCache.size(); ++idx) {
+        auto& loc = locationsCache[idx];
+        auto locIdOpt = loc.id;
+        float marginRatio = 0.10f;
         float fracX = 0.5f;
         float fracY = 0.5f;
         if (loc.name == "Gonad") {
@@ -276,12 +308,15 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
         else if (loc.name == "Cladrenal") {
             fracX = marginRatio; fracY = 0.5f;
         }
+        else if (loc.name == "Petrigonal") {
+            fracX = 0.5f; fracY = 0.6f;
+        }
 
         float posX = mapBounds.position.x + (fracX * mapBounds.size.x);
         float posY = mapBounds.position.y + (fracY * mapBounds.size.y);
 
         sf::Vector2f markerPos{ posX, posY };
-        if (loc.name != "Gonad") {
+        if (loc.name != "Gonad" && loc.name != "Petrigonal") {
             markerPos = moveToward(markerPos, mapCenter, 30.f);
             if (loc.name == "Lacrimere")
                 markerPos.x -= 20.f;
@@ -296,148 +331,88 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
         posX = markerPos.x;
         posY = markerPos.y;
 
-        char hotkeyChar = loc.name.empty()
-            ? ' '
-            : static_cast<char>(std::toupper(static_cast<unsigned char>(loc.name.front())));
-        if (locIdOpt) {
-            switch (*locIdOpt) {
-                case LocationId::Gonad: hotkeyChar = 'G'; break;
-                case LocationId::Lacrimere: hotkeyChar = 'L'; break;
-                case LocationId::Blyathyroid: hotkeyChar = 'B'; break;
-                case LocationId::Aerobronchi: hotkeyChar = 'A'; break;
-                case LocationId::Cladrenal: hotkeyChar = 'C'; break;
-                default: break;
-            }
-        }
+        sf::FloatRect regionArea = mapBounds;
+        if (loc.normalizedContentBounds)
+            regionArea = toGlobalRect(*loc.normalizedContentBounds);
 
-        // create a local sprite for this location (sprite requires a texture at construction)
-        sf::Sprite sprite( loc.sepia ? *loc.sepia : game.resources.locationGonadSepia );
-
-        // scale location sprite to a reasonable size relative to map
-        if (loc.sepia) {
-            auto t = loc.sepia->getSize();
-            float maxDim = std::min(mapBounds.size.x, mapBounds.size.y) * 0.12f; // 12% of map
-            float scale = std::min(maxDim / static_cast<float>(t.x), maxDim / static_cast<float>(t.y));
-            // increase size by another 20% on top of the previous 40%
-            // (1.4 * 1.2 = 1.68 total => ~+68%) to satisfy "another 20%" request
-            scale *= 1.68f;
-            sprite.setScale({ scale, scale });
-        }
-
-        // origin and position
-        auto lb = sprite.getLocalBounds();
-        sprite.setOrigin({ lb.position.x + lb.size.x / 2.f, lb.position.y + lb.size.y / 2.f });
-        sprite.setPosition({ posX, posY });
-
-        // hover detection (use sprite global bounds)
-        auto g = sprite.getGlobalBounds();
         bool isCompleted = locIdOpt && game.locationCompleted[locationIndex(*locIdOpt)];
-        bool allowedForHover = !isCompleted;
+        bool allowedForHover = !locIdOpt || !isCompleted;
 
         if (locIdOpt)
-            game.mapLocationHitboxes[locationIndex(*locIdOpt)] = g;
+            game.mapLocationHitboxes[locationIndex(*locIdOpt)] = regionArea;
 
-        bool hoveredByMouse = allowedForHover && g.contains(mousePos);
+        bool hoveredByMouse = allowedForHover && regionArea.contains(mousePos);
         if (hoveredByMouse && locIdOpt)
             game.mouseMapHover = locIdOpt;
 
         bool hoveredByKey = allowedForHover && locIdOpt && game.keyboardMapHover && *game.keyboardMapHover == *locIdOpt;
         bool hovered = hoveredByMouse || hoveredByKey;
 
-        if (hovered && loc.color) {
-            sprite.setTexture(*loc.color);
-            // recompute origin/scale in case texture dimensions differ
-            if (loc.color) {
-                auto t = loc.color->getSize();
-                float maxDim = std::min(mapBounds.size.x, mapBounds.size.y) * 0.12f;
-                float scale = std::min(maxDim / static_cast<float>(t.x), maxDim / static_cast<float>(t.y));
-                // increase size by another 20% on top of the previous 40%
-                // keep hover texture the same total multiplier
-                scale *= 1.68f;
-                sprite.setScale({ scale, scale });
-                auto lb2 = sprite.getLocalBounds();
-                sprite.setOrigin({ lb2.position.x + lb2.size.x / 2.f, lb2.position.y + lb2.size.y / 2.f });
-                sprite.setPosition({ posX, posY });
-            }
-            // update global bounds
-            g = sprite.getGlobalBounds();
-        }
+        if (!hovered)
+            continue;
 
-        // draw a subtle drop-shadow under the sprite for contrast
-        sf::Sprite shadow = sprite;
-        // small offset in pixels; scale with map size a little if needed
-        float shadowOffset = std::max(4.f, std::min(mapBounds.size.x, mapBounds.size.y) * 0.005f);
-        shadow.move({ shadowOffset, shadowOffset });
-        sf::Color shadowColor(0, 0, 0, 110); // semi-transparent black
-        shadow.setColor(shadowColor);
-        target.draw(shadow);
+        float area = regionArea.size.x * regionArea.size.y;
+        if (area <= 0.f)
+            area = mapBounds.size.x * mapBounds.size.y;
 
-        // make sepia a bit dimmer for non-hover state
-        sf::Color spriteColor = hovered ? ColorHelper::Palette::Normal : ColorHelper::Palette::Sepia;
-        spriteColor.a = 255;
-        sprite.setColor(spriteColor);
+        if (!bestHoverIndex || area < bestHoverArea) {
+            bestHoverIndex = idx;
+            bestHoverArea = area;
+            highlightedOverlayIndex = bestHoverIndex;
 
-        target.draw(sprite);
-
-        if (isCompleted) {
-            sf::Color crossColor = ColorHelper::Palette::SoftRed;
-            crossColor.a = 220;
-            sf::Vertex lines[4];
-
-            lines[0].position = sf::Vector2f{ g.position.x, g.position.y };
-            lines[1].position = sf::Vector2f{ g.position.x + g.size.x, g.position.y + g.size.y };
-            lines[2].position = sf::Vector2f{ g.position.x + g.size.x, g.position.y };
-            lines[3].position = sf::Vector2f{ g.position.x, g.position.y + g.size.y };
-
-            for (auto& v : lines) v.color = crossColor;
-
-            target.draw(lines, 2, sf::PrimitiveType::Lines);
-            target.draw(lines + 2, 2, sf::PrimitiveType::Lines);
-        }
-
-        drawLocationLabel(loc.name, hotkeyChar, g, hovered, isCompleted);
-
-        // Hover popup: show small info box with title, generated short description
-        if (hovered) {
-            std::string title = loc.name;
-            std::string shortDesc;
-            std::string residentTitle;
-            std::string residentDesc;
+            MapPopupRenderData popup{
+                loc.name,
+                {},
+                {},
+                {},
+                posX,
+                posY,
+                regionArea,
+                mapBounds,
+                winW,
+                winH,
+                mousePos
+            };
 
             if (loc.name == "Gonad") {
                 auto villageElderName = TextStyles::speakerStyle(TextStyles::SpeakerId::VillageElder).name;
-                shortDesc = "A sleepy village where your journey begins. " + villageElderName + " the Village Elder helps you search for the Dragon Stones and defeat Master Bates.";
+                popup.shortDesc = "A sleepy village where your journey begins. " + villageElderName + " the Village Elder helps you search for the Dragon Stones and defeat Master Bates.";
             }
             else if (loc.name == "Lacrimere") {
                 auto dragonName = TextStyles::speakerStyle(TextStyles::SpeakerId::WaterDragon).name;
-                shortDesc = "This is the home of " + dragonName + " - the Water Dragon.\nHe holds one of the Dragon Stones.";
+                popup.shortDesc = "This is the home of " + dragonName + " - the Water Dragon.\nHe holds one of the Dragon Stones.";
             }
             else if (loc.name == "Blyathyroid") {
                 auto dragonName = TextStyles::speakerStyle(TextStyles::SpeakerId::FireDragon).name;
-                shortDesc = "This is the home of " + dragonName + " - the Fire Dragon.\nHe holds one of the Dragon Stones.";
+                popup.shortDesc = "This is the home of " + dragonName + " - the Fire Dragon.\nHe holds one of the Dragon Stones.";
             }
             else if (loc.name == "Aerobronchi") {
                 auto dragonName = TextStyles::speakerStyle(TextStyles::SpeakerId::AirDragon).name;
-                shortDesc = "This is the home of " + dragonName + " - the Air Dragon.\nHe holds one of the Dragon Stones.";
+                popup.shortDesc = "This is the home of " + dragonName + " - the Air Dragon.\nHe holds one of the Dragon Stones.";
             }
             else if (loc.name == "Cladrenal") {
                 auto dragonName = TextStyles::speakerStyle(TextStyles::SpeakerId::EarthDragon).name;
-                shortDesc = "This is the home of " + dragonName + " - the Earth Dragon.\nHe holds one of the Dragon Stones.";
+                popup.shortDesc = "This is the home of " + dragonName + " - the Earth Dragon.\nHe holds one of the Dragon Stones.";
+            }
+            else if (loc.name == "Petrigonal") {
+                popup.shortDesc = "This is where Wanda Rinn found you and picked you up.";
             }
 
-            pendingPopup = MapPopupRenderData{
-                title,
-                shortDesc,
-                residentTitle,
-                residentDesc,
-                posX,
-                posY,
-                g,
-                mapBounds,
-                winW,
-                winH
-            };
+            pendingPopup = popup;
         }
+    }
+
+    for (std::size_t idx = 0; idx < locationsCache.size(); ++idx) {
+        if (!locationsCache[idx].overlay)
+            continue;
+        if (highlightedOverlayIndex && *highlightedOverlayIndex == idx)
+            continue;
+        drawOverlaySprite(locationsCache[idx].overlay, ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, 0.9f));
+    }
+
+    if (highlightedOverlayIndex) {
+        const auto& picked = locationsCache[*highlightedOverlayIndex];
+        drawOverlaySprite(picked.overlay, ColorHelper::darken(ColorHelper::Palette::Normal, 0.18f));
     }
 
     return pendingPopup;
@@ -655,10 +630,13 @@ namespace {
 
         float popupH = std::clamp(textOffset + textHeight + pad, minPopupH, maxPopupHeight);
 
-        float popupX = popup.posX + (popup.iconBounds.size.x / 2.f) + 8.f;
-        if (popupX + popupW > popup.mapBounds.position.x + popup.mapBounds.size.x)
-            popupX = popup.posX - (popup.iconBounds.size.x / 2.f) - 8.f - popupW;
-        float popupY = popup.posY - popupH / 2.f;
+        sf::Vector2f screenCenter{ popup.winW * 0.5f, popup.winH * 0.5f };
+        sf::Vector2f direction{ screenCenter.x - popup.cursorPos.x, screenCenter.y - popup.cursorPos.y };
+        float bias = 0.35f;
+        sf::Vector2f anchor{ popup.cursorPos.x + direction.x * bias, popup.cursorPos.y + direction.y * bias };
+        float popupX = anchor.x - (popupW * 0.5f);
+        float popupY = anchor.y - (popupH * 0.5f);
+        popupX = std::clamp(popupX, 8.f, popup.winW - popupW - 8.f);
         popupY = std::clamp(popupY, 8.f, popup.winH - popupH - 8.f);
 
         sf::RectangleShape shadowRect({ popupW, popupH });

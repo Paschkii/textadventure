@@ -96,6 +96,7 @@ namespace ColorHelper {
         inline const sf::Color Purple = sf::Color(0xC1, 0xA1, 0xFF);           // Primary accent used on highlighted UI edges.
         inline const sf::Color BlueDark = sf::Color(0x1C, 0x25, 0x44);         // Deep background tone for windows.
         inline const sf::Color BlueNearBlack = sf::Color(10, 12, 20);          // Near-black used for the highest contrast backdrops.
+        inline const sf::Color DialogBackdrop = sf::Color(12, 12, 18, 210);    // Semi-transparent black used behind dialogue.
         inline const sf::Color BlueAlsoNearBlack = sf::Color(0x1F, 0x2A, 0x3B);// Also Near Black Color
         inline const sf::Color NavyBlue = sf::Color(0x4F, 0x6A, 0x8A);         // Navy Blue Color
         inline const sf::Color Blue = sf::Color(0x2F, 0x3B, 0x68);             // Mid-tone blue used for panels and text outlines.

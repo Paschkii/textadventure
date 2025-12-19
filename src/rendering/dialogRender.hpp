@@ -9,6 +9,7 @@
 #include "ui/introScreen.hpp"              // Renders the intro screen when GameState is IntroScreen.
 #include "ui/introTitle.hpp"               // Handles the intro title overlay used before dialogue.
 #include "ui/mapSelectionUI.hpp"           // Displays the map UI and popup when in map selection.
+#include "ui/bookshelfUI.hpp"              // Renders the bookshelf minigame overlay.
 #include "ui/quizUI.hpp"                   // Draws the quiz UI when GameState is Quiz.
 #include "ui/rankingUI.hpp"                // Renders the leaderboard once the ending finishes.
 #include "ui/weaponSelectionUI.hpp"        // Renders weapon selection graphics when active.
@@ -113,6 +114,10 @@ inline void renderGame(Game& game) {
         case GameState::Quiz:
             drawDialogueUI(game, game.window);
             drawQuizUI(game, game.window);
+            break;
+        case GameState::Bookshelf:
+            drawDialogueUI(game, game.window);
+            ui::bookshelf::draw(game, game.window);
             break;
         case GameState::FinalChoice:
             drawDialogueUI(game, game.window);

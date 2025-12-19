@@ -212,6 +212,9 @@ void draw(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
     femaleSprite.setColor(sf::Color::White);
     maleSprite.setColor(sf::Color::White);
 
+    sf::FloatRect femaleBaseBounds = femaleSprite.getGlobalBounds();
+    sf::FloatRect maleBaseBounds = maleSprite.getGlobalBounds();
+
     auto& animation = game.genderAnimation;
     auto phase = animation.phase;
     float animationProgress = 0.f;
@@ -307,6 +310,27 @@ void draw(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
         static_cast<float>(windowSize.x) * 0.5f,
         hintTop - kHintSpacing
     });
+
+    float tintedLeft = std::min(femaleBaseBounds.position.x, maleBaseBounds.position.x);
+    float tintedRight = std::max(
+        femaleBaseBounds.position.x + femaleBaseBounds.size.x,
+        maleBaseBounds.position.x + maleBaseBounds.size.x
+    );
+    float tintedTop = std::min(hintText.getPosition().y - hintBounds.size.y * 0.5f, std::min(femaleBaseBounds.position.y, maleBaseBounds.position.y)) - 24.f;
+    float labelBottom = std::max(
+        femaleBaseBounds.position.y + femaleBaseBounds.size.y,
+        maleBaseBounds.position.y + maleBaseBounds.size.y
+    ) + kLabelSpacing * 0.5f + 20.f;
+    float tintedBottom = labelBottom + 40.f;
+    constexpr float kSelectionPad = 28.f;
+    sf::RectangleShape selectionBackdrop;
+    selectionBackdrop.setPosition({ tintedLeft - kSelectionPad, tintedTop });
+    selectionBackdrop.setSize({
+        (tintedRight - tintedLeft) + kSelectionPad * 2.f,
+        (tintedBottom - tintedTop) + kSelectionPad * 0.5f
+    });
+    selectionBackdrop.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::DialogBackdrop, uiAlphaFactor));
+    target.draw(selectionBackdrop);
 
     target.draw(femaleSprite);
     target.draw(maleSprite);

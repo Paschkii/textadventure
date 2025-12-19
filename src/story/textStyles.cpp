@@ -27,6 +27,8 @@ namespace TextStyles {
             return SpeakerId::StoryTeller;
         if (equalsIgnoreCase(name, "?????"))
             return SpeakerId::NoNameNPC;
+        if (equalsIgnoreCase(name, "??????"))
+            return SpeakerId::NoNameWanderer;
         if (equalsIgnoreCase(name, "Noah Lott"))
             return SpeakerId::VillageElder;
         if (equalsIgnoreCase(name, "Wanda Rinn"))
@@ -54,6 +56,8 @@ namespace TextStyles {
                     return { "Tory Tailor", ColorHelper::Palette::PurpleBlue };
                 case SpeakerId::NoNameNPC:
                     return { "?????", ColorHelper::Palette::PurpleBlue };
+                case SpeakerId::NoNameWanderer:
+                    return { "??????", ColorHelper::Palette::PurpleBlue };
                 case SpeakerId::VillageElder:
                     return { "Noah Lott", ColorHelper::Palette::PurpleBlue };
                 case SpeakerId::VillageWanderer:

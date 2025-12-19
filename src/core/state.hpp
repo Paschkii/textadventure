@@ -10,6 +10,7 @@ enum class GameState {
     MapSelection,
     WeaponSelection,
     Quiz,
+    Bookshelf,
     FinalChoice,
 };
 

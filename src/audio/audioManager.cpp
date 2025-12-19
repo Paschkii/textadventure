@@ -8,6 +8,7 @@ const sf::SoundBuffer* AudioManager::locationMusicBuffer(LocationId id) const {
         return nullptr;
 
     switch (id) {
+        case LocationId::Perigonal: return &resources->locationMusicPerigonal;
         case LocationId::Gonad: return &resources->locationMusicGonad;
         case LocationId::Blyathyroid: return &resources->locationMusicBlyathyroid;
         case LocationId::Lacrimere: return &resources->locationMusicLacrimere;
@@ -58,12 +59,6 @@ void AudioManager::fadeOutLocationMusic(float duration) {
         return;
 
     float startVol = locationMusic->getVolume();
-    if (startVol <= 0.f) {
-        locationMusic->stop();
-        locationMusicId.reset();
-        return;
-    }
-
     sound::startFade(locationMusicFade, startVol, 0.f, duration);
 }
 

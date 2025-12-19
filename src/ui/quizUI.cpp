@@ -316,50 +316,6 @@ namespace {
         game.quiz.questions[game.quiz.currentQuestion] = quiz::generateQuestion(category, rng);
     }
 
-    void finishQuizSuccess(Game& game) {
-        stopQuestionAudio(game);
-        game.quiz.quizAutoStarted = false;
-        game.quiz.active = false;
-        game.state = GameState::Dialogue;
-        game.lastCompletedLocation = game.quiz.targetLocation;
-        game.lastDragonName = game.quiz.dragonName;
-        game.locationCompleted[locIndex(game.quiz.targetLocation)] = true;
-        game.dragonStoneCount++;
-        if (game.dragonStoneCount >= 4)
-            game.finalEncounterPending = true;
-        game.itemController.collectDragonstone(game.quiz.targetLocation);
-        game.transientDialogue.clear();
-        game.pendingTeleportToGonad = true;
-
-        // Copy dragonstone dialogue and replace tokens while staying at the dragon location.
-        for (const auto& line : dragonstone) {
-            std::string text = line.text;
-            auto replaceAll = [&](const std::string& token, const std::string& value) {
-                std::size_t pos = 0;
-                while ((pos = text.find(token, pos)) != std::string::npos) {
-                    text.replace(pos, token.size(), value);
-                    pos += value.size();
-                }
-            };
-            replaceAll("{dragonelement}", dragonElementFor(game.quiz.targetLocation));
-            replaceAll("{dragonstonecount}", std::to_string(game.dragonStoneCount));
-            const std::string dragonstoneWord =
-                (game.dragonStoneCount == 1 ? "Dragon Stone" : "Dragon Stones");
-            replaceAll("{dragonstoneword}", dragonstoneWord);
-            game.transientDialogue.push_back({ line.speaker, text, line.triggersNameInput, line.waitForEnter });
-        }
-
-        game.currentDialogue = &game.transientDialogue;
-        game.dialogueIndex = 0;
-        game.visibleText.clear();
-        game.charIndex = 0;
-        game.typewriterClock.restart();
-        game.transientReturnToMap = true;
-        game.state = GameState::Dialogue;
-        game.keyboardMapHover.reset();
-        game.mouseMapHover.reset();
-    }
-
     void handleSelection(Game& game, int index) {
         if (!game.quiz.quizDialogue)
             return;
@@ -803,7 +759,92 @@ void updateQuizIntro(Game& game) {
 }
 
 void completeQuizSuccess(Game& game) {
-    finishQuizSuccess(game);
+    stopQuestionAudio(game);
+    game.quiz.quizAutoStarted = false;
+    game.quiz.active = false;
+    game.state = GameState::Dialogue;
+    game.lastDragonName = game.quiz.dragonName;
+
+    LocationId location = game.quiz.targetLocation;
+    game.bookshelf.rewardLocation = location;
+    game.bookshelf.awaitingDragonstoneReward = true;
+    game.bookshelf.promptDialogueActive = true;
+
+    game.transientDialogue.clear();
+    auto dragonSpeaker = speakerFor(location);
+    std::string bookshelfLine = "Take a look at this bookshelf. You might find something interesting!";
+    std::string followupLine = "Only after you bring back the tome hiding the piece of the Umbra Ossea map "
+        "will the Dragon Stone dialogue finally kick in.";
+    game.transientDialogue.push_back({ dragonSpeaker, bookshelfLine });
+    game.transientDialogue.push_back({ Speaker::StoryTeller, followupLine });
+
+    game.currentDialogue = &game.transientDialogue;
+    game.dialogueIndex = 0;
+    game.visibleText.clear();
+    game.charIndex = 0;
+    game.typewriterClock.restart();
+    game.transientReturnToMap = false;
+    game.pendingTeleportToGonad = false;
+    game.keyboardMapHover.reset();
+    game.mouseMapHover.reset();
+}
+
+void presentDragonstoneReward(Game& game) {
+    auto& state = game.bookshelf;
+    if (!state.awaitingDragonstoneReward)
+        return;
+
+    state.returnAfterBookDialogue = false;
+
+    LocationId location = state.rewardLocation;
+    state.awaitingDragonstoneReward = false;
+    state.promptDialogueActive = false;
+
+    stopQuestionAudio(game);
+    game.quiz.quizAutoStarted = false;
+    game.quiz.active = false;
+    game.state = GameState::Dialogue;
+    game.lastCompletedLocation = location;
+    game.locationCompleted[locIndex(location)] = true;
+    game.dragonStoneCount++;
+    if (game.dragonStoneCount >= 4)
+        game.finalEncounterPending = true;
+    game.itemController.collectDragonstone(location);
+    game.transientDialogue.clear();
+    game.pendingTeleportToGonad = true;
+
+    for (const auto& line : dragonstone) {
+        std::string text = line.text;
+        auto replaceAll = [&](const std::string& token, const std::string& value) {
+            std::size_t pos = 0;
+            while ((pos = text.find(token, pos)) != std::string::npos) {
+                text.replace(pos, token.size(), value);
+                pos += value.size();
+            }
+        };
+        replaceAll("{dragonelement}", dragonElementFor(location));
+        replaceAll("{dragonstonecount}", std::to_string(game.dragonStoneCount));
+        const std::string dragonstoneWord =
+            (game.dragonStoneCount == 1 ? "Dragon Stone" : "Dragon Stones");
+        replaceAll("{dragonstoneword}", dragonstoneWord);
+        game.transientDialogue.push_back({
+            line.speaker,
+            text,
+            line.triggersNameInput,
+            line.triggersGenderSelection,
+            line.waitForEnter
+        });
+    }
+
+    game.currentDialogue = &game.transientDialogue;
+    game.dialogueIndex = 0;
+    game.visibleText.clear();
+    game.charIndex = 0;
+    game.typewriterClock.restart();
+    game.transientReturnToMap = true;
+    game.keyboardMapHover.reset();
+    game.mouseMapHover.reset();
+    state.rewardLocation = LocationId::Gonad;
 }
 
 namespace {
@@ -831,6 +872,7 @@ namespace {
         }
 
         appendDialogue(finalThanks);
+        game.setBackgroundTexture(game.resources.backgroundToryTailor);
 
         game.currentDialogue = &game.transientDialogue;
         game.dialogueIndex = 0;

@@ -128,6 +128,8 @@ void updateLayout(Game& game) {
         static_cast<float>(texSize.x) * uniformScale,
         static_cast<float>(texSize.y) * uniformScale
     };
+    finalSize.x *= 0.5f;
+    finalSize.y *= 0.5f;
     float textBoxRight = game.textBox.getPosition().x + game.textBox.getSize().x;
     float buttonX = textBoxRight - finalSize.x - 8.f;
     float buttonY = game.textBox.getPosition().y - finalSize.y - 12.f;

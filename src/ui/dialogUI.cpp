@@ -9,6 +9,7 @@
 #include "dialogUI.hpp"             // Declares drawDialogueUI/related APIs implemented below.
 #include "dialogDrawElements.hpp"   // Renders the dialogue boxes, name labels, and text draws.
 #include "uiEffects.hpp"             // Computes glow/flicker colors reused by multiple UI elements.
+#include "ui/brokenWeaponPreview.hpp"// Draws the temporary preview of broken weapons.
 #include "confirmationUI.hpp"       // Displays the confirmation prompt triggered from dialogues.
 #include "ui/genderSelectionUI.hpp" // Handles the dragonborn selection panel overlay.
 #include "uiVisibility.hpp"         // Computes fade/visibility rules shared across UI modules.
@@ -26,6 +27,37 @@ namespace {
             | UiElement::IntroTitle;
 
         return computeUiVisibility(game, visibilityMask);
+    }
+
+    void drawSceneBackground(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
+        if (!game.background || (!game.backgroundFadeInActive && !game.backgroundVisible))
+            return;
+
+        const sf::Texture& texture = game.background->getTexture();
+        auto texSize = texture.getSize();
+        auto targetSize = target.getSize();
+        if (texSize.x == 0 || texSize.y == 0 || targetSize.x == 0 || targetSize.y == 0)
+            return;
+
+        float scaleX = static_cast<float>(targetSize.x) / static_cast<float>(texSize.x);
+        float scaleY = static_cast<float>(targetSize.y) / static_cast<float>(texSize.y);
+        game.background->setScale({ scaleX, scaleY });
+        game.background->setPosition({ 0.f, 0.f });
+
+        float fadeProgress = 1.f;
+        if (game.backgroundFadeInActive) {
+            float progress = game.backgroundFadeClock.getElapsedTime().asSeconds() / game.introFadeDuration;
+            fadeProgress = std::min(1.f, progress);
+            if (fadeProgress >= 1.f) {
+                game.backgroundFadeInActive = false;
+                game.backgroundVisible = true;
+            }
+        }
+
+        sf::Color bgColor = game.background->getColor();
+        bgColor.a = static_cast<std::uint8_t>(255.f * fadeProgress * uiAlphaFactor);
+        game.background->setColor(bgColor);
+        target.draw(*game.background);
     }
 
     bool updateTypewriter(Game& game, const std::string& fullText, float delay) {
@@ -388,6 +420,7 @@ void drawLocationBox(Game& game, sf::RenderTarget& target, float uiAlphaFactor, 
 
 void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation, float* outAlpha) {
 
+    ui::brokenweapon::updatePreview(game);
     UiVisibility visibility = computeDialogueVisibility(game);
 
     if (game.state == GameState::IntroTitle && !game.uiFadeInActive)
@@ -395,6 +428,8 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
 
     if (visibility.hidden)
         return;
+
+    drawSceneBackground(game, target, visibility.alphaFactor);
 
     float uiAlphaFactor = visibility.alphaFactor;
     if (outAlpha)
@@ -411,7 +446,7 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
 
     // Hide location/item boxes during the intro title/state; they should only appear afterward.
     bool introTitleActive = game.state == GameState::IntroTitle || game.state == GameState::IntroScreen;
-    bool inIntroTransition = game.pendingIntroDialogue || game.pendingGonadDialogue || game.uiFadeOutActive;
+    bool inIntroTransition = game.pendingIntroDialogue || game.pendingPerigonalDialogue || game.pendingGonadDialogue || game.uiFadeOutActive;
     bool showLocationBox = !introTitleActive && !inIntroTransition && game.currentDialogue && game.currentDialogue != &intro;
 
     dialogDraw::drawDialogueFrames(game, target, uiAlphaFactor, glowColor);
@@ -425,6 +460,11 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
         game.state == GameState::Quiz
         && game.currentDialogue == &game.quiz.feedbackDialogue
         && !game.visibleText.empty();
+    bool keepShowingBookshelfPrompt =
+        game.state == GameState::Bookshelf
+        && game.currentDialogue == &game.transientDialogue
+        && !game.visibleText.empty()
+        && game.bookshelf.awaitingDragonstoneReward;
     if (game.currentDialogue == &dragon || keepShowingLastFeedbackLine) {
         std::optional<LocationId> highlightLocation;
         if (keepShowingLastFeedbackLine)
@@ -433,7 +473,7 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
     }
 
     bool hasDialogueLine = game.currentDialogue && game.dialogueIndex < game.currentDialogue->size();
-    if (!hasDialogueLine && !game.confirmationPrompt.active && !keepShowingLastFeedbackLine) {
+    if (!hasDialogueLine && !game.confirmationPrompt.active && !keepShowingLastFeedbackLine && !keepShowingBookshelfPrompt) {
         game.lastSpeaker.reset();
         return;
     }
@@ -444,7 +484,7 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
         line = &(*game.currentDialogue)[game.dialogueIndex];
         fullText = injectSpeakerNames(line->text, game);
     }
-    else if (keepShowingLastFeedbackLine && game.currentDialogue && !game.currentDialogue->empty()) {
+    else if ((keepShowingLastFeedbackLine || keepShowingBookshelfPrompt) && game.currentDialogue && !game.currentDialogue->empty()) {
         line = &game.currentDialogue->back();
     }
 
@@ -502,5 +542,6 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
     if (!game.genderSelectionActive)
         dialogDraw::drawReturnPrompt(target, game, uiAlphaFactor, isTyping);
 
+    ui::brokenweapon::drawPreview(game, target);
     ui::menu::draw(game, target);
 }

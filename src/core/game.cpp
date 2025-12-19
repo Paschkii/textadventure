@@ -14,6 +14,7 @@
 #include "helper/dragonHelpers.hpp"   // Provides ui::dragons::loadDragonPortraits called during initialization.
 #include "helper/layoutHelpers.hpp"   // Defines ui::layout::updateLayout used by Game::updateLayout.
 #include "helper/weaponHelpers.hpp"   // Offers ui::weapons::loadWeaponOptions for weapon setup.
+#include "helper/healingPotion.hpp"   // Manages the healing potion timer granted by Wanda Rinn.
 #include "rendering/dialogRender.hpp" // Renders the dialog UI via renderGame in the game loop.
 #include "story/dialogInput.hpp"      // Contains waitForEnter and dialog flow helpers used in the loop.
 #include "story/dialogueLine.hpp"     // Supplies the DialogueLine type processed while waiting for Enter.
@@ -26,11 +27,27 @@
 #include "ui/quizUI.hpp"              // Declares handleQuizEvent triggered while in quiz mode.
 #include "ui/weaponSelectionUI.hpp"   // Declares handleWeaponSelectionEvent and related callbacks.
 #include "ui/menuUI.hpp"              // Handles the in-game menu button + overlay.
+#include "ui/bookshelfUI.hpp"         // Draws the optional bookshelf puzzle.
 
 constexpr unsigned int windowWidth = 1280;
 constexpr unsigned int windowHeight = 720;
 constexpr unsigned int fpsLimit = 60;
 constexpr std::size_t playerNameMaxLength = 18;
+
+namespace {
+    const sf::Texture* backgroundForLocation(const Game& game, LocationId id) {
+        switch (id) {
+            case LocationId::Perigonal: return &game.resources.backgroundPetrigonal;
+            case LocationId::Gonad: return &game.resources.backgroundGonad;
+            case LocationId::Blyathyroid: return &game.resources.backgroundBlyathyroid;
+            case LocationId::Lacrimere: return &game.resources.backgroundLacrimere;
+            case LocationId::Cladrenal: return &game.resources.backgroundCladrenal;
+            case LocationId::Aerobronchi: return &game.resources.backgroundAerobronchi;
+            case LocationId::Seminiferous: return &game.resources.backgroundSeminiferous;
+            default: return nullptr;
+        }
+    }
+}
 
 // Sets up resources, audio, and UI state for a new Game instance.
 Game::Game()
@@ -43,7 +60,9 @@ Game::Game()
     audioManager.init(resources);
     itemController.init(resources);
     teleportController.loadResources(resources);
-    background.emplace(resources.introBackground);
+    setBackgroundTexture(resources.introBackground);
+    backgroundFadeInActive = false;
+    backgroundVisible = true;
     returnSprite.emplace(resources.returnSymbol);
     returnSprite->setColor(ColorHelper::Palette::IconGray);
 
@@ -67,7 +86,7 @@ Game::Game()
     // === Framerate limitieren ===
     window.setFramerateLimit(fpsLimit);
     // === NameBox Style setzen ===
-    nameBox.setFillColor(sf::Color::Transparent);
+    nameBox.setFillColor(ColorHelper::Palette::DialogBackdrop);
     nameBox.setOutlineColor(ColorHelper::Palette::Normal);
     nameBox.setOutlineThickness(2.f);
     playerStatusBox.setFillColor(TextStyles::UI::PanelDark);
@@ -78,7 +97,7 @@ Game::Game()
     introOptionBackdrop.setFillColor(sf::Color(12, 12, 18, 210));
     introOptionBackdrop.setOutlineThickness(0.f);
     // === TextBox Style setzen ===
-    textBox.setFillColor(sf::Color::Transparent);
+    textBox.setFillColor(ColorHelper::Palette::DialogBackdrop);
     textBox.setOutlineColor(ColorHelper::Palette::Normal);
     textBox.setOutlineThickness(2.f);
     // === LocationBox Style setzen ===
@@ -108,10 +127,24 @@ Game::Game()
 }
 
 // Tracks the active location and starts its music.
-void Game::setCurrentLocation(const Location* location) {
+void Game::setCurrentLocation(const Location* location, bool updateBackground) {
     currentLocation = location;
     if (location)
         audioManager.startLocationMusic(location->id);
+    if (location && updateBackground) {
+        if (const sf::Texture* backgroundTexture = backgroundForLocation(*this, location->id))
+            setBackgroundTexture(*backgroundTexture);
+    }
+}
+
+void Game::setBackgroundTexture(const sf::Texture& texture) {
+    queuedBackgroundTexture = nullptr;
+    if (background && &background->getTexture() == &texture)
+        return;
+    background.emplace(texture);
+    backgroundFadeInActive = true;
+    backgroundFadeClock.restart();
+    backgroundVisible = false;
 }
 
 // Begins the looping title-screen music.
@@ -289,6 +322,10 @@ void Game::run() {
                 handleMapSelectionEvent(*this, *event);
             else if (state == GameState::Quiz && !confirmationPrompt.active)
                 handleQuizEvent(*this, *event);
+            else if (state == GameState::Bookshelf && !confirmationPrompt.active) {
+                if (ui::bookshelf::handleEvent(*this, *event))
+                    continue;
+            }
             else if (state == GameState::FinalChoice && !confirmationPrompt.active)
                 handleFinalChoiceEvent(*this, *event);
         }
@@ -302,6 +339,7 @@ void Game::run() {
         ui::ranking::updateOverlay(rankingOverlay);
         audioManager.update();
         updateQuizIntro(*this);
+        helper::healingPotion::update(*this);
         updateLayout();
 
         window.clear(ColorHelper::Palette::BlueNearBlack);
@@ -318,4 +356,18 @@ void Game::startTypingSound() {
 // Stops the typing effect so it does not linger.
 void Game::stopTypingSound() {
     audioManager.stopTypingSound();
+}
+
+void Game::startBookshelfQuest() {
+    if (state == GameState::Bookshelf)
+        return;
+    bookshelf.previousState = state;
+    state = GameState::Bookshelf;
+    ui::bookshelf::enter(*this);
+}
+
+void Game::exitBookshelfQuest() {
+    if (state != GameState::Bookshelf)
+        return;
+    state = bookshelf.previousState;
 }

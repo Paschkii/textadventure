@@ -2,6 +2,7 @@
 #include <iostream>  // Logs asset-loading failures during Resources::loadAll.
 // === Header Files ===
 #include "resources.hpp"  // Declares Resources::loadAll and the stored asset handles.
+#include "resources/itemFiles.hpp"
 
 // Attempts to load every font/texture/audio asset required for the game.
 bool Resources::loadAll()
@@ -63,6 +64,9 @@ bool Resources::loadAll()
     }
     if (!weaponStiggedinBroken.loadFromFile("assets/gfx/weapons/Weapon Stiggedin Broken.png")) { // Weapon: Stiggedin Broken
         std::cout << "Failed to load Stiggedin Broken Texture\n"; return false;
+    }
+    if (!healPotion.loadFromFile(ResourceFiles::Items::kHealPotionTexture)) { // Item: Healing Potion
+        std::cout << "Failed to load Healing Potion Texture\n"; return false;
     }
 
     // ----------------------------
@@ -171,6 +175,93 @@ bool Resources::loadAll()
     if (!mapBackground.loadFromFile("assets/gfx/map/map_background.png")) { // Simple Map Background
         std::cout << "Failed to load Map Background Texture\n"; return false;
     }
+    if (!menuMapBackground.loadFromFile("assets/gfx/menu/map/Glandular.png")) {
+        std::cout << "Failed to load Menu Map Background (Glandular)\n"; return false;
+    }
+    if (!menuMapGonad.loadFromFile("assets/gfx/menu/map/Gonad.png")) {
+        std::cout << "Failed to load Menu Map Overlay (Gonad)\n"; return false;
+    }
+    if (!menuMapLacrimere.loadFromFile("assets/gfx/menu/map/Lacrimere.png")) {
+        std::cout << "Failed to load Menu Map Overlay (Lacrimere)\n"; return false;
+    }
+    if (!menuMapBlyathyroid.loadFromFile("assets/gfx/menu/map/Blyathyroid.png")) {
+        std::cout << "Failed to load Menu Map Overlay (Blyathyroid)\n"; return false;
+    }
+    if (!menuMapCladrenal.loadFromFile("assets/gfx/menu/map/Cladrenal.png")) {
+        std::cout << "Failed to load Menu Map Overlay (Cladrenal)\n"; return false;
+    }
+    if (!menuMapAerobronchi.loadFromFile("assets/gfx/menu/map/Aerobronchi.png")) {
+        std::cout << "Failed to load Menu Map Overlay (Aerobronchi)\n"; return false;
+    }
+    if (!menuMapPetrigonal.loadFromFile("assets/gfx/menu/map/Perigonal.png")) {
+        std::cout << "Failed to load Menu Map Overlay (Petrigonal)\n"; return false;
+    }
+    if (!backgroundAerobronchi.loadFromFile("assets/gfx/background/background_aerobronchi.png")) {
+        std::cout << "Failed to load Background Aerobronchi\n"; return false;
+    }
+    if (!backgroundBlacksmith.loadFromFile("assets/gfx/background/background_blacksmith.png")) {
+        std::cout << "Failed to load Background Blacksmith\n"; return false;
+    }
+    if (!backgroundBlyathyroid.loadFromFile("assets/gfx/background/background_blyathyoid.png")) {
+        std::cout << "Failed to load Background Blyathyroid\n"; return false;
+    }
+    if (!backgroundCladrenal.loadFromFile("assets/gfx/background/background_cladrenal.png")) {
+        std::cout << "Failed to load Background Cladrenal\n"; return false;
+    }
+    if (!backgroundGonad.loadFromFile("assets/gfx/background/background_gonad.png")) {
+        std::cout << "Failed to load Background Gonad\n"; return false;
+    }
+    if (!backgroundLacrimere.loadFromFile("assets/gfx/background/background_lacrimere.png")) {
+        std::cout << "Failed to load Background Lacrimere\n"; return false;
+    }
+    if (!backgroundPetrigonal.loadFromFile("assets/gfx/background/background_petrigonal.png")) {
+        std::cout << "Failed to load Background Petrigonal\n"; return false;
+    }
+    if (!backgroundSeminiferous.loadFromFile("assets/gfx/background/background_seminiferous.png")) {
+        std::cout << "Failed to load Background Seminiferous\n"; return false;
+    }
+    if (!backgroundToryTailor.loadFromFile("assets/gfx/background/background_torytailor.png")) {
+        std::cout << "Failed to load Background ToryTailor\n"; return false;
+    }
+    if (!bookshelf.loadFromFile("assets/gfx/books/bookshelf.png")) { // Bookshelf Background
+        std::cout << "Failed to load Bookshelf Texture\n"; return false;
+    }
+    if (!bookSingle01.loadFromFile("assets/gfx/books/book_single01.png")) {
+        std::cout << "Failed to load book_single01.png\n"; return false;
+    }
+    if (!bookSingle02.loadFromFile("assets/gfx/books/book_single02.png")) {
+        std::cout << "Failed to load book_single02.png\n"; return false;
+    }
+    if (!bookSingle03.loadFromFile("assets/gfx/books/book_single03.png")) {
+        std::cout << "Failed to load book_single03.png\n"; return false;
+    }
+    if (!bookSingle04.loadFromFile("assets/gfx/books/book_single04.png")) {
+        std::cout << "Failed to load book_single04.png\n"; return false;
+    }
+    if (!bookSingle05.loadFromFile("assets/gfx/books/book_single05.png")) {
+        std::cout << "Failed to load book_single05.png\n"; return false;
+    }
+    if (!bookStapled01.loadFromFile("assets/gfx/books/book_stapled01.png")) {
+        std::cout << "Failed to load book_stapled01.png\n"; return false;
+    }
+    if (!bookStapled02.loadFromFile("assets/gfx/books/book_stapled02.png")) {
+        std::cout << "Failed to load book_stapled02.png\n"; return false;
+    }
+    if (!booksRowed01.loadFromFile("assets/gfx/books/books_rowed01.png")) {
+        std::cout << "Failed to load books_rowed01.png\n"; return false;
+    }
+    if (!booksRowed02.loadFromFile("assets/gfx/books/books_rowed02.png")) {
+        std::cout << "Failed to load books_rowed02.png\n"; return false;
+    }
+    if (!booksRowed03.loadFromFile("assets/gfx/books/books_rowed03.png")) {
+        std::cout << "Failed to load books_rowed03.png\n"; return false;
+    }
+    if (!booksTipped01.loadFromFile("assets/gfx/books/books_tipped01.png")) {
+        std::cout << "Failed to load books_tipped01.png\n"; return false;
+    }
+    if (!booksTipped02.loadFromFile("assets/gfx/books/books_tipped02.png")) {
+        std::cout << "Failed to load books_tipped02.png\n"; return false;
+    }
     if (!returnSymbol.loadFromFile("assets/textures/returnSymbol.png")) { // Return Symbol
         std::cout << "Failed to load Return Symbol Texture\n"; return false;
     }
@@ -204,6 +295,9 @@ bool Resources::loadAll()
     if (!buttonRankings.loadFromFile("assets/gfx/buttons/button_rankings.png")) {
         std::cout << "Failed to load Rankings Button Texture\n"; return false;
     }
+    if (!buttonHelp.loadFromFile("assets/gfx/buttons/button_help.png")) {
+        std::cout << "Failed to load Help Button Texture\n"; return false;
+    }
 
     // ---------------------------
     //       === Sounds ===
@@ -235,6 +329,9 @@ bool Resources::loadAll()
     if (!teleportStop.loadFromFile("assets/audio/teleport_stop.mp3")) { // Teleport Stop
         std::cout << "Failed to load Teleport Stop Sound\n"; return false;
     }
+    if (!healSound.loadFromFile(ResourceFiles::Items::kHealPotionSound)) { // Heal Potion Sound
+        std::cout << "Failed to load Heal Potion Sound\n"; return false;
+    }
     if (!locationMusicAerobronchi.loadFromFile("assets/audio/locationMusicAerobronchi.mp3")) { // Aerobronchi Location Sound
         std::cout << "Failed to load Aerobronchi Location Music\n"; return false;
     }
@@ -243,6 +340,9 @@ bool Resources::loadAll()
     }
     if (!locationMusicCladrenal.loadFromFile("assets/audio/locationMusicCladrenal.mp3")) { // Cladrenal Location Sound
         std::cout << "Failed to load Cladrenal Location Music\n"; return false;
+    }
+    if (!locationMusicPerigonal.loadFromFile("assets/audio/locationMusicPerigonal.mp3")) { // Perigonal Location Sound
+        std::cout << "Failed to load Perigonal Location Music\n"; return false;
     }
     if (!locationMusicGonad.loadFromFile("assets/audio/locationMusicGonad.mp3")) { // Gonad Location Sound
         std::cout << "Failed to load Gonad Location Music\n"; return false;

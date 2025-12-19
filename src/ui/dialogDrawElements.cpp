@@ -24,6 +24,8 @@ namespace {
             case SpeakerId::StoryTeller:
             case SpeakerId::NoNameNPC:
                 return &game.resources.portraitStoryTeller;
+            case SpeakerId::NoNameWanderer:
+                return &game.resources.portraitVillageWanderer;
             case SpeakerId::VillageElder:
                 return &game.resources.portraitVillageElder;
             case SpeakerId::VillageWanderer:
@@ -125,6 +127,15 @@ namespace dialogDraw {
             glowColor,
             2.f
         );
+
+        auto drawBoxFill = [&](const sf::RectangleShape& box) {
+            sf::RectangleShape fill = box;
+            fill.setFillColor(ColorHelper::applyAlphaFactor(box.getFillColor(), uiAlphaFactor));
+            fill.setOutlineThickness(0.f);
+            target.draw(fill);
+        };
+        drawBoxFill(game.nameBox);
+        drawBoxFill(game.textBox);
 
         sf::Color frameColor = game.frameColor(uiAlphaFactor);
         game.uiFrame.draw(target, game.nameBox, frameColor);

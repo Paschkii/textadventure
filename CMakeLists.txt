@@ -18,15 +18,18 @@ add_executable(Glandular
     src/ui/introScreen.cpp
     src/ui/introTitle.cpp
     src/ui/menuUI.cpp
+    src/ui/bookshelfUI.cpp
     src/ui/confirmationUI.cpp
     src/ui/dialogDrawElements.cpp
     src/ui/dialogUI.cpp
+    src/ui/brokenWeaponPreview.cpp
     src/ui/genderSelectionUI.cpp
     src/ui/uiEffects.cpp
     src/ui/uiVisibility.cpp
     src/helper/weaponHelpers.cpp
     src/helper/dragonHelpers.cpp
     src/helper/layoutHelpers.cpp
+    src/helper/healingPotion.cpp
     src/helper/soundHelper.cpp
     src/audio/audioManager.cpp
     src/ui/mapSelectionUI.cpp

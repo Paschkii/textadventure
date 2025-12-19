@@ -28,6 +28,7 @@ struct Resources {
     sf::Texture buttonQuests;
     sf::Texture buttonSettings;
     sf::Texture buttonRankings;
+    sf::Texture buttonHelp;
     // Item Textures
     sf::Texture dragonstoneAir; // Air Dragon Stone
     sf::Texture dragonstoneEarth; // Earth Dragon Stone
@@ -40,6 +41,7 @@ struct Resources {
     sf::Texture weaponKattkavarBroken;
     sf::Texture weaponStiggedin;
     sf::Texture weaponStiggedinBroken;
+    sf::Texture healPotion;
     // Character Textures
     sf::Texture airDragon; // Air Dragon Texture
     sf::Texture earthDragon; // Earth Dragon Texture
@@ -75,6 +77,35 @@ struct Resources {
     sf::Texture locationSeminiferousColored; // Seminiferous
     sf::Texture locationSeminiferousSepia; // Seminiferous
     sf::Texture mapBackground; // Map Background
+    sf::Texture menuMapBackground; // Menu map base art
+    sf::Texture menuMapGonad; // Gonad overlay
+    sf::Texture menuMapLacrimere; // Lacrimere overlay
+    sf::Texture menuMapBlyathyroid; // Blyathyroid overlay
+    sf::Texture menuMapCladrenal; // Cladrenal overlay
+    sf::Texture menuMapAerobronchi; // Aerobronchi overlay
+    sf::Texture menuMapPetrigonal; // Petrigonal overlay
+    sf::Texture backgroundAerobronchi; // Air Dragon area background
+    sf::Texture backgroundBlacksmith; // Gonad blacksmith scene
+    sf::Texture backgroundBlyathyroid; // Blyathyroid background
+    sf::Texture backgroundCladrenal; // Cladrenal background
+    sf::Texture backgroundGonad; // Gonad background
+    sf::Texture backgroundLacrimere; // Lacrimere background
+    sf::Texture backgroundPetrigonal; // Perigonal area background
+    sf::Texture backgroundSeminiferous; // Seminiferous background
+    sf::Texture backgroundToryTailor; // Tory Tailor narration background
+    sf::Texture bookshelf; // Bookshelf scene
+    sf::Texture bookSingle01;
+    sf::Texture bookSingle02;
+    sf::Texture bookSingle03;
+    sf::Texture bookSingle04;
+    sf::Texture bookSingle05;
+    sf::Texture bookStapled01;
+    sf::Texture bookStapled02;
+    sf::Texture booksRowed01;
+    sf::Texture booksRowed02;
+    sf::Texture booksRowed03;
+    sf::Texture booksTipped01;
+    sf::Texture booksTipped02;
 
     // Sound Buffers
     sf::SoundBuffer acquire; // Sound played, when aquiring items
@@ -86,6 +117,8 @@ struct Resources {
     sf::SoundBuffer teleportStart; // Sound played at the beginning of a teleport
     sf::SoundBuffer teleportMiddle; // Sound played during teleportation
     sf::SoundBuffer teleportStop; // Sound played when teleportation ends
+    sf::SoundBuffer healSound; // Sound played when using the healing potion
+    sf::SoundBuffer locationMusicPerigonal; // Sound played during the Perigonal dialogue
     sf::SoundBuffer locationMusicGonad; // Sound played while in Gonad
     sf::SoundBuffer locationMusicBlyathyroid; // Sound played while in Blyathyroid
     sf::SoundBuffer locationMusicLacrimere; // Sound played while in Lacrimere

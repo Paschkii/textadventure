@@ -20,6 +20,7 @@ struct MapPopupRenderData {
     sf::FloatRect mapBounds{};
     float winW = 0.f;
     float winH = 0.f;
+    sf::Vector2f cursorPos{0.f, 0.f};
 };
 
 std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarget& target);

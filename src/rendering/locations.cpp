@@ -31,7 +31,15 @@ namespace {
     // Maps each enum value to a display name, color, and textures.
     std::vector<Location> buildLocations(Resources& resources) {
         std::vector<Location> locations;
-        locations.reserve(6);
+        locations.reserve(7);
+
+        locations.push_back(makeLocation(
+            LocationId::Perigonal,
+            "Perigonal",
+            ColorHelper::Palette::TitleAccent,
+            resources.locationGonadColored,
+            resources.locationGonadSepia
+        ));
 
         locations.push_back(makeLocation(
             LocationId::Gonad,

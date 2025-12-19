@@ -37,6 +37,21 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
                 game.audioManager.startIntroDialogueMusic();
             };
 
+            auto startPerigonalDialogue = [&]() {
+                game.currentDialogue = &perigonal;
+                game.dialogueIndex = 0;
+                game.visibleText.clear();
+                game.charIndex = 0;
+                game.typewriterClock.restart();
+                game.introDialogueFinished = false;
+                game.state = GameState::Dialogue;
+                game.currentProcessedLine.clear();
+                game.askingName = false;
+                game.nameInput.clear();
+                if (auto location = Locations::findById(game.locations, LocationId::Perigonal))
+                    game.setCurrentLocation(location, false);
+            };
+
             auto startGonadDialogue = [&]() {
                 game.currentDialogue = &gonad;
                 game.dialogueIndex = 0;
@@ -45,7 +60,7 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
                 game.typewriterClock.restart();
                 game.introDialogueFinished = false;
                 game.state = GameState::Dialogue;
-                game.setCurrentLocation(Locations::findById(game.locations, LocationId::Gonad));
+                game.setCurrentLocation(Locations::findById(game.locations, LocationId::Gonad), false);
                 game.currentProcessedLine.clear();
                 game.askingName = false;
                 game.nameInput.clear();
@@ -54,6 +69,10 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
             if (game.pendingIntroDialogue) {
                 game.pendingIntroDialogue = false;
                 startIntroDialogue();
+            }
+            else if (game.pendingPerigonalDialogue) {
+                game.pendingPerigonalDialogue = false;
+                startPerigonalDialogue();
             }
             else if (game.pendingGonadDialogue) {
                 game.pendingGonadDialogue = false;
@@ -75,12 +94,17 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
                 game.visibleText.clear();
                 game.currentProcessedLine.clear();
 
-                if (!game.backgroundFadeInActive && !game.backgroundVisible) {
+                if (game.queuedBackgroundTexture) {
+                    game.setBackgroundTexture(*game.queuedBackgroundTexture);
+                    game.queuedBackgroundTexture = nullptr;
+                    visibility.backgroundFadeTriggered = true;
+                }
+                else if (!game.backgroundFadeInActive && !game.backgroundVisible) {
                     game.backgroundFadeInActive = true;
                     game.backgroundFadeClock.restart();
                     visibility.backgroundFadeTriggered = true;
                 }
-                if (game.pendingGonadDialogue && !game.uiFadeInActive) {
+                if ((game.pendingPerigonalDialogue || game.pendingGonadDialogue) && !game.uiFadeInActive) {
                     game.introDialogueFinished = false;
                     game.uiFadeInActive = true;
                     game.uiFadeClock.restart();

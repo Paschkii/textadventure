@@ -18,6 +18,7 @@ void drawQuizUI(Game& game, sf::RenderTarget& target);
 void handleQuizEvent(Game& game, const sf::Event& event);
 void startQuiz(Game& game, LocationId targetLocation, std::size_t questionIndex);
 void completeQuizSuccess(Game& game);
+void presentDragonstoneReward(Game& game);
 void regenerateCurrentQuestion(Game& game);
 bool runQuizDevMode(int argc, char** argv);
 

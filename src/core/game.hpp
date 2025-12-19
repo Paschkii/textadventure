@@ -88,6 +88,24 @@ struct Game {
         sf::Clock fadeClock;
     };
 
+    // Tracks the popup that previews the broken weapons during Perigonal dialogue.
+    struct BrokenWeaponPopup {
+        enum class Phase {
+            Hidden,
+            PopupFadingIn,
+            WeaponsFadingIn,
+            Visible,
+            FadingOut
+        };
+
+        Phase phase = Phase::Hidden;
+        sf::Clock fadeClock;
+        float popupAlpha = 0.f;
+        float weaponAlpha = 0.f;
+        float popupFadeStart = 0.f;
+        float weaponFadeStart = 0.f;
+    };
+
     // Stores the state and progression for the quiz minigame.
     struct QuizData {
         bool active = false;
@@ -154,6 +172,36 @@ struct Game {
         std::mt19937 rng;
     };
 
+    // Tracks the bookshelf puzzle layout and interactive books.
+        struct BookshelfState {
+            struct BookSlot {
+                const sf::Texture* texture = nullptr;
+                sf::Vector2f position;
+                sf::FloatRect bounds;
+                bool clickable = false;
+                bool mapPiece = false;
+                std::size_t sillyIndex = std::numeric_limits<std::size_t>::max();
+                float scale = 1.f;
+            };
+
+            BookshelfState()
+            : rng(std::random_device{}()) {}
+
+            std::vector<BookSlot> books;
+            std::array<sf::FloatRect, 4> shelfBounds{};
+            int hoveredBookIndex = -1;
+            bool mapPieceCollected = false;
+            std::string statusMessage;
+            GameState previousState = GameState::IntroScreen;
+            bool awaitingDragonstoneReward = false;
+            bool promptDialogueActive = false;
+            LocationId rewardLocation = LocationId::Gonad;
+            bool returnAfterBookDialogue = false;
+            sf::Vector2f shelfPosition{ 0.f, 0.f };
+            float shelfScale = 1.f;
+            std::mt19937 rng;
+        };
+
     // Holds the three final-choice buttons shown in the climactic scene.
     struct FinalChoiceData {
         bool active = false;
@@ -178,11 +226,17 @@ struct Game {
     // Stops the typing sound so it does not continue indefinitely.
     void stopTypingSound();
     // Sets the active location and starts its music.
-    void setCurrentLocation(const Location* location);
+        void setCurrentLocation(const Location* location, bool updateBackground = true);
+    // Switches the fullscreen background to the requested texture.
+    void setBackgroundTexture(const sf::Texture& texture);
     // Plays the title screen music.
     void startTitleScreenMusic();
     // Fades out the title screen music over the given time.
     void fadeOutTitleScreenMusic(float duration);
+    // Enters the optional bookshelf search scene.
+    void startBookshelfQuest();
+    // Exits the bookshelf scene and returns to the prior state.
+    void exitBookshelfQuest();
 
         // === Public game data ===
         sf::RenderWindow window;                            // Main SFML window for rendering.
@@ -203,6 +257,22 @@ struct Game {
         sf::RectangleShape introOptionBackdrop;           // Backdrop behind intro options.
         float playerHp = 5.f;                            // Player HP value for the status bar.
         float playerHpMax = 500.f;                       // Maximum HP used for the ratio display.
+        bool inventoryArrowActive = false;                // Signals that the helper arrow should be visible.
+        bool inventoryTutorialPending = false;            // Waiting for the menu to open after the arrow line.
+        bool inventoryTutorialPopupActive = false;        // Shows the tutorial popup once the menu opens.
+        bool inventoryTutorialCompleted = false;          // Prevents re-triggering the tutorial after it ran.
+        sf::Clock inventoryArrowBlinkClock;               // Drives the arrow blinking effect.
+        bool inventoryArrowVisible = true;                // Tracks the arrow's visible/blink state.
+        sf::FloatRect inventoryTutorialButtonBounds;      // Hitbox for the Understood button inside the popup.
+        bool inventoryTutorialButtonHovered = false;      // Hover state used for the tutorial button highlight.
+        bool inventoryTutorialClosing = false;            // Signals that the tutorial is fading out.
+        bool inventoryTutorialAdvancePending = false;     // Auto-advance dialogue when the tutorial closes.
+        float inventoryTutorialCloseProgress = 0.f;       // Tracks fade progress when closing the tutorial.
+        sf::Clock inventoryTutorialCloseClock;            // Drives the tutorial fade-out timer.
+        bool healingPotionActive = false;                 // Tracks whether a healing sequence is running.
+        bool healingPotionReceived = false;               // Ensures the potion is only granted once.
+        float healingPotionStartHp = 0.f;                 // HP recorded when the potion started healing.
+        sf::Clock healingPotionClock;                     // Drives the healing interpolation timer.
         float playerXp = 0.f;                            // Player XP value for the status bar.
         float playerXpMax = 100.f;                       // XP required for the next level.
         sf::RectangleShape textBox;                      // Outline around dialogue text.
@@ -217,9 +287,14 @@ struct Game {
         bool menuButtonHovered = false;                   // Tracks hover state for the menu button.
         int menuHoveredTab = -1;                          // Hovered tab index.
         int menuActiveTab = 0;                            // Active tab index when the menu is open.
+        bool menuButtonUnlocked = false;                  // Menu becomes available once Tory points it out.
+        bool menuButtonFadeActive = false;                // Tracks whether the button is currently fading in.
+        float menuButtonAlpha = 0.f;                      // Fade progress used for button visibility.
+        sf::Clock menuButtonFadeClock;                    // Drives the 1-second menu button fade.
 
         std::optional<sf::Sprite> background;             // Background art for the current scene.
         std::optional<sf::Sprite> returnSprite;           // Icon drawn when returning to map.
+        const sf::Texture* queuedBackgroundTexture = nullptr; // Next background to fade in.
 
         std::string visibleText;                       // Currently rendered portion of the active line.
         std::size_t charIndex = 0;                     // Visible character count.
@@ -239,6 +314,7 @@ struct Game {
         std::optional<sf::Sound> quizEndSound;              // Reward/jingle once quiz concludes.
         std::optional<sf::Sound> buttonHoverSound;          // Plays when hovering interactive buttons.
         std::optional<sf::Sound> introTitleHoverSound;      // Plays when hovering intro title options.
+        std::optional<sf::Sound> healPotionSound;           // Plays when the healing potion restores HP.
 
         ConfirmationPrompt confirmationPrompt;            // Wrapped modal yes/no dialog.
 
@@ -307,6 +383,7 @@ struct Game {
         bool uiFadeInQueued = false;                     // Next fade-in was requested.
         bool uiFadeInActive = false;                     // UI is currently fading in.
         bool pendingIntroDialogue = false;               // Queue the intro dialogue after the title.
+        bool pendingPerigonalDialogue = false;           // Queue the perigonal dialogue before Gonad.
         bool pendingGonadDialogue = false;                // Queue Gonad dialogue after the intro.
         float uiFadeInDuration = 1.0f;                   // Fade-in duration.
 
@@ -328,11 +405,14 @@ struct Game {
         int hoveredWeaponIndex = -1;                    // Hovered weapon index.
         int selectedWeaponIndex = -1;                   // Currently selected weapon slot.
         bool weaponItemAdded = false;                   // Did we already add the weapon item?
+        bool brokenWeaponsStored = false;                // Ensures the broken weapons are recorded only once.
 
         std::vector<DragonPortrait> dragonPortraits;    // Portraits used in the dragon showcase UI.
         DragonShowcaseState dragonShowcase;             // State machine for the showcase animation.
+        BrokenWeaponPopup brokenWeaponPopup;             // Handles the broken weapon preview popup.
         core::ItemController itemController;            // Controls collected items.
         QuizData quiz;                                  // Manages quiz mode state and lines.
+        BookshelfState bookshelf;                       // Interactive bookshelf quest state.
         FinalChoiceData finalChoice;                    // Final choice UI state.
         std::vector<DialogueLine> transientDialogue;    // Temporary dialogue content.
         bool transientReturnToMap = false;              // Return map triggered when transient dialogue ends.
