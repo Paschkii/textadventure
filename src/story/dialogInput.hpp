@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>  // Used for removing icons and clamping values.
 // === Header Files ===
 #include "core/game.hpp"              // Accesses Game state manipulated while handling dialogue.
 #include "dialogueLine.hpp"           // Uses DialogueLine metadata processed on Enter.
@@ -7,6 +8,8 @@
 #include "ui/quizUI.hpp"              // References quiz controls triggered mid-dialogue.
 #include "ui/brokenWeaponPreview.hpp"  // Controls the broken weapon popup shown during Perigonal dialogue.
 #include "helper/healingPotion.hpp"    // Starts the potion timer that restores health.
+#include "mapTutorial.hpp"            // Defines Tory Tailor map tutorial steps.
+#include "story/quests.hpp"           // Knows which quest should fire at each dialogue line.
 
 // Collects the actions triggered by pressing Enter during dialogue or name entry.
 struct EnterAction {
@@ -16,14 +19,128 @@ struct EnterAction {
 };
 
 namespace {
-constexpr std::size_t kBrokenWeaponPreviewLineIndex = 18;
-constexpr std::size_t kWillFigsidLineIndex = 20;
-constexpr std::size_t kInventoryArrowLineIndex = 23;
+constexpr std::size_t kBrokenWeaponPreviewLineIndex = 32;
+constexpr std::size_t kWillFigsidLineIndex = 33;
 constexpr std::size_t kHealingPotionLineIndex = 4;
+constexpr float kWeaponForgingFadeDuration = 0.8f;
+constexpr float kWeaponForgingSleepDuration = 5.f;
+}
+
+inline constexpr std::size_t kBlacksmithSelectionLineIndex = 19;
+inline constexpr std::size_t kBlacksmithRestLineIndex = 19;
+inline constexpr std::size_t kBlacksmithRevealLineIndex = 20;
+inline constexpr std::size_t kBlacksmithPlayerLineIndex = 21;
+inline constexpr std::size_t kMapAcquisitionLineIndex = 5;
+inline constexpr std::size_t kMapTutorialStartLineIndex = StoryIntro::MapTutorial::kStartIndex;
+inline constexpr std::size_t kMapTutorialEndLineIndex = StoryIntro::MapTutorial::kEndIndex;
+constexpr char kInventoryArrowLineText[] = "You can open your inventory through this menu button."; // StoryTeller line that introduces the menu button.
+
+inline void removeBrokenWeaponIcons(Game& game) {
+    auto& icons = game.itemController.icons();
+    icons.erase(
+        std::remove_if(icons.begin(), icons.end(), [&](const core::ItemIcon& icon) {
+            const sf::Texture& texture = icon.sprite.getTexture();
+            return &texture == &game.resources.weaponHolmabirBroken
+                || &texture == &game.resources.weaponKattkavarBroken
+                || &texture == &game.resources.weaponStiggedinBroken;
+        }),
+        icons.end()
+    );
+}
+
+inline void openBlacksmithWeaponSelection(Game& game, const std::string& processed) {
+    if (game.state == GameState::WeaponSelection)
+        return;
+    game.visibleText = processed;
+    game.charIndex = processed.size();
+    game.currentProcessedLine = processed;
+    game.typewriterClock.restart();
+    game.state = GameState::WeaponSelection;
+    game.hoveredWeaponIndex = -1;
+    game.weaponItemAdded = false;
+    game.forgedWeaponName.clear();
+}
+
+inline void startWeaponForgingRest(Game& game) {
+    auto& forging = game.weaponForging;
+    if (forging.phase != Game::WeaponForgingState::Phase::Idle)
+        return;
+    forging.phase = Game::WeaponForgingState::Phase::FadingOut;
+    forging.clock.restart();
+    forging.alpha = 0.f;
+    forging.autoAdvancePending = true;
+    game.forgedWeaponPopupActive = false;
+    if (game.forgeSound && game.forgeSound->getStatus() == sf::Sound::Status::Playing)
+        game.forgeSound->stop();
+}
+
+inline void giveForgedWeapon(Game& game) {
+    if (game.weaponItemAdded)
+        return;
+    if (game.selectedWeaponIndex < 0 || static_cast<std::size_t>(game.selectedWeaponIndex) >= game.weaponOptions.size())
+        return;
+    const auto& tex = game.weaponOptions[game.selectedWeaponIndex].texture;
+    game.itemController.addIcon(tex);
+    game.weaponItemAdded = true;
+}
+
+inline void giveMapItem(Game& game) {
+    if (game.mapItemCollected)
+        return;
+    game.itemController.addIcon(game.resources.mapGlandular);
+    game.mapItemCollected = true;
 }
 
 // Replaces placeholder tokens with the correct speaker names (e.g., player input).
 inline std::string injectSpeakerNames(const std::string& text, const Game& game);
+
+inline void endMapTutorial(Game& game) {
+    if (!game.mapTutorialActive)
+        return;
+    game.mapTutorialActive = false;
+    game.mapTutorialAwaitingOk = false;
+    game.mapTutorialHighlight.reset();
+    game.mapTutorialAnchorNormalized = { 0.5f, 0.5f };
+    game.mapTutorialPopupBounds = {};
+    game.mapTutorialOkBounds = {};
+    game.mapTutorialOkHovered = false;
+    if (game.menuActive)
+        game.menuActive = false;
+    game.menuHoveredTab = -1;
+}
+
+inline void updateMapTutorialState(Game& game) {
+    if (!game.mapTutorialActive)
+        return;
+    if (auto stepIndex = StoryIntro::MapTutorial::stepIndexFor(game.dialogueIndex)) {
+        const auto& step = StoryIntro::MapTutorial::step(*stepIndex);
+        game.mapTutorialHighlight = step.highlightLocation;
+        game.mapTutorialAnchorNormalized = step.popupAnchorNormalized;
+        game.mapTutorialAwaitingOk = true;
+        if (game.currentDialogue && game.dialogueIndex < game.currentDialogue->size()) {
+            game.currentProcessedLine = injectSpeakerNames((*game.currentDialogue)[game.dialogueIndex].text, game);
+        }
+    }
+    else {
+        endMapTutorial(game);
+    }
+}
+
+inline void startMapTutorial(Game& game) {
+    if (game.mapTutorialActive)
+        return;
+    game.mapTutorialActive = true;
+    game.mapTutorialAwaitingOk = true;
+    game.menuActive = true;
+    game.menuActiveTab = 2;
+    game.menuHoveredTab = -1;
+    game.mouseMapHover.reset();
+    game.keyboardMapHover.reset();
+    game.menuButtonUnlocked = true;
+    game.menuButtonAlpha = 1.f;
+    game.menuButtonFadeActive = false;
+    updateMapTutorialState(game);
+}
 
 
 inline EnterAction processEnter(
@@ -134,8 +251,41 @@ inline bool advanceDialogueLine(Game& game) {
         maybeTriggerFinalCheer(game);
     }
 
+    if (game.currentDialogue == &blacksmith) {
+        game.forgedWeaponPopupActive = (game.dialogueIndex == kBlacksmithRevealLineIndex
+            || game.dialogueIndex == kBlacksmithPlayerLineIndex);
+    }
+    else {
+        game.forgedWeaponPopupActive = false;
+    }
+
+    if (game.currentDialogue == &gonad_part_two) {
+        game.mapItemPopupActive = (game.dialogueIndex == kMapAcquisitionLineIndex);
+        if (game.dialogueIndex == kMapAcquisitionLineIndex)
+            giveMapItem(game);
+        if (game.dialogueIndex == kMapTutorialStartLineIndex)
+            startMapTutorial(game);
+        if (game.mapTutorialActive) {
+            if (game.dialogueIndex > kMapTutorialEndLineIndex)
+                endMapTutorial(game);
+            else
+                updateMapTutorialState(game);
+        }
+    }
+    else {
+        game.mapItemPopupActive = false;
+        endMapTutorial(game);
+    }
+
+    if (game.currentDialogue == &blacksmith
+        && game.dialogueIndex == kBlacksmithRevealLineIndex)
+    {
+        giveForgedWeapon(game);
+    }
+
     if (game.currentDialogue == &perigonal) {
         if (game.dialogueIndex == kBrokenWeaponPreviewLineIndex) {
+            // Broken Weapon Popup
             ui::brokenweapon::showPreview(game);
             if (!game.brokenWeaponsStored) {
                 game.itemController.addIcon(game.resources.weaponHolmabirBroken);
@@ -147,20 +297,29 @@ inline bool advanceDialogueLine(Game& game) {
         else if (game.dialogueIndex == kWillFigsidLineIndex) {
             ui::brokenweapon::hidePreview(game);
         }
-        if (game.dialogueIndex == kInventoryArrowLineIndex) {
-            game.inventoryArrowActive = true;
-            game.inventoryTutorialPending = true;
-            game.inventoryTutorialPopupActive = false;
-            game.inventoryTutorialCompleted = false;
-            game.inventoryArrowBlinkClock.restart();
-            game.inventoryArrowVisible = true;
-            if (!game.menuButtonUnlocked) {
-                game.menuButtonUnlocked = true;
-                game.menuButtonAlpha = 0.f;
-                game.menuButtonFadeActive = true;
-                game.menuButtonFadeClock.restart();
+        if (game.dialogueIndex < game.currentDialogue->size()) {
+            const auto& currentLine = (*game.currentDialogue)[game.dialogueIndex];
+            if (currentLine.text == kInventoryArrowLineText) {
+                game.inventoryArrowActive = true;
+                game.inventoryTutorialPending = true;
+                game.inventoryTutorialPopupActive = false;
+                game.inventoryTutorialCompleted = false;
+                game.inventoryArrowBlinkClock.restart();
+                game.inventoryArrowVisible = true;
+                if (!game.menuButtonUnlocked) {
+                    game.menuButtonUnlocked = true;
+                    game.menuButtonAlpha = 0.f;
+                    game.menuButtonFadeActive = true;
+                    game.menuButtonFadeClock.restart();
+                }
             }
         }
+    }
+    if (auto questDefinition = Story::questForTrigger(game.currentDialogue, game.dialogueIndex)) {
+        game.startQuest(*questDefinition);
+    }
+    if (auto completionDefinition = Story::questForCompletionTrigger(game.currentDialogue, game.dialogueIndex)) {
+        game.completeQuest(*completionDefinition);
     }
     return true;
 }
@@ -224,10 +383,22 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
         return true;
     if (game.inventoryArrowActive
         && game.currentDialogue == &perigonal
-        && game.dialogueIndex == kInventoryArrowLineIndex
+        && line.text == kInventoryArrowLineText
         && !game.inventoryTutorialCompleted)
         return true;
     if (game.healingPotionActive)
+        return true;
+
+    if (game.mapTutorialActive
+        && game.dialogueIndex >= kMapTutorialStartLineIndex
+        && game.dialogueIndex <= kMapTutorialEndLineIndex
+        && game.mapTutorialAwaitingOk)
+    {
+        game.currentProcessedLine = processed;
+        return true;
+    }
+
+    if (game.weaponForging.phase != Game::WeaponForgingState::Phase::Idle)
         return true;
 
     bool startingHealingPotion = game.currentDialogue == &perigonal
@@ -396,6 +567,25 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
     }
 
     // Advance to the next dialogue line when Enter is pressed at the end of the current text.
+    if (game.currentDialogue == &blacksmith
+        && game.dialogueIndex == kBlacksmithSelectionLineIndex
+        && action.nextLine
+        && game.state == GameState::Dialogue
+        && !game.confirmationPrompt.active)
+    {
+        openBlacksmithWeaponSelection(game, processed);
+        return true;
+    }
+
+    if (game.currentDialogue == &blacksmith
+        && game.dialogueIndex == kBlacksmithRestLineIndex
+        && action.nextLine
+        && game.selectedWeaponIndex >= 0)
+    {
+        startWeaponForgingRest(game);
+        return true;
+    }
+
     if (action.nextLine)
         return advanceDialogueLine(game);
 
@@ -491,7 +681,7 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
     }
     else if (game.currentDialogue == &perigonal) {
         game.introDialogueFinished = true;
-        game.pendingGonadDialogue = true;
+        game.pendingGonadPartOneDialogue = true;
         game.queuedBackgroundTexture = &game.resources.backgroundGonad;
         game.uiFadeOutActive = true;
         game.uiFadeClock.restart();
@@ -502,18 +692,39 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
         game.currentProcessedLine.clear();
         game.charIndex = 0;
     }
-    else if (game.currentDialogue == &gonad) {
-        startDialogue(&weapon);
-        game.selectedWeaponIndex = -1;
+    else if (game.currentDialogue == &gonad_part_one) {
+        game.introDialogueFinished = true;
+        game.pendingBlacksmithDialogue = true;
+        game.queuedBackgroundTexture = &game.resources.backgroundBlacksmith;
+        game.uiFadeOutActive = true;
+        game.uiFadeClock.restart();
+        game.currentDialogue = nullptr;
+        game.lastSpeaker.reset();
+        game.visibleText.clear();
+        game.currentProcessedLine.clear();
+        game.charIndex = 0;
     }
-    else if (game.currentDialogue == &weapon) {
-        startDialogue(&dragon);
-        game.state = GameState::Dialogue;
+    else if (game.currentDialogue == &blacksmith) {
+        game.introDialogueFinished = true;
+        game.pendingGonadPartTwoDialogue = true;
+        game.queuedBackgroundTexture = &game.resources.backgroundGonad;
+        game.uiFadeOutActive = true;
+        game.uiFadeClock.restart();
+        game.currentDialogue = nullptr;
+        game.lastSpeaker.reset();
+        game.visibleText.clear();
+        game.currentProcessedLine.clear();
+        game.charIndex = 0;
     }
-    else if (game.currentDialogue == &dragon) {
-        startDialogue(&destination);
-        // After the dragon dialogue we switch to the map selection state
-        game.state = GameState::MapSelection;
+    else if (game.currentDialogue == &gonad_part_two) {
+        bool finishedFinalLine = game.dialogueIndex + 1 >= game.currentDialogue->size();
+        if (finishedFinalLine && !game.forcedDestinationSelection) {
+            game.state = GameState::Dialogue;
+            game.selectedWeaponIndex = -1;
+            if (auto location = Locations::findById(game.locations, LocationId::Gonad))
+                game.setCurrentLocation(location, false);
+            game.beginForcedDestinationSelection();
+        }
     }
     else if (isReturnToMapDialogue) {
         if (game.pendingTeleportToGonad) {
@@ -547,6 +758,64 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
     return true;
 }
 
+inline void updateWeaponForging(Game& game) {
+    auto& forging = game.weaponForging;
+    switch (forging.phase) {
+        case Game::WeaponForgingState::Phase::Idle:
+            return;
+        case Game::WeaponForgingState::Phase::FadingOut: {
+            float progress = std::min(1.f, forging.clock.getElapsedTime().asSeconds() / kWeaponForgingFadeDuration);
+            forging.alpha = progress;
+            if (progress >= 1.f) {
+                forging.phase = Game::WeaponForgingState::Phase::Sleeping;
+                forging.clock.restart();
+                if (!game.forgeSound)
+                    game.forgeSound.emplace(game.resources.forgeSound);
+                else
+                    game.forgeSound->setBuffer(game.resources.forgeSound);
+                game.forgeSound->setLooping(true);
+                game.forgeSound->play();
+            }
+            break;
+        }
+        case Game::WeaponForgingState::Phase::Sleeping: {
+            forging.alpha = 1.f;
+            if (forging.clock.getElapsedTime().asSeconds() >= kWeaponForgingSleepDuration) {
+                forging.phase = Game::WeaponForgingState::Phase::FadingIn;
+                forging.clock.restart();
+                if (game.forgeSound && game.forgeSound->getStatus() == sf::Sound::Status::Playing)
+                    game.forgeSound->stop();
+            }
+            break;
+        }
+        case Game::WeaponForgingState::Phase::FadingIn: {
+            float progress = std::min(1.f, forging.clock.getElapsedTime().asSeconds() / kWeaponForgingFadeDuration);
+            forging.alpha = 1.f - progress;
+            if (progress >= 1.f) {
+                forging.phase = Game::WeaponForgingState::Phase::Idle;
+                forging.alpha = 0.f;
+                if (game.forgeSound && game.forgeSound->getStatus() == sf::Sound::Status::Playing)
+                    game.forgeSound->stop();
+                if (forging.autoAdvancePending) {
+                    forging.autoAdvancePending = false;
+                    advanceDialogueLine(game);
+                }
+            }
+            break;
+        }
+    }
+}
+
+inline float weaponForgingOverlayAlpha(const Game& game) {
+    return game.weaponForging.phase == Game::WeaponForgingState::Phase::Idle
+        ? 0.f
+        : game.weaponForging.alpha;
+}
+
+inline bool weaponForgingOverlayVisible(const Game& game) {
+    return game.weaponForging.phase != Game::WeaponForgingState::Phase::Idle;
+}
+
 // Replace tokens such as {player} or {weapon} with dynamic names before displaying text.
 inline std::string injectSpeakerNames(const std::string& text, const Game& game) {
     std::string out = text;
@@ -556,6 +825,11 @@ inline std::string injectSpeakerNames(const std::string& text, const Game& game)
         if (game.selectedWeaponIndex >= 0 && game.selectedWeaponIndex < static_cast<int>(game.weaponOptions.size()))
             return game.weaponOptions[game.selectedWeaponIndex].displayName;
         return "your weapon";
+    };
+    auto forgedWeaponName = [&]() -> std::string {
+        if (!game.forgedWeaponName.empty())
+            return game.forgedWeaponName;
+        return selectedWeaponName();
     };
 
     // Fetches the name of the most recently completed location for {lastLocation}.
@@ -589,6 +863,7 @@ inline std::string injectSpeakerNames(const std::string& text, const Game& game)
     replaceToken("{lastDragonName}", game.lastDragonName);
     replaceToken("{weapon}", selectedWeaponName());
     replaceToken("{lastLocation}", lastLocationName());
+    replaceToken("{weaponName}", forgedWeaponName());
     auto otherGender = (game.playerGender == Game::DragonbornGender::Male)
         ? Game::DragonbornGender::Female
         : Game::DragonbornGender::Male;

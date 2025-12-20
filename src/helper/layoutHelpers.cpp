@@ -1,5 +1,7 @@
 // === C++ Libraries ===
 #include <algorithm>  // Uses std::max when computing panel widths and positioning elements.
+#include <stdexcept>  // Catches texture loading errors so we can try alternate asset paths.
+#include <string>     // Builds fallback asset path strings when the main copy is missing.
 // === Header Files ===
 #include "core/game.hpp"  // Accesses UI boxes, weapon/dragon lists, and window size info.
 #include "helper/weaponHelpers.hpp"  // Invokes weapon layout helpers at the end of updateLayout.
@@ -114,7 +116,12 @@ void updateLayout(Game& game) {
     layoutItemIcons(game);
 
     // === 9-Slice-Textur laden ===
-    game.uiFrame.load("assets/textures/boxborder.png");
+    try {
+        game.uiFrame.load("assets/textures/boxborder.png");
+    }
+    catch (const std::runtime_error&) {
+        game.uiFrame.load(std::string(TEXTADVENTURE_ASSET_DIR) + "/textures/boxborder.png");
+    }
 
     // Layout the UI-specific elements (weapon / dragon)
     ui::weapons::layoutWeaponSelection(game);

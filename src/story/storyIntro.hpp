@@ -32,15 +32,15 @@ struct ColorKeyword {
 inline const std::vector<ColorKeyword> kColorHighlights = {
     { { "Dragon Stone", "Dragon Stones", "Dragon Stones!", "Dragon stone", "Dragon stones" }, ColorHelper::Palette::Dim },
     { { "DRAGON STONE", "DRAGON STONES", "DRRAGON STONE", "DRRAGON STONES" }, ColorHelper::Palette::Dim },
-    { { "Dragonborn", "Dragonborns", "Dragon Scales", "Dragonscales", "smoky", "iron", "metal", "stone", "Stone" }, ColorHelper::Palette::Dim },
+    { { "Dragonborn", "Dragonborns", "Dragon Scales", "Dragonscales", "smoky", "iron", "metal", "steel", "stone", "Stone" }, ColorHelper::Palette::Dim },
     { { "Asha Scale", "Ember Scale", "Asha", "Ember", "Umbra Ossea", "brother", "sister", "his", "her" }, ColorHelper::Palette::SoftRed },
     { { "Master Bates", "Bates", "Ominous Castle", "castle", "shady figure", "Seminiferous" }, ColorHelper::Palette::DarkPurple },
-    { { "Noah", "Noah Lott", "Village Elder" "Tory Tailor", "Wanda Rinn", "Will Figsid", "Blacksmith", "smithcraft" }, ColorHelper::Palette::PurpleBlue },
-    { { "Fire Dragon", "hottest", "burning", "crackling embers", "wildfire", "heat", "wall of flames", "Flames", "Blyathyroid" }, ColorHelper::Palette::FireDragon },
+    { { "Noah", "Noah Lott", "Village Elder" "Tory Tailor", "Wanda Rinn", "Wanda", "Will Figsid", "Will", "Blacksmith", "smithcraft" }, ColorHelper::Palette::PurpleBlue },
+    { { "Fire Dragon", "hottest", "hot", "burning", "crackling embers", "wildfire", "heat", "wall of flames", "Flames", "Fire", "Blyathyroid" }, ColorHelper::Palette::FireDragon },
     { { "Water Dragon", "surface", "deep waters", "droplets", "flows", "riverbed", "currents", "cold stream", "Lacrimere" }, ColorHelper::Palette::WaterDragon },
     { { "Earth Dragon", "bedrock", "mountain wall", "rumbles", "shifting earth", "puddle of mud", "Cladrenal" }, ColorHelper::Palette::EarthDragon },
     { { "Air Dragon", "airy", "breeze", "swirling gusts", "wind", "winds", "Aerobronchi" }, ColorHelper::Palette::AirDragon },
-    { { "Gonad", "Glandular", "Perigonal", "Holmabir", "Kattkavar", "Stiggedin", "destination", "village", "weapon", "weapons", "spatial magic", "Who wants tyo be", "Hu vants to be a", "Who wants-a to be a", "Who wants to be a" }, ColorHelper::Palette::TitleAccent },
+    { { "Gonad", "Glandular", "Perigonal", "Holmabir", "Kattkavar", "Stiggedin", "destination", "village", "weapon", "weapons", "histories", "cores", "core" "spatial magic", "Who wants tyo be", "Hu vants to be a", "Who wants-a to be a", "Who wants to be a" }, ColorHelper::Palette::TitleAccent },
 };
 
 // Returns a flattened list of tokens/colors for quicker lookup while typing.
@@ -182,55 +182,155 @@ inline const std::vector<DialogueLine> intro = {
     { Speaker::StoryTeller, "But fear not, for you are not alone. You will have allies to help you on your journey." },
     { Speaker::StoryTeller, "Let's jump right in!" }
 };
-
+// This is were the story starts and the player meets its first companion: Wanda Rinn
 inline const std::vector<DialogueLine> perigonal = {
     { Speaker::NoNameWanderer, "Hey...! Are you alright? Wake up...." },
     { Speaker::NoNameWanderer, "Easy now - don't move. You're bleeding." },
     { Speaker::NoNameWanderer, "My name is Wanda Rinn. What is your name?", true }, // Name Insertion
     { Speaker::Player, "Ugghhhh.... My whole body hurts..." },
     { Speaker::VillageWanderer, "Here, drink. This will stitch you up in no time." }, // Potion Handling Needed here, fill players health back up to 100%
-    { Speaker::VillageWanderer, "What on Glandular happened to you {playerName}?" },
-    { Speaker::Player, "My {dragonbornSibling} and I found traces of Umbra Ossea in an old book, but..." },
-    { Speaker::Player, "We weren't the only ones following them." },
-    { Speaker::Player, "That's when Master Bates attacked us... His magic was evil and dangerous..." },
-    { Speaker::VillageWanderer, "I've heard Tales of Umbra Ossea. Many have searched for it, but noone ever found it. What happened to your {dragonbornSibling}?" },
-    { Speaker::Player, "My {dragonbornSibling} got knocked out during the fight. I didn't think. I just charged in." },
-    { Speaker::Player, "Next thing I know is you waking me up. {dragonbornSiblingName} must have used {dragonbornPossessive} spatial magic to teleport me here..." },
-    { Speaker::VillageWanderer, "If you're telling the truth... then you're in more danger than you know." },
-    { Speaker::VillageWanderer, "But please tell me. Why were you searching for Umbra Ossea? And what made you sure you could find it?" },
-    { Speaker::Player, "Look closely. These aren't scars. **Pulls back sleeve, scales glinting**" },
-    { Speaker::VillageWanderer, "By the glands of Glandular... Are you a Dragonborn?!" },
-    { Speaker::Player, "Yes, that's why we are sure it must exist. There must be others of our kind. We have it in our guts." },
-    { Speaker::Player, "But as of now, I first need to save {dragonbornSiblingName}. Where are my weapons?" },
+    { Speaker::VillageWanderer, "What happened to you {playerName}?" },
+    { Speaker::Player, "This place....? Where am I...?" },
+    { Speaker::VillageWanderer, "You are in the Fields of Petrigonal in Glandular." },
+    { Speaker::Player, "Glandular? We used to speak that name carefully... Like a place you don't step into - only talk about." },
+    { Speaker::VillageWanderer, "We...? What do you mean by we?" },
+    { Speaker::Player, "The residents of Umbra Ossea - where I come from." },
+    { Speaker::VillageWanderer, "Umbra Ossea...? You say that as if it were a real place." },
+    { Speaker::Player, "It is. Or at least... it was." },
+    { Speaker::VillageWanderer, "People around here use that name differently. As a... tale. Something you don't expect to be true." },
+    { Speaker::Player, "That's how we spoke of Glandular. A world beyond the veil. A place you never return from." },
+    { Speaker::VillageWanderer, "...So both of us grew up listening to lies." },
+    { Speaker::Player, "Or half-truths." },
+    { Speaker::VillageWanderer, "Maybe... Or both worlds were just afraid of each other." },
+    { Speaker::VillageWanderer, "And you? How did you cross that veil?" },
+    { Speaker::Player, "I didn't mean to. An evil sorcerer by the name Master Bates found a way in." },
+    { Speaker::VillageWanderer, "Master Bates?! That name has heavy weight here." },
+    { Speaker::VillageWanderer, "He tried to overrule the dragons regions for a long time and has brought nothing but chaos." },
+    { Speaker::Player, "Sounds familar. He attacked us, while I was training with my {dragonbornSibling}, {dragonbornSiblingName}." },
+    { Speaker::Player, "He clearly didn't mean to overrule us - but steal from us and erase us..." },
+    { Speaker::VillageWanderer, "What happened to your {dragonbornSibling}, ...{dragonbornSiblingName}?" },
+    { Speaker::Player, "{dragonbornSiblingName} was hit first. I didn't think - I just charged in." },
+    { Speaker::Player, "The next thing I remember is you waking me up... {dragonbornSiblingName} must have used {dragonbornPossessive} Spatial Magic." },
+    { Speaker::Player, "A blind jump - Glandular was never meant to be the destination... I guess." },
+    { Speaker::VillageWanderer, "Or maybe it was. If you're telling the truth... then we're all in danger." },
+    { Speaker::Player, "Here, I'll prove it **Pulls back sleeve, scales glinting** These aren't scars. They are..." },
+    { Speaker::VillageWanderer, "Dragon Scales! Only true Dragonborns have them! So the legends tend to have some weight in them." },
+    { Speaker::Player, "I need to go back and save {dragonbornSiblingName}. Where are my weapons?" },
     { Speaker::VillageWanderer, "They are here. But they've been scattered. I will take care of them." },
     { Speaker::VillageWanderer, "There is a village nearby named Gonad. A mighty Blacksmith resides there. His name is Will Figsid." },
-    { Speaker::VillageWanderer, "He is well known across Glandular for his smithcraft. I'm sure he can fix them!" },
+    { Speaker::VillageWanderer, "He is well known across Glandular for his smithcraft. I'm sure he can help!" },
     { Speaker::VillageWanderer, "Get up {playerName}. Gonad isn't far - and if Master Bates is involved, we don't have much time." },
     { Speaker::StoryTeller, "Wanda Rinn is a very helpful companion. She will handle your inventory and can give you hints and explanations along your travel." },
     { Speaker::StoryTeller, "You can open your inventory through this menu button." },
     { Speaker::StoryTeller, "This is all for now. Once a new Menu Shortcut unlocks, I will explain it to you." },
 };
-
-// Dialogue from Gonad village NPC introducing the player’s awakening.
-inline const std::vector<DialogueLine> gonad = {
-    { Speaker::VillageElder, "Hey, {playerName}. Are you awake?" },
-    { Speaker::VillageElder, "You have been asleep for a long time." },
-    { Speaker::VillageElder, "I was starting to worry about you." },
-    { Speaker::VillageElder, "You are in a small village called Gonad." },
-    { Speaker::VillageElder, "I am Noah Lott, the Elder of this village." },
-    { Speaker::VillageElder, "How I know you? {playerName}, you are a Dragonborn!" },
-    { Speaker::VillageElder, "Your skin is covered in Dragon Scales!" },
-    { Speaker::VillageElder, "And you are the only Dragonborn, that hasnt been captured by Master Bates, yet..." },
-    { Speaker::VillageElder, "So it was an easy guess for me!" },
+// First part of the Gonad Dialogue. This is where the player meets Noah Lott
+inline const std::vector<DialogueLine> gonad_part_one = {
+    { Speaker::VillageWanderer, "And here we are - Gonad. Peaceful, steady and alive." },
+    { Speaker::VillageWanderer, "Not many places in Glandular are like this." },
+    { Speaker::Player, "It feels... safe. Like nothing's chasing me here." },
+    { Speaker::VillageWanderer, "I know what you mean. People work, trade, eat together - and sleep with two shut eyes." },
+    { Speaker::VillageWanderer, "We should see Noah Lott first. He's the Elder of this Village." },
+    { Speaker::VillageWanderer, "He knows Glandular better than most. And he still owes me a favor." },
+    { Speaker::Player, "A good one?" },
+    { Speaker::VillageWanderer, "A reliable one." },
+    { Speaker::Player, "So this is a real village. Not just a stop on the road." },
+    { Speaker::VillageWanderer, "Gonad doesn't survive by accident. You'll see." },
+    { Speaker::VillageElder, "Wanda Rinn! I had a feeling you'd return - you always do." },
+    { Speaker::VillageWanderer, "Some places pull harder than others." },
+    { Speaker::VillageElder, "And who's your escort?" },
+    { Speaker::Player, "My name is {playerName}. I woke up near the village. I don't remember how I got there." },
+    { Speaker::VillageWanderer, "Found him with his gear in pieces. All of it." },
+    { Speaker::VillageElder, "Hmmmm... You won't get far in Glandular like that." },
+    { Speaker::VillageWanderer, "True. Maybe we can resolve the favor you still owe me with a discounted visit at Figsid's Forge?" },
+    { Speaker::VillageElder, "And straight to business - That's the Wanda I know! hahaha!" },
+    { Speaker::VillageElder, "I've already informed him of your coming - It is good to know a lot hahaha!" },
+    { Speaker::VillageElder, "If anyone can help you, it's him. I'll make sure he gives you his full attention." },
+    { Speaker::Player, "This is much more than I hoped for. Thank you!" },
+    { Speaker::VillageElder, "You will find his forge at the end of this road. Wanda knows the way." },
+    { Speaker::VillageWanderer, "Until next favor Noah! Always a pleasure making deals with you." },
+    { Speaker::VillageElder, "Hopefully next time you'll have a favor to return!" },
+    { Speaker::VillageWanderer, "We will see! Come on, {playerName} - the forge is just ahead!" },
+    { Speaker::Player, "Yes, let's go!" },
+};
+// Will Figsid's Forge. Here, the players weapon will be repaired - but only one!
+inline const std::vector<DialogueLine> blacksmith = {
+    { Speaker::Blacksmith, "Welcome to my forge. Noah already told me you'd come. Tell me your reason." },
+    { Speaker::Player, "He said you might be able to help with my weapons." },
+    { Speaker::Blacksmith, "Maybe. Show me what you brought." },
+    { Speaker::Player, "...It's not pretty. All my weapons are broken." },
+    { Speaker::Blacksmith, "Let me see.......... Hmmmmm.......I see..........." },
+    { Speaker::Blacksmith, "Okay......... Hmmmmm....... Alright........." },
+    { Speaker::Blacksmith, "Uhhhh......... Hmmmmm....... Interesting........." },
+    { Speaker::Blacksmith, ".....These weapons are done." },
+    { Speaker::Player, "Done as in... repaired?" },
+    { Speaker::Blacksmith, "Done as in... finished. Their shapes are ruined. But the cores haven't gone silent yet." },
+    { Speaker::Player, "So there's no saving them...?" },
+    { Speaker::Blacksmith, "Not as they are. Trying would only give you something that breaks when you need it most." },
+    { Speaker::Player, "Then what can you do?" },
+    { Speaker::Blacksmith, "Three weapons. Three histories. Three cores. And enough metal to create something new." },
+    { Speaker::Blacksmith, "I can take what remains and forge only ONE new weapon - but stronger than any of these ever were." },
+    { Speaker::Player, "...So I will have to choose." },
+    { Speaker::Blacksmith, "Yes. I can shape the steel into the kind of weapon you want to carry forward." },
+    { Speaker::VillageWanderer, "This is one of those moments where you have to let your loved one go, isn't it?" },
+    { Speaker::Player, "Yeah, it feels like it." },
+    { Speaker::Blacksmith, "The forge is hot. Which weapon shall I create?" }, // New WeaponSelection UI, take broken weapons out of players inventory
+    { Speaker::Blacksmith, "This will take some time. Feel free to get some rest. I will wake you when I'm done." }, // When Weapon is Selected, after this Line 5 second black screen
+    { Speaker::Blacksmith, "Wake up, I'm done. This is your new {weaponName}." }, // Give new weapon to Player, display it in a popup
+    { Speaker::Player, "This... is better than I expected." },
+    { Speaker::Blacksmith, "Expectation is what brought you here in the first place." },
+    { Speaker::Blacksmith, "What you presented to me was broken. What you're holding now is flawless." },
+    { Speaker::Player, "It feels... very different." },
+    { Speaker::Blacksmith, "It should. Although this weapon is stronger, you yourself haven't changed during your beauty sleep." },
+    { Speaker::Blacksmith, "You should go back to Noah Lott and ask him about the Elemental Dragons." },
+    { Speaker::Blacksmith, "They might know a way to strengthen your mind, your body an your soul." },
+    { Speaker::VillageWanderer, "Seems like you got a tough path ahead of you if you want to save your {dragonbornSibling}." },
+    { Speaker::Player, "Then I shall walk it." },
+    { Speaker::VillageWanderer, "Good answer! We should head back to Noah Lott now." }, // Fade into gonad_part_two
+};
+// Secon part of the Gonad Dialogue. This is where the player receives a map
+inline const std::vector<DialogueLine> gonad_part_two = {
+    { Speaker::VillageElder, "You're back. I see Will kept his word." },
+    { Speaker::Player, "He did. This weapon is... something else." },
+    { Speaker::VillageElder, "Good. Then listen carefully." },
+    { Speaker::VillageElder, "Glandular holds many lands - but four regions stand apart, shaped by the Elemental Dragons." },
+    { Speaker::VillageElder, "They keep the balance. They also test those who walk their paths." },
+    { Speaker::VillageElder, "Take this." }, // Give Map of Glandular here
+    { Speaker::VillageElder, "Not all roads wish to be found. This map shows the ones that do." }, // Open Map at the end of this line
+    { Speaker::StoryTeller, "And just like that, the world opens." },
+    { Speaker::StoryTeller, "But before you rush off - let's make sure you know what you're carrying." },
+    { Speaker::StoryTeller, "To the south lies Aerobronchi." }, // Highlight Aerobronchi
+    { Speaker::StoryTeller, "Land of wind and open skies." },
+    { Speaker::StoryTeller, "Its dragon is Gustavo Windimaess." }, // Fade in Air Dragon Asset
+    { Speaker::StoryTeller, "Quick-tongued. Proud. He enjoys watching people lose their breath." }, // Unhighlight Aerobronchi, Fade Out Air Dragon Asset
+    { Speaker::StoryTeller, "To the east stands Blyathyroid." }, // Highlight Blyathyroid
+    { Speaker::StoryTeller, "Fire, stone, and pressure." }, 
+    { Speaker::StoryTeller, "Rowsted Sheacane rules there." }, // Fade in Fire Dragon Asset
+    { Speaker::StoryTeller, "He respects strength - and nothing else." }, // Unhighlight Blyathyroid, fade out Fire Dragon Asset
+    { Speaker::StoryTeller, "To the west lies Cladrenal." }, // Highlight Cladrenal
+    { Speaker::StoryTeller, "Solid ground. Heavy silence." },
+    { Speaker::StoryTeller, "Grounded Claymore watches over it." }, // Fade in Earth Dragon Asset
+    { Speaker::StoryTeller, "Straightforward. Fair. But unmoving once decided." }, // Unhighlight Cladrenal, Fade out Earth Dragon Asset
+    { Speaker::StoryTeller, "And to the north... Lacrimere." }, // Highlight Lacrimere
+    { Speaker::StoryTeller, "Cold waters and deeper emotions." },
+    { Speaker::StoryTeller, "Flawtin Seamen dwells there." }, // Fade in Water Dragon Asset
+    { Speaker::StoryTeller, "He listens closely - sometimes too closely." }, // Unhighlight Lacrimere, Fade out Water Dragon Asset
+    { Speaker::Player, "And they will all test me?" },
+    { Speaker::VillageElder, "Yes. The trials are the same in nature. But the dragons are not." },
+    { Speaker::VillageElder, "Each will judge you through their own temper." },
+    { Speaker::VillageElder, "Charm, force, patience, or resolve." },
+    { Speaker::Player, "And if I fail?" },
+    { Speaker::VillageElder, "You won't. Not because you shoudln't, but because you can't." },
+    { Speaker::VillageElder, "Your weapon is ready. The paths are open. It's up to you to decide your fate." },
+    { Speaker::VillageElder, "And remember - the dragons do not change you. They only reveal what has yet to awaken." },
+    { Speaker::Player, "A map... and a chance to save {dragonbornSiblingName}." },
+    { Speaker::VillageWanderer, "We are all set now. Let's open the map and choose our first destination." },
 };
 
-// Brief dialogue prompting the player to name the found weapon.
-inline const std::vector<DialogueLine> weapon = {
-    { Speaker::VillageElder, "Oh! And I found this weapon beside your body. Can you tell me its name?" }
-};
 
 // Extended village narrator text describing each dragon’s personality.
 inline const std::vector<DialogueLine> dragon = {
+#if 0
     { Speaker::VillageElder, "You have to ask the dragons for their help. These are the 4 dragons:" },
     { Speaker::VillageElder, "Rowsted Sheacane - The Fire Dragon" },
     { Speaker::VillageElder, "This is the hottest temper among the Four, burning through every room he enters." },
@@ -248,13 +348,11 @@ inline const std::vector<DialogueLine> dragon = {
     { Speaker::VillageElder, "Lively, airy, and constantly in motion - the breeze itself can't keep up with him." },
     { Speaker::VillageElder, "His tongue is melodic, rolling, and feather-light, dancing through vowels like swirling gusts." },
     { Speaker::VillageElder, "Every phrase rises and falls like a warm Mediterranean wind." },
+#endif
 };
 
-// Dialogue asking which dragon location to visit first.
-inline const std::vector<DialogueLine> destination = {
-    { Speaker::VillageElder, "You are all set now. It is up to you to choose your first destination." },
-    { Speaker::VillageElder, "Which dragon do you want to visit first?" },
-};
+inline const std::vector<DialogueLine> gonad = {};
+inline const std::vector<DialogueLine> weapon = {};
 
 // Greeting lines shown when the player returns to Gonad after a dungeon run.
 inline const std::vector<DialogueLine> gonadWelcomeBack = {

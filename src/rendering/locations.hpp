@@ -12,6 +12,7 @@
 enum class LocationId {
     Perigonal,
     Gonad,
+    FigsidsForge,
     Blyathyroid,
     Lacrimere,
     Cladrenal,

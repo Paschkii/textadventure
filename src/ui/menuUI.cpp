@@ -30,13 +30,14 @@
 #include "story/textStyles.hpp"
 #include "ui/mapSelectionUI.hpp"
 #include "ui/menuUI.hpp"
+#include "ui/popupStyle.hpp"
 
 namespace ui::menu {
 
 namespace {
     constexpr std::array<const char*, 6> kTabLabels = {
         "Inventory",
-        "Character",
+        "Skills",
         "Map",
         "Quests",
         "Settings",
@@ -45,95 +46,11 @@ namespace {
 
     enum class MenuTab {
         Inventory = 0,
-        Character,
+        Skills,
         Map,
         Quests,
         Settings,
         Rankings,
-    };
-
-    class RoundedRectangleShape : public sf::Shape {
-    public:
-        RoundedRectangleShape(sf::Vector2f size = {}, float radius = 0.f, std::size_t cornerPointCount = 8)
-        : m_size(size)
-        , m_radius(radius)
-        , m_cornerPointCount(std::max<std::size_t>(2, cornerPointCount))
-        {
-            update();
-        }
-
-        void setSize(sf::Vector2f size) {
-            m_size = size;
-            update();
-        }
-
-        void setCornerRadius(float radius) {
-            m_radius = radius;
-            update();
-        }
-
-        void setCornerPointCount(std::size_t count) {
-            m_cornerPointCount = std::max<std::size_t>(2, count);
-            update();
-        }
-
-        [[nodiscard]] sf::Vector2f getSize() const {
-            return m_size;
-        }
-
-        [[nodiscard]] float getCornerRadius() const {
-            return m_radius;
-        }
-
-        [[nodiscard]] std::size_t getPointCount() const override {
-            return m_cornerPointCount * 4;
-        }
-
-        [[nodiscard]] sf::Vector2f getPoint(std::size_t index) const override {
-            float radius = std::min(m_radius, std::min(m_size.x, m_size.y) * 0.5f);
-            std::size_t corner = index / m_cornerPointCount;
-            std::size_t pointIndex = index % m_cornerPointCount;
-
-            if (radius <= 0.f) {
-                return {
-                    (corner % 2) * m_size.x,
-                    (corner / 2) * m_size.y
-                };
-            }
-
-            constexpr float kPi = 3.14159265358979323846f;
-            constexpr float kQuarter = kPi * 0.5f;
-            float progress = static_cast<float>(pointIndex) / static_cast<float>(m_cornerPointCount - 1);
-            float startAngle = 0.f;
-            sf::Vector2f center;
-
-            switch (corner) {
-                case 0:
-                    center = { radius, radius };
-                    startAngle = kPi;
-                    break;
-                case 1:
-                    center = { m_size.x - radius, radius };
-                    startAngle = 1.5f * kPi;
-                    break;
-                case 2:
-                    center = { m_size.x - radius, m_size.y - radius };
-                    startAngle = 0.f;
-                    break;
-                default:
-                    center = { radius, m_size.y - radius };
-                    startAngle = 0.5f * kPi;
-                    break;
-            }
-
-            float angle = startAngle + progress * kQuarter;
-            return center + sf::Vector2f{ std::cos(angle), std::sin(angle) } * radius;
-        }
-
-    private:
-        sf::Vector2f m_size;
-        float m_radius = 0.f;
-        std::size_t m_cornerPointCount = 4;
     };
 
     std::string formatTime(double totalSeconds) {
@@ -154,6 +71,11 @@ namespace {
     constexpr float kInventoryTutorialButtonWidth = 140.f;
     constexpr float kInventoryTutorialButtonHeight = 36.f;
     constexpr float kInventoryTutorialCloseDuration = 1.f;
+    constexpr float kMapTutorialButtonWidth = 140.f;
+    constexpr float kMapTutorialButtonHeight = 44.f;
+    constexpr float kMapTutorialButtonPadding = 12.f;
+    constexpr unsigned int kMapTutorialTextSize = 20;
+    constexpr float kMapTutorialLineSpacing = 14.f;
 
     void beginInventoryTutorial(Game& game) {
         if (!game.inventoryTutorialPending)
@@ -165,30 +87,263 @@ namespace {
         game.inventoryTutorialAdvancePending = false;
     }
 
-    float drawInventoryContent(Game& game, sf::RenderTarget& target, const sf::FloatRect& bounds) {
+    void drawTutorialButton(
+        Game& game,
+        sf::RenderTarget& target,
+        const sf::FloatRect& bounds,
+        bool hovered,
+        float alphaFactor
+        , const std::string& label = "Ok"
+    ) {
+        sf::Color baseColor = TextStyles::UI::PanelDark;
+        sf::Color outlineColor = ColorHelper::Palette::Amber;
+        if (hovered)
+            baseColor = ColorHelper::Palette::Green;
+        baseColor = ColorHelper::applyAlphaFactor(baseColor, alphaFactor * (hovered ? 0.9f : 0.7f));
+        outlineColor = ColorHelper::applyAlphaFactor(outlineColor, alphaFactor);
+
+        RoundedRectangleShape buttonShape({ bounds.size.x, bounds.size.y }, bounds.size.y * 0.5f, 20);
+        buttonShape.setPosition({ bounds.position.x, bounds.position.y });
+        buttonShape.setFillColor(baseColor);
+        buttonShape.setOutlineThickness(2.f);
+        buttonShape.setOutlineColor(outlineColor);
+        target.draw(buttonShape);
+
+        sf::Text text{ game.resources.uiFont, label, 22 };
+        text.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, alphaFactor));
+        auto textBounds = text.getLocalBounds();
+        text.setOrigin({
+            textBounds.position.x + textBounds.size.x * 0.5f,
+            textBounds.position.y + textBounds.size.y * 0.5f
+        });
+        text.setPosition({
+            bounds.position.x + bounds.size.x * 0.5f,
+            bounds.position.y + bounds.size.y * 0.5f
+        });
+        target.draw(text);
+    }
+
+    void drawMapTutorialPopup(Game& game, sf::RenderTarget& target, const sf::FloatRect& panelBounds, float menuFadeFactor) {
+        if (!game.mapTutorialActive || game.menuActiveTab != static_cast<int>(MenuTab::Map)) {
+            game.mapTutorialPopupBounds = {};
+            game.mapTutorialOkBounds = {};
+            return;
+        }
+
+        if (game.currentProcessedLine.empty()
+            && game.currentDialogue
+            && game.dialogueIndex < game.currentDialogue->size())
+        {
+            game.currentProcessedLine = injectSpeakerNames(
+                (*game.currentDialogue)[game.dialogueIndex].text,
+                game
+            );
+        }
+
+        std::optional<LocationId> highlight = game.mapTutorialHighlight;
+        const sf::Texture* dragonTexture = nullptr;
+        if (highlight) {
+            switch (*highlight) {
+                case LocationId::Aerobronchi:
+                    dragonTexture = &game.resources.airDragon;
+                    break;
+                case LocationId::Blyathyroid:
+                    dragonTexture = &game.resources.fireDragon;
+                    break;
+                case LocationId::Cladrenal:
+                    dragonTexture = &game.resources.earthDragon;
+                    break;
+                case LocationId::Lacrimere:
+                    dragonTexture = &game.resources.waterDragon;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        float popupWidth = std::clamp(panelBounds.size.x * 0.46f, 320.f, 480.f);
+        float popupHeight = std::clamp(panelBounds.size.y * 0.28f, 160.f, 240.f);
+        float anchorX = panelBounds.position.x + (panelBounds.size.x * game.mapTutorialAnchorNormalized.x);
+        float anchorY = panelBounds.position.y + (panelBounds.size.y * game.mapTutorialAnchorNormalized.y);
+        float popupX = anchorX - popupWidth * 0.5f;
+        float popupY = anchorY - popupHeight * 0.5f;
+        popupX = std::clamp(popupX, panelBounds.position.x + 12.f, panelBounds.position.x + panelBounds.size.x - popupWidth - 12.f);
+        popupY = std::clamp(popupY, panelBounds.position.y + 12.f, panelBounds.position.y + panelBounds.size.y - popupHeight - 12.f);
+        game.mapTutorialPopupBounds = { { popupX, popupY }, { popupWidth, popupHeight } };
+
+        RoundedRectangleShape popupShape({ popupWidth, popupHeight }, 18.f, 20);
+        popupShape.setPosition({ popupX, popupY });
+        popupShape.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, menuFadeFactor));
+        popupShape.setOutlineThickness(2.f);
+        popupShape.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::FrameGoldLight, menuFadeFactor));
+        target.draw(popupShape);
+
+        sf::Text header{ game.resources.uiFont, "Tory Tailor", 24 };
+        header.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, menuFadeFactor));
+        header.setPosition({ popupX + 18.f, popupY + 18.f });
+        target.draw(header);
+
+        std::optional<sf::Sprite> dragonSprite;
+        float dragonSpriteWidth = 0.f;
+        float dragonSpriteHeight = 0.f;
+        if (dragonTexture && dragonTexture->getSize().x > 0 && dragonTexture->getSize().y > 0) {
+            dragonSprite.emplace(*dragonTexture);
+            float maxDragonWidth = std::clamp(popupWidth * 0.32f, 64.f, popupWidth * 0.5f);
+            float maxDragonHeight = std::clamp(popupHeight * 0.4f, 64.f, popupHeight * 0.6f);
+            float texWidth = static_cast<float>(dragonTexture->getSize().x);
+            float texHeight = static_cast<float>(dragonTexture->getSize().y);
+            float scale = std::min(maxDragonWidth / texWidth, maxDragonHeight / texHeight);
+            if (scale > 0.f) {
+                dragonSpriteWidth = texWidth * scale;
+                dragonSpriteHeight = texHeight * scale;
+                dragonSprite->setScale({ scale, scale });
+            }
+        }
+
+        float textX = popupX + 18.f;
+        float textY = popupY + 42.f;
+        float textRightPadding = dragonSpriteWidth > 0.f ? (dragonSpriteWidth + 12.f) : 0.f;
+        float maxTextWidth = std::max(0.f, popupWidth - 36.f - textRightPadding);
+        auto segments = buildColoredSegments(game.currentProcessedLine);
+        drawColoredSegments(
+            target,
+            game.resources.uiFont,
+            segments,
+            { textX, textY },
+            kMapTutorialTextSize,
+            maxTextWidth,
+            menuFadeFactor,
+            kMapTutorialLineSpacing
+        );
+
+        float buttonX = popupX + popupWidth - kMapTutorialButtonPadding - kMapTutorialButtonWidth;
+        float buttonY = popupY + popupHeight - kMapTutorialButtonPadding - kMapTutorialButtonHeight;
+
+        if (dragonSprite && dragonSpriteWidth > 0.f && dragonSpriteHeight > 0.f) {
+            float spriteX = buttonX + (kMapTutorialButtonWidth * 0.5f);
+            float spriteY = buttonY - (kMapTutorialButtonHeight + dragonSpriteHeight) * 0.5f;
+            float minSpriteY = popupY + 24.f + (dragonSpriteHeight * 0.5f);
+            spriteY = std::max(spriteY, minSpriteY);
+            auto dragonBounds = dragonSprite->getLocalBounds();
+            dragonSprite->setOrigin({
+                dragonBounds.size.x * 0.5f,
+                dragonBounds.size.y * 0.5f
+            });
+            dragonSprite->setPosition({ spriteX, spriteY });
+            dragonSprite->setColor(ColorHelper::applyAlphaFactor(sf::Color::White, menuFadeFactor));
+            target.draw(*dragonSprite);
+        }
+        game.mapTutorialOkBounds = { { buttonX, buttonY }, { kMapTutorialButtonWidth, kMapTutorialButtonHeight } };
+        drawTutorialButton(game, target, game.mapTutorialOkBounds, game.mapTutorialOkHovered, menuFadeFactor);
+    }
+
+    float drawInventoryContent(Game& game, sf::RenderTarget& target, const sf::FloatRect& bounds, float alphaFactor) {
         sf::RectangleShape contentBox;
         contentBox.setPosition({ bounds.position.x + 12.f, bounds.position.y + 12.f });
         contentBox.setSize({ bounds.size.x - 24.f, bounds.size.y - 24.f });
-        contentBox.setFillColor(sf::Color(28, 18, 10));
-        contentBox.setOutlineColor(sf::Color(255, 255, 255, 120));
+        auto applyAlpha = [&](const sf::Color& color) {
+            return ColorHelper::applyAlphaFactor(color, alphaFactor);
+        };
+        contentBox.setFillColor(applyAlpha(sf::Color::Transparent));
+        contentBox.setOutlineColor(applyAlpha(sf::Color(255, 255, 255, 120)));
         contentBox.setOutlineThickness(1.5f);
         target.draw(contentBox);
 
-        sf::Text header{ game.resources.uiFont, "Inventory", 36 };
-        header.setFillColor(ColorHelper::Palette::SoftYellow);
-        header.setPosition({ bounds.position.x + 32.f, bounds.position.y + 38.f });
-        target.draw(header);
+        constexpr float verticalPadding = 30.f;
+        constexpr float horizontalPadding = 28.f;
+        constexpr float columnSpacing = 32.f;
+        constexpr float sectionCornerRadius = 18.f;
+        float columnTop = bounds.position.y + verticalPadding;
+        float columnBottom = bounds.position.y + bounds.size.y - verticalPadding;
+        float columnHeight = std::max(0.f, columnBottom - columnTop);
+        float availableWidth = bounds.size.x - (horizontalPadding * 2.f) - columnSpacing;
+        float leftColumnWidth = std::max(200.f, availableWidth * 0.65f);
+        float rightColumnWidth = availableWidth - leftColumnWidth;
+        if (rightColumnWidth < 200.f) {
+            rightColumnWidth = 200.f;
+            leftColumnWidth = std::max(200.f, availableWidth - rightColumnWidth);
+        }
 
-        sf::Text info{ game.resources.uiFont, "Wanda keeps track of the gear you recover here.", 18 };
-        info.setFillColor(ColorHelper::Palette::Dim);
-        info.setPosition({ bounds.position.x + 32.f, bounds.position.y + 84.f });
+        float leftColumnX = bounds.position.x + horizontalPadding;
+        float rightColumnX = leftColumnX + leftColumnWidth + columnSpacing;
+
+        const sf::Color sectionColor(205, 193, 160, 210);
+        RoundedRectangleShape leftSection({ leftColumnWidth, columnHeight }, sectionCornerRadius, 12);
+        leftSection.setPosition({ leftColumnX, columnTop });
+        leftSection.setFillColor(applyAlpha(sectionColor));
+        target.draw(leftSection);
+
+        RoundedRectangleShape rightSection({ rightColumnWidth, columnHeight }, sectionCornerRadius, 12);
+        rightSection.setPosition({ rightColumnX, columnTop });
+        rightSection.setFillColor(applyAlpha(sectionColor));
+        target.draw(rightSection);
+
+        constexpr float kHeaderFontSize = 34.f;
+        constexpr float kHeaderIconHeight = 32.f;
+        constexpr float kHeaderIconSpacing = 10.f;
+        auto drawSectionHeader = [&](const sf::Texture* icon, const std::string& title, float x, float y, bool centered = false) {
+            sf::Text header{ game.resources.uiFont, title, static_cast<unsigned int>(kHeaderFontSize) };
+            header.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
+            float iconWidth = 0.f;
+            float iconHeight = 0.f;
+            std::optional<sf::Sprite> headerSprite;
+            if (icon && icon->getSize().x > 0 && icon->getSize().y > 0) {
+                headerSprite.emplace(*icon);
+                float scale = kHeaderIconHeight / static_cast<float>(icon->getSize().y);
+                headerSprite->setScale({ scale, scale });
+                iconWidth = static_cast<float>(icon->getSize().x) * scale;
+                iconHeight = static_cast<float>(icon->getSize().y) * scale;
+            }
+            float baseX = x;
+            if (centered) {
+                float totalWidth = header.getLocalBounds().size.x + (iconWidth > 0.f ? iconWidth + kHeaderIconSpacing : 0.f);
+                baseX = x - (totalWidth * 0.5f);
+            }
+            float textX = baseX + (iconWidth > 0.f ? iconWidth + kHeaderIconSpacing : 0.f);
+            header.setPosition({ textX, y });
+            auto headerGlobalBounds = header.getGlobalBounds();
+            float headerHeight = headerGlobalBounds.size.y;
+            if (headerHeight <= 0.f)
+                headerHeight = kHeaderFontSize;
+            float textCenterY = headerGlobalBounds.position.y + (headerHeight * 0.5f);
+            if (headerSprite) {
+                float iconY = textCenterY - (iconHeight * 0.5f);
+                headerSprite->setPosition({ baseX, iconY });
+                headerSprite->setColor(applyAlpha(sf::Color::White));
+                target.draw(*headerSprite);
+            }
+            target.draw(header);
+            return headerHeight;
+        };
+
+        float inventoryHeaderY = columnTop + 18.f;
+        float inventoryHeaderHeight = drawSectionHeader(
+            &game.resources.buttonInventory,
+            "Inventory",
+            leftColumnX + (leftColumnWidth * 0.5f),
+            inventoryHeaderY,
+            true
+        );
+
+        sf::Text info{ game.resources.uiFont, "", 18 };
+        info.setFillColor(applyAlpha(ColorHelper::Palette::Dim));
+        info.setLineSpacing(1.2f);
+        info.setPosition({ leftColumnX + 16.f, inventoryHeaderY + inventoryHeaderHeight + 10.f });
         target.draw(info);
 
         auto& icons = game.itemController.icons();
         if (icons.empty()) {
             sf::Text empty{ game.resources.uiFont, "Your inventory is empty.", 20 };
-            empty.setFillColor(ColorHelper::Palette::Dim);
-            empty.setPosition({ bounds.position.x + 32.f, bounds.position.y + 140.f });
+            empty.setFillColor(applyAlpha(ColorHelper::Palette::Dim));
+            auto emptyBounds = empty.getLocalBounds();
+            empty.setOrigin({
+                emptyBounds.position.x + emptyBounds.size.x * 0.5f,
+                emptyBounds.position.y + emptyBounds.size.y * 0.5f
+            });
+            empty.setPosition({
+                leftColumnX + (leftColumnWidth * 0.5f),
+                columnTop + columnHeight * 0.5f
+            });
             target.draw(empty);
         }
 
@@ -198,44 +353,58 @@ namespace {
         constexpr float slotCornerRadius = 12.f;
         const sf::Color slotBackground(18, 10, 6, 230);
 
-        float startX = bounds.position.x + 32.f;
-        float startY = bounds.position.y + 150.f;
         std::size_t rows = std::max<std::size_t>(3, icons.empty() ? 0 : (icons.size() + columns - 1) / columns);
         float gridHeight = rows * iconSize + (rows - 1) * iconSpacing;
+        float gridWidth = columns * iconSize + (columns - 1) * iconSpacing;
+        float gridStartX = leftColumnX + (leftColumnWidth - gridWidth) * 0.5f;
+        float startGridX = std::max(leftColumnX + 16.f, gridStartX);
+        float infoY = info.getPosition().y;
+        float gridStartY = infoY + info.getLocalBounds().size.y + 24.f;
+        float gridBottomLimit = columnTop + columnHeight - 20.f - gridHeight;
+        float startGridY = std::min(gridStartY, gridBottomLimit);
+        startGridY = std::max(startGridY, infoY);
+
+        const float gridOutlinePad = 8.f;
+        RoundedRectangleShape gridOutline({ gridWidth + gridOutlinePad * 2.f, gridHeight + gridOutlinePad * 2.f }, 16.f, 16);
+        gridOutline.setPosition({ startGridX - gridOutlinePad, startGridY - gridOutlinePad });
+        gridOutline.setFillColor(applyAlpha(ColorHelper::Palette::DarkBrown));
+        gridOutline.setOutlineColor(applyAlpha(TextStyles::UI::PanelDark));
+        gridOutline.setOutlineThickness(2.f);
+        target.draw(gridOutline);
 
         for (std::size_t row = 0; row < rows; ++row) {
             for (std::size_t column = 0; column < columns; ++column) {
-                float cellX = startX + static_cast<float>(column) * (iconSize + iconSpacing);
-                float cellY = startY + static_cast<float>(row) * (iconSize + iconSpacing);
+                float cellX = startGridX + static_cast<float>(column) * (iconSize + iconSpacing);
+                float cellY = startGridY + static_cast<float>(row) * (iconSize + iconSpacing);
                 RoundedRectangleShape cell({ iconSize, iconSize }, slotCornerRadius, 8);
                 cell.setPosition({ cellX, cellY });
-                cell.setFillColor(slotBackground);
+                cell.setFillColor(applyAlpha(slotBackground));
                 cell.setOutlineThickness(0.f);
                 target.draw(cell);
             }
         }
 
         constexpr float kDividerThickness = 2.f;
-        const sf::Color dividerColor(205, 193, 160, 200);
-        float gridWidth = columns * iconSize + (columns - 1) * iconSpacing;
+        const sf::Color dividerColor(34, 22, 12, 220);
+        float adjustedGridWidth = gridWidth;
         for (int divider = 1; divider < columns; ++divider) {
-            float x = startX
+            float x = startGridX
                 + static_cast<float>(divider) * iconSize
                 + static_cast<float>(divider - 1) * iconSpacing
                 + (iconSpacing * 0.5f);
             sf::RectangleShape line({ kDividerThickness, gridHeight });
-            line.setPosition({ x - (kDividerThickness * 0.5f), startY });
-            line.setFillColor(dividerColor);
+            line.setPosition({ x - (kDividerThickness * 0.5f), startGridY });
+            line.setFillColor(applyAlpha(dividerColor));
             target.draw(line);
         }
         for (std::size_t divider = 1; divider < rows; ++divider) {
-            float y = startY
+            float y = startGridY
                 + static_cast<float>(divider) * iconSize
                 + static_cast<float>(divider - 1) * iconSpacing
                 + (iconSpacing * 0.5f);
-            sf::RectangleShape line({ gridWidth, kDividerThickness });
-            line.setPosition({ startX, y - (kDividerThickness * 0.5f) });
-            line.setFillColor(dividerColor);
+            sf::RectangleShape line({ adjustedGridWidth, kDividerThickness });
+            line.setPosition({ startGridX, y - (kDividerThickness * 0.5f) });
+            line.setFillColor(applyAlpha(dividerColor));
             target.draw(line);
         }
 
@@ -255,17 +424,34 @@ namespace {
                 spriteBounds.position.x + spriteBounds.size.x * 0.5f,
                 spriteBounds.position.y + spriteBounds.size.y * 0.5f
             });
-            float posX = startX + static_cast<float>(column) * (iconSize + iconSpacing);
-            float posY = startY + static_cast<float>(row) * (iconSize + iconSpacing);
+            float posX = startGridX + static_cast<float>(column) * (iconSize + iconSpacing);
+            float posY = startGridY + static_cast<float>(row) * (iconSize + iconSpacing);
             sprite.setPosition({ posX + iconSize * 0.5f, posY + iconSize * 0.5f });
 
             sf::Color tint = sprite.getColor();
             tint.a = static_cast<std::uint8_t>(tint.a * 0.9f);
-            sprite.setColor(tint);
+            sprite.setColor(applyAlpha(tint));
             target.draw(sprite);
         }
 
-        return startY + gridHeight;
+        float characterHeaderY = columnTop + 18.f;
+        float characterHeaderHeight = drawSectionHeader(
+            &game.resources.buttonCharacter,
+            "Character",
+            rightColumnX + (rightColumnWidth * 0.5f),
+            characterHeaderY,
+            true
+        );
+        float charBoxY = startGridY;
+        float charBoxHeight = std::min(gridHeight, columnBottom - charBoxY - 10.f);
+        if (charBoxHeight < 0.f)
+            charBoxHeight = 0.f;
+        RoundedRectangleShape characterBox({ rightColumnWidth - 20.f, charBoxHeight }, sectionCornerRadius, 12);
+        characterBox.setPosition({ rightColumnX + 10.f, charBoxY });
+        characterBox.setFillColor(applyAlpha(slotBackground));
+        target.draw(characterBox);
+
+        return columnBottom;
     }
 
     void drawInventoryTutorialPopup(
@@ -293,12 +479,8 @@ namespace {
             popupY
         };
 
-        sf::RectangleShape popup({ width, height });
-        popup.setPosition(position);
-        popup.setFillColor(ColorHelper::applyAlphaFactor(sf::Color(12, 18, 40, 230), alphaFactor));
-        popup.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, alphaFactor));
-        popup.setOutlineThickness(2.f);
-        target.draw(popup);
+        sf::FloatRect popupBounds{ { position.x, position.y }, { width, height } };
+        ui::popup::drawPopupFrame(target, popupBounds, alphaFactor);
 
         const float textLeft = position.x + 16.f;
         float textY = position.y + 10.f;
@@ -307,11 +489,12 @@ namespace {
         constexpr float kTitleFontSize = 30.f;
         constexpr float kTitleIconSize = 36.f;
         constexpr float kTitleIconSpacing = 8.f;
-        constexpr float kTitleIconScaleFactor = 0.6f;
+        constexpr float kTitleIconScaleFactor = 0.4f;
         constexpr float kTutorialMessageSpacing = 36.f;
         std::optional<sf::Sprite> titleIcon;
         float titleIconWidth = 0.f;
         float titleIconHeight = 0.f;
+        float titleY = textY - 10.f;
         if (game.resources.buttonHelp.getSize().x > 0 && game.resources.buttonHelp.getSize().y > 0) {
             titleIcon.emplace(game.resources.buttonHelp);
             auto iconBounds = titleIcon->getLocalBounds();
@@ -326,16 +509,18 @@ namespace {
         titleText.setFillColor(ColorHelper::Palette::TitleAccent);
         float iconInset = titleIcon ? titleIconWidth + kTitleIconSpacing : 0.f;
         float titleX = textLeft + iconInset;
+        titleText.setPosition({ titleX, titleY });
+        auto titleLocalBounds = titleText.getLocalBounds();
+        float titleHeight = titleLocalBounds.size.y;
+        float titleCenterY = titleY + (titleHeight * 0.5f);
         if (titleIcon) {
-            float iconY = textY + (kTitleFontSize - titleIconHeight) * 0.5f;
+        float iconY = titleCenterY - (titleIconHeight * 0.5f) + titleIconHeight;
             titleIcon->setPosition({ textLeft, iconY });
             titleIcon->setColor(ColorHelper::applyAlphaFactor(sf::Color::White, alphaFactor));
             target.draw(*titleIcon);
         }
-        titleText.setPosition({ titleX, textY });
         target.draw(titleText);
 
-        float titleHeight = titleText.getLocalBounds().size.y;
         if (titleIconHeight > titleHeight)
             titleHeight = titleIconHeight;
         textY += titleHeight + 12.f;
@@ -353,7 +538,8 @@ namespace {
                 { textLeft, textY },
                 22,
                 maxTextWidth,
-                alphaFactor
+                alphaFactor,
+                ui::popup::kLineSpacingMultiplier
             );
             textY += kTutorialMessageSpacing;
         }
@@ -361,34 +547,19 @@ namespace {
         if (game.inventoryTutorialClosing)
             game.inventoryTutorialButtonHovered = false;
         bool hovered = game.inventoryTutorialButtonHovered && !game.inventoryTutorialClosing;
-        sf::Color buttonColor = hovered ? ColorHelper::Palette::Green : TextStyles::UI::PanelDark;
-        float fillAlpha = alphaFactor * (hovered ? 0.9f : 0.7f);
-        buttonColor = ColorHelper::applyAlphaFactor(buttonColor, fillAlpha);
-        sf::RectangleShape button({ kInventoryTutorialButtonWidth, kInventoryTutorialButtonHeight });
-        button.setFillColor(buttonColor);
-        button.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Amber, alphaFactor));
-        button.setOutlineThickness(2.f);
         sf::Vector2f buttonPos{
             position.x + width - kInventoryTutorialButtonWidth - 16.f,
             position.y + height - kInventoryTutorialButtonHeight - 12.f
         };
-        button.setPosition(buttonPos);
-        target.draw(button);
-
-        sf::Text label{ game.resources.uiFont, "Understood", 18 };
-        label.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, alphaFactor));
-        auto labelBounds = label.getLocalBounds();
-        label.setOrigin({
-            labelBounds.position.x + (labelBounds.size.x * 0.5f),
-            labelBounds.position.y + (labelBounds.size.y * 0.5f)
-        });
-        label.setPosition({
-            buttonPos.x + (kInventoryTutorialButtonWidth * 0.5f),
-            buttonPos.y + (kInventoryTutorialButtonHeight * 0.5f)
-        });
-        target.draw(label);
-
-        game.inventoryTutorialButtonBounds = button.getGlobalBounds();
+        game.inventoryTutorialButtonBounds = { { buttonPos.x, buttonPos.y }, { kInventoryTutorialButtonWidth, kInventoryTutorialButtonHeight } };
+        drawTutorialButton(
+            game,
+            target,
+            game.inventoryTutorialButtonBounds,
+            hovered,
+            alphaFactor,
+            "Understood"
+        );
     }
 
     void updateMenuButtonFade(Game& game) {
@@ -434,60 +605,276 @@ namespace {
         target.draw(arrow);
     }
 
-    void drawQuestContent(Game& game, sf::RenderTarget& target, const sf::FloatRect& bounds) {
+    void drawQuestContent(Game& game, sf::RenderTarget& target, const sf::FloatRect& bounds, float alphaFactor) {
+        auto applyAlpha = [&](const sf::Color& color) {
+            return ColorHelper::applyAlphaFactor(color, alphaFactor);
+        };
+
         sf::RectangleShape contentBox;
         contentBox.setPosition({ bounds.position.x + 12.f, bounds.position.y + 12.f });
         contentBox.setSize({ bounds.size.x - 24.f, bounds.size.y - 24.f });
-        contentBox.setFillColor(sf::Color(34, 22, 12));
-        contentBox.setOutlineColor(sf::Color(255, 255, 255, 180));
+        contentBox.setFillColor(applyAlpha(sf::Color(34, 22, 12, 10)));
+        contentBox.setOutlineColor(applyAlpha(sf::Color(255, 255, 255, 80)));
         contentBox.setOutlineThickness(2.f);
         target.draw(contentBox);
 
-        sf::Text header{ game.resources.uiFont, "Questbuch", 36 };
-        header.setFillColor(ColorHelper::Palette::SoftYellow);
-        auto headerBounds = header.getLocalBounds();
-        header.setOrigin({ headerBounds.position.x + headerBounds.size.x * 0.5f, headerBounds.position.y + headerBounds.size.y * 0.5f });
-        header.setPosition({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y + 60.f });
-        target.draw(header);
+        constexpr float titleFontSize = 36.f;
+        constexpr float titleIconHeight = 32.f;
+        constexpr float titleIconSpacing = 10.f;
+        float titleY = bounds.position.y + 28.f;
+        std::optional<sf::Sprite> titleIcon;
+        float iconWidth = 0.f;
+        float iconHeight = 0.f;
+        if (game.resources.buttonQuests.getSize().x > 0 && game.resources.buttonQuests.getSize().y > 0) {
+            titleIcon.emplace(game.resources.buttonQuests);
+            float scale = titleIconHeight / static_cast<float>(game.resources.buttonQuests.getSize().y);
+            titleIcon->setScale({ scale, scale });
+            iconWidth = static_cast<float>(game.resources.buttonQuests.getSize().x) * scale;
+            iconHeight = static_cast<float>(game.resources.buttonQuests.getSize().y) * scale;
+        }
+        sf::Text titleText{ game.resources.uiFont, "Quests", static_cast<unsigned int>(titleFontSize) };
+        titleText.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
+        float titleWidth = titleText.getLocalBounds().size.x;
+        float totalTitleWidth = titleWidth + (iconWidth > 0.f ? iconWidth + titleIconSpacing : 0.f);
+        float titleStartX = bounds.position.x + (bounds.size.x - totalTitleWidth) * 0.5f;
+        float titleTextX = titleStartX + (iconWidth > 0.f ? iconWidth + titleIconSpacing : 0.f);
+        titleText.setPosition({ titleTextX, titleY });
+        auto titleGlobalBounds = titleText.getGlobalBounds();
+        float titleHeight = titleGlobalBounds.size.y;
+        float maxTitleHeight = std::max(titleHeight, iconHeight);
+        if (titleIcon) {
+            float titleCenterY = titleGlobalBounds.position.y + (titleHeight * 0.5f);
+            float iconY = titleCenterY - (iconHeight * 0.5f);
+            titleIcon->setPosition({ titleStartX, iconY });
+            titleIcon->setColor(applyAlpha(sf::Color::White));
+            target.draw(*titleIcon);
+        }
+        target.draw(titleText);
 
-        constexpr float padding = 24.f;
-        constexpr float columnSpacing = 28.f;
-        float columnTop = bounds.position.y + 140.f;
-        float columnHeight = bounds.position.y + bounds.size.y - columnTop - 24.f;
-        float columnWidth = (bounds.size.x - padding * 2.f - columnSpacing) * 0.5f;
-        auto drawSection = [&](float x, const std::string& title, const std::string& description) {
-            sf::RectangleShape sectionBg;
-            sectionBg.setPosition({ x, columnTop });
-            sectionBg.setSize({ columnWidth, columnHeight });
-            sectionBg.setFillColor(sf::Color(30, 18, 10));
-            sectionBg.setOutlineColor(sf::Color(255, 255, 255, 160));
-            sectionBg.setOutlineThickness(1.f);
-            target.draw(sectionBg);
+        constexpr float horizontalPadding = 24.f;
+        constexpr float columnSpacing = 30.f;
+        constexpr float sectionCornerRadius = 18.f;
+        float columnTop = titleY + maxTitleHeight + 20.f;
+        float columnBottom = bounds.position.y + bounds.size.y - 24.f;
+        float columnHeight = std::max(0.f, columnBottom - columnTop);
+        float availableWidth = bounds.size.x - (horizontalPadding * 2.f) - columnSpacing;
+        float columnWidth = std::max(220.f, availableWidth * 0.5f);
+        float requiredWidth = (columnWidth * 2.f) + columnSpacing;
+        float maxInnerWidth = bounds.size.x - horizontalPadding * 2.f;
+        if (requiredWidth > maxInnerWidth)
+            columnWidth = (maxInnerWidth - columnSpacing) * 0.5f;
 
-            sf::Text label{ game.resources.uiFont, title, 28 };
-            label.setFillColor(ColorHelper::Palette::SoftYellow);
-            label.setPosition({ x + 16.f, columnTop + 16.f });
-            target.draw(label);
+        float leftColumnX = bounds.position.x + horizontalPadding;
+        float rightColumnX = leftColumnX + columnWidth + columnSpacing;
 
-            sf::Text detail{ game.resources.uiFont, description, 18 };
-            detail.setFillColor(ColorHelper::Palette::Dim);
-            detail.setPosition({ x + 16.f, columnTop + 50.f });
-            detail.setLineSpacing(1.2f);
-            target.draw(detail);
+        const sf::Color sectionColor(205, 193, 160, 220);
+        RoundedRectangleShape leftColumn({ columnWidth, columnHeight }, sectionCornerRadius, 12);
+        leftColumn.setPosition({ leftColumnX, columnTop });
+        leftColumn.setFillColor(applyAlpha(sectionColor));
+        target.draw(leftColumn);
+
+        RoundedRectangleShape rightColumn({ columnWidth, columnHeight }, sectionCornerRadius, 12);
+        rightColumn.setPosition({ rightColumnX, columnTop });
+        rightColumn.setFillColor(applyAlpha(sectionColor));
+        target.draw(rightColumn);
+
+        const sf::Color columnTextColor(0, 0, 0);
+
+        auto sanitizeQuestName = [](const std::string& source) {
+            std::string cleaned = source;
+            cleaned.erase(std::remove_if(cleaned.begin(), cleaned.end(), [](unsigned char ch) {
+                return ch == '\r' || ch == '\n';
+            }), cleaned.end());
+            while (cleaned.size() >= 2 && cleaned.compare(cleaned.size() - 2, 2, "??") == 0)
+                cleaned.resize(cleaned.size() - 2);
+            return cleaned.empty() ? source : cleaned;
         };
 
-        float leftX = bounds.position.x + padding;
-        float rightX = leftX + columnWidth + columnSpacing;
-        drawSection(
-            leftX,
-            "Active Quests",
-            "Hier erscheinen alle Aufgaben, die du gerade verfolgst.\nWir fügen sie bald hinzu."
-        );
-        drawSection(
-            rightX,
-            "Finished Quests",
-            "Abgeschlossene Abenteuer bleiben hier erhalten.\nAuch diese Liste ist in Arbeit."
-        );
+        sf::Text activeHeader{ game.resources.titleFont, "Active Quests", 30 };
+        activeHeader.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
+        activeHeader.setPosition({ leftColumnX + 18.f, columnTop + 16.f });
+        target.draw(activeHeader);
+
+        float entryStartY = columnTop + 56.f;
+        constexpr float kEntryHeight = 130.f;
+        constexpr float kEntrySpacing = 12.f;
+        constexpr float kEntryPadding = 12.f;
+        float cardWidth = columnWidth - (kEntryPadding * 2.f);
+        float cardX = leftColumnX + kEntryPadding;
+
+        if (game.questLog.empty()) {
+            sf::Text placeholder{
+                game.resources.uiFont,
+                "No active quests yet.\nContinue through the story to receive your first task.",
+                18
+            };
+            placeholder.setFillColor(applyAlpha(columnTextColor));
+            placeholder.setLineSpacing(1.8f);
+            placeholder.setPosition({ cardX + 8.f, entryStartY + 8.f });
+            target.draw(placeholder);
+        }
+        else {
+            float cursorY = entryStartY;
+                constexpr float kCardHorizontalPadding = 14.f;
+                constexpr float kCardVerticalPadding = 12.f;
+                constexpr float kTextSpacing = 6.f;
+                constexpr float kQuestLineSpacingMultiplier = 0.8f;
+            for (const auto& entry : game.questLog) {
+                float textX = cardX + kCardHorizontalPadding;
+                float measurementBaseY = cursorY + kCardVerticalPadding;
+
+                std::string displayName = sanitizeQuestName(entry.name);
+                sf::Text nameText{ game.resources.titleFont, displayName, 22 };
+                float nameHeight = nameText.getLocalBounds().size.y;
+
+                float giverY = measurementBaseY + nameHeight + kTextSpacing;
+                sf::Text giverText{ game.resources.uiFont, "From " + entry.giver, 16 };
+                float giverHeight = giverText.getLocalBounds().size.y;
+                float goalStartY = giverY + giverHeight + kTextSpacing;
+
+                std::vector<ColoredTextSegment> goalSegments = {
+                    { entry.goal, applyAlpha(ColorHelper::Palette::Normal) }
+                };
+                auto measuredCursor = drawColoredSegments(
+                    target,
+                    game.resources.uiFont,
+                    goalSegments,
+                    { textX, goalStartY },
+                    16,
+                    cardWidth - 28.f,
+                    1.f,
+                    kQuestLineSpacingMultiplier,
+                    true
+                );
+                float goalHeight = measuredCursor.y - goalStartY;
+
+                float contentHeight = (goalStartY - cursorY) + goalHeight + kCardVerticalPadding;
+                float cardHeight = std::max(kEntryHeight, contentHeight);
+                if (cursorY + cardHeight > columnTop + columnHeight - 12.f)
+                    break;
+
+                RoundedRectangleShape card({ cardWidth, cardHeight }, 16.f, 18);
+                card.setPosition({ cardX, cursorY });
+                card.setFillColor(applyAlpha(sf::Color(18, 12, 6, 220)));
+                card.setOutlineThickness(2.f);
+                card.setOutlineColor(applyAlpha(ColorHelper::Palette::FrameGoldLight));
+                target.draw(card);
+
+                float textY = measurementBaseY;
+                nameText.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
+                nameText.setPosition({ textX, textY });
+                target.draw(nameText);
+                textY += nameHeight + kTextSpacing;
+
+                giverText.setFillColor(applyAlpha(sf::Color::White));
+                giverText.setPosition({ textX, textY });
+                target.draw(giverText);
+                textY += giverHeight + kTextSpacing;
+
+                auto goalCursor = drawColoredSegments(
+                    target,
+                    game.resources.uiFont,
+                    goalSegments,
+                    { textX, textY },
+                    16,
+                    cardWidth - 28.f,
+                    1.f,
+                    kQuestLineSpacingMultiplier,
+                    false
+                );
+
+                sf::Text spacingMetrics{ game.resources.uiFont, "Hg", 16 };
+                float extraSpacing = spacingMetrics.getLineSpacing() * 0.8f - 4.f;
+                textY = goalCursor.y + extraSpacing;
+
+                float xpLineY = std::max(cursorY + cardHeight - 28.f, textY);
+                sf::Text xpText{ game.resources.uiFont, "XP Reward: " + std::to_string(entry.xpReward), 18 };
+                xpText.setFillColor(applyAlpha(ColorHelper::Palette::DarkPurple));
+                xpText.setPosition({ textX, xpLineY });
+                target.draw(xpText);
+
+                if (entry.loot) {
+                    sf::Text lootText{ game.resources.uiFont, "Loot: " + *entry.loot, 18 };
+                    lootText.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
+                    auto lootBounds = lootText.getLocalBounds();
+                    lootText.setPosition({
+                        cardX + cardWidth - 12.f - lootBounds.size.x,
+                        xpLineY
+                    });
+                    target.draw(lootText);
+                }
+
+                cursorY += cardHeight + kEntrySpacing;
+            }
+        }
+
+        sf::Text finishedHeader{ game.resources.titleFont, "Finished Quests", 30 };
+        finishedHeader.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
+        finishedHeader.setPosition({ rightColumnX + 18.f, columnTop + 16.f });
+        target.draw(finishedHeader);
+
+        sf::Text finishedPlaceholder{
+            game.resources.uiFont,
+            "Completed quests will appear here.\nThis section is under construction.",
+            18
+        };
+        finishedPlaceholder.setFillColor(applyAlpha(columnTextColor));
+        finishedPlaceholder.setLineSpacing(1.8f);
+        finishedPlaceholder.setPosition({ rightColumnX + 18.f, columnTop + 52.f });
+        target.draw(finishedPlaceholder);
+    }
+
+    void drawSkillsContent(Game& game, sf::RenderTarget& target, const sf::FloatRect& bounds, float alphaFactor) {
+        sf::RectangleShape contentBox;
+        contentBox.setPosition({ bounds.position.x + 12.f, bounds.position.y + 12.f });
+        contentBox.setSize({ bounds.size.x - 24.f, bounds.size.y - 24.f });
+        auto applyAlpha = [&](const sf::Color& color) {
+            return ColorHelper::applyAlphaFactor(color, alphaFactor);
+        };
+        contentBox.setFillColor(applyAlpha(sf::Color(34, 22, 12, 10)));
+        contentBox.setOutlineColor(applyAlpha(sf::Color(255, 255, 255, 80)));
+        contentBox.setOutlineThickness(2.f);
+        target.draw(contentBox);
+
+        constexpr float padding = 28.f;
+        constexpr float gapBetweenSprites = 24.f;
+        float availableWidth = bounds.size.x - (padding * 2.f);
+        float availableHeight = bounds.size.y - (padding * 2.f);
+        sf::Sprite treeSprite(game.resources.skilltree);
+        sf::Sprite barSprite(game.resources.skillbar);
+        auto treeBounds = treeSprite.getLocalBounds();
+        auto barBounds = barSprite.getLocalBounds();
+        float maxTextureWidth = std::max(treeBounds.size.x, barBounds.size.x);
+        float totalTextureHeight = treeBounds.size.y + barBounds.size.y + gapBetweenSprites;
+        if (maxTextureWidth <= 0.f)
+            maxTextureWidth = 1.f;
+        if (totalTextureHeight <= 0.f)
+            totalTextureHeight = gapBetweenSprites;
+
+        float widthScale = availableWidth / maxTextureWidth;
+        float heightScale = availableHeight / totalTextureHeight;
+        float scale = std::min(widthScale, heightScale);
+        if (scale > 1.f)
+            scale = 1.f;
+        if (scale <= 0.f)
+            scale = 0.1f;
+        treeSprite.setScale({ scale, scale });
+        barSprite.setScale({ scale, scale });
+
+        float treeWidth = treeBounds.size.x * scale;
+        float treeHeight = treeBounds.size.y * scale;
+        float barWidth = barBounds.size.x * scale;
+        float barHeight = barBounds.size.y * scale;
+        float treeX = bounds.position.x + (bounds.size.x - treeWidth) * 0.5f;
+        float barX = bounds.position.x + (bounds.size.x - barWidth) * 0.5f;
+        float treeY = bounds.position.y + padding;
+        float barY = treeY + treeHeight + gapBetweenSprites;
+        treeSprite.setPosition({ treeX, treeY });
+        barSprite.setPosition({ barX, barY });
+        treeSprite.setColor(ColorHelper::applyAlphaFactor(sf::Color(255, 255, 255, static_cast<std::uint8_t>(255 * 0.95f)), alphaFactor));
+        barSprite.setColor(ColorHelper::applyAlphaFactor(sf::Color(255, 255, 255, static_cast<std::uint8_t>(255 * 0.95f)), alphaFactor));
+        target.draw(treeSprite);
+        target.draw(barSprite);
     }
 
     void drawPlaceholderContent(
@@ -601,20 +988,59 @@ bool handleEvent(Game& game, const sf::Event& event) {
         }
     };
     bool menuButtonInteractable = game.menuButtonUnlocked && game.menuButtonAlpha >= 1.f;
+    if (game.forcedDestinationSelection && game.menuActive && game.menuActiveTab == static_cast<int>(MenuTab::Map)) {
+        const auto viewFromPanel = [&]() -> std::optional<sf::View> {
+            auto panelBounds = game.menuPanel.getGlobalBounds();
+            auto windowSize = game.window.getSize();
+            if (panelBounds.size.x <= 0.f || panelBounds.size.y <= 0.f || windowSize.x == 0 || windowSize.y == 0)
+                return std::nullopt;
+            sf::View mapView(sf::FloatRect({ 0.f, 0.f }, { panelBounds.size.x, panelBounds.size.y }));
+            mapView.setCenter(sf::Vector2f{ panelBounds.size.x * 0.5f, panelBounds.size.y * 0.5f });
+            mapView.setViewport(sf::FloatRect(
+                { panelBounds.position.x / static_cast<float>(windowSize.x),
+                  panelBounds.position.y / static_cast<float>(windowSize.y) },
+                { panelBounds.size.x / static_cast<float>(windowSize.x),
+                  panelBounds.size.y / static_cast<float>(windowSize.y) }
+            ));
+            return mapView;
+        }();
+        if (viewFromPanel) {
+            handleMapSelectionEvent(game, event, viewFromPanel.operator->());
+        }
+        else {
+            handleMapSelectionEvent(game, event, nullptr);
+        }
+        return true;
+    }
+    if (game.forcedDestinationSelection && game.menuActive)
+        game.menuActiveTab = static_cast<int>(MenuTab::Map);
 
     if (auto move = event.getIf<sf::Event::MouseMoved>()) {
         sf::Vector2f point = game.window.mapPixelToCoords(move->position);
-        if (game.menuActive) {
+        if (game.mapTutorialActive) {
+            game.menuHoveredTab = -1;
+            game.mapTutorialOkHovered = game.mapTutorialOkBounds.contains(point);
+            game.menuButtonHovered = false;
+        }
+        else if (game.menuActive) {
             updateHovered(point);
+            game.mapTutorialOkHovered = false;
         }
         else if (menuButtonInteractable) {
             game.menuButtonHovered = game.menuButton.getGlobalBounds().contains(point);
+            game.mapTutorialOkHovered = false;
         }
         else {
             game.menuButtonHovered = false;
+            game.mapTutorialOkHovered = false;
         }
-        if (game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing) {
-            game.inventoryTutorialButtonHovered = game.inventoryTutorialButtonBounds.contains(point);
+        if (!game.mapTutorialActive) {
+            if (game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing) {
+                game.inventoryTutorialButtonHovered = game.inventoryTutorialButtonBounds.contains(point);
+            }
+            else {
+                game.inventoryTutorialButtonHovered = false;
+            }
         }
         else {
             game.inventoryTutorialButtonHovered = false;
@@ -624,6 +1050,16 @@ bool handleEvent(Game& game, const sf::Event& event) {
     if (auto button = event.getIf<sf::Event::MouseButtonReleased>()) {
         if (button->button == sf::Mouse::Button::Left) {
             sf::Vector2f point = game.window.mapPixelToCoords(button->position);
+
+            if (game.mapTutorialActive) {
+                if (game.mapTutorialOkBounds.contains(point)) {
+                    game.mapTutorialAwaitingOk = false;
+                    game.mapTutorialOkHovered = false;
+                    advanceDialogueLine(game);
+                }
+                consumed = true;
+                return true;
+            }
 
             if (!game.menuActive && menuButtonInteractable && game.menuButton.getGlobalBounds().contains(point)) {
                 game.menuActive = true;
@@ -640,7 +1076,7 @@ bool handleEvent(Game& game, const sf::Event& event) {
                     }
                 }
 
-                if (clickedTab) {
+                if (clickedTab && !game.forcedDestinationSelection) {
                     consumed = true;
                 }
                 else {
@@ -649,16 +1085,17 @@ bool handleEvent(Game& game, const sf::Event& event) {
                     if (game.inventoryTutorialPopupActive) {
                         if (!game.inventoryTutorialClosing
                             && game.inventoryTutorialButtonBounds.contains(point))
-                        {
-                            game.inventoryTutorialClosing = true;
-                            game.inventoryTutorialCloseClock.restart();
-                            game.inventoryTutorialCloseProgress = 0.f;
-                            game.inventoryTutorialButtonHovered = false;
-                            game.inventoryTutorialAdvancePending = true;
-                        }
+                            {
+                                game.inventoryTutorialClosing = true;
+                                game.inventoryTutorialCloseClock.restart();
+                                game.inventoryTutorialCloseProgress = 0.f;
+                                game.inventoryTutorialButtonHovered = false;
+                                game.inventoryTutorialAdvancePending = true;
+                            }
                     }
                     else if (!insidePanel) {
-                        game.menuActive = false;
+                        if (!game.forcedDestinationSelection)
+                            game.menuActive = false;
                     }
                     consumed = true;
                 }
@@ -669,7 +1106,7 @@ bool handleEvent(Game& game, const sf::Event& event) {
     if (auto key = event.getIf<sf::Event::KeyReleased>()) {
         if (key->code == sf::Keyboard::Key::Escape) {
             if (game.menuActive) {
-                if (!game.inventoryTutorialPopupActive)
+                if (!game.inventoryTutorialPopupActive && !game.mapTutorialActive && !game.forcedDestinationSelection)
                     game.menuActive = false;
             }
             else if (menuButtonInteractable) {
@@ -680,6 +1117,10 @@ bool handleEvent(Game& game, const sf::Event& event) {
         }
 
         if (game.menuActive) {
+        if (game.mapTutorialActive) {
+            consumed = true;
+        }
+        else if (!game.forcedDestinationSelection) {
             if (key->code == sf::Keyboard::Key::Right) {
                 game.menuActiveTab = (game.menuActiveTab + 1) % static_cast<int>(kTabLabels.size());
                 consumed = true;
@@ -688,6 +1129,10 @@ bool handleEvent(Game& game, const sf::Event& event) {
                 game.menuActiveTab = (game.menuActiveTab - 1 + static_cast<int>(kTabLabels.size())) % static_cast<int>(kTabLabels.size());
                 consumed = true;
             }
+        }
+        else if (key->code == sf::Keyboard::Key::Right || key->code == sf::Keyboard::Key::Left) {
+            consumed = true;
+        }
         }
     }
 
@@ -711,6 +1156,10 @@ void draw(Game& game, sf::RenderTarget& target) {
     if (game.menuButton.getSize().x <= 0.f || game.menuButton.getSize().y <= 0.f)
         return;
 
+    if (game.forcedDestinationSelection)
+        game.menuActiveTab = static_cast<int>(MenuTab::Map);
+    game.menuMapPopup.reset();
+
     sf::Color buttonColor = sf::Color::White;
     if (game.menuActive)
         buttonColor = ColorHelper::darken(buttonColor, 0.38f);
@@ -718,6 +1167,10 @@ void draw(Game& game, sf::RenderTarget& target) {
         buttonColor = ColorHelper::darken(buttonColor, 0.25f);
 
     float menuAlpha = std::clamp(game.menuButtonAlpha, 0.f, 1.f);
+    float forgingOverlayAlpha = (game.weaponForging.phase == Game::WeaponForgingState::Phase::Idle)
+        ? 0.f
+        : game.weaponForging.alpha;
+    menuAlpha = std::clamp(menuAlpha * (1.f - forgingOverlayAlpha), 0.f, 1.f);
     buttonColor.a = static_cast<std::uint8_t>(buttonColor.a * menuAlpha);
     game.menuButton.setFillColor(buttonColor);
     if (menuAlpha > 0.f) {
@@ -773,7 +1226,7 @@ void draw(Game& game, sf::RenderTarget& target) {
         const sf::Texture* icon = nullptr;
         switch (static_cast<MenuTab>(idx)) {
             case MenuTab::Inventory: icon = &game.resources.buttonInventory; break;
-            case MenuTab::Character: icon = &game.resources.buttonCharacter; break;
+            case MenuTab::Skills: icon = &game.resources.buttonSkills; break;
             case MenuTab::Map: icon = &game.resources.buttonMap; break;
             case MenuTab::Quests: icon = &game.resources.buttonQuests; break;
             case MenuTab::Settings: icon = &game.resources.buttonSettings; break;
@@ -827,10 +1280,10 @@ void draw(Game& game, sf::RenderTarget& target) {
     float contentBottom = panelBounds.position.y + panelBounds.size.y - 24.f;
     switch (static_cast<MenuTab>(game.menuActiveTab)) {
         case MenuTab::Inventory:
-            contentBottom = drawInventoryContent(game, target, panelBounds);
+            contentBottom = drawInventoryContent(game, target, panelBounds, menuFadeFactor);
             break;
-        case MenuTab::Character:
-            drawPlaceholderContent(game, target, panelBounds, "Character");
+        case MenuTab::Skills:
+            drawSkillsContent(game, target, panelBounds, menuFadeFactor);
             break;
         case MenuTab::Map: {
             sf::View prev = target.getView();
@@ -843,12 +1296,13 @@ void draw(Game& game, sf::RenderTarget& target) {
                   panelBounds.size.y / static_cast<float>(windowSize.y) }
             ));
             target.setView(mapView);
-            drawMapSelectionUI(game, target);
+            auto popup = drawMapSelectionUI(game, target);
+            game.menuMapPopup = popup;
             target.setView(prev);
             break;
         }
         case MenuTab::Quests:
-            drawQuestContent(game, target, panelBounds);
+            drawQuestContent(game, target, panelBounds, menuFadeFactor);
             break;
         case MenuTab::Settings:
             drawPlaceholderContent(game, target, panelBounds, "Settings");
@@ -858,6 +1312,7 @@ void draw(Game& game, sf::RenderTarget& target) {
             break;
     }
 
+    drawMapTutorialPopup(game, target, panelBounds, menuFadeFactor);
     drawInventoryTutorialPopup(game, target, panelBounds, contentBottom, menuFadeFactor);
 
     if (game.inventoryTutorialClosing && tutorialCloseProgress >= 1.f) {
@@ -867,8 +1322,12 @@ void draw(Game& game, sf::RenderTarget& target) {
         game.inventoryTutorialCompleted = true;
         game.menuActive = false;
         if (game.inventoryTutorialAdvancePending) {
-            if (game.currentDialogue == &perigonal && game.dialogueIndex == kInventoryArrowLineIndex)
+            if (game.currentDialogue == &perigonal
+                && game.dialogueIndex < game.currentDialogue->size()
+                && (*game.currentDialogue)[game.dialogueIndex].text == kInventoryArrowLineText)
+            {
                 advanceDialogueLine(game);
+            }
             game.inventoryTutorialAdvancePending = false;
         }
         game.inventoryTutorialButtonBounds = {};

@@ -2,7 +2,7 @@
 
 #include "core/game.hpp"
 #include "helper/colorHelper.hpp"
-#include "ui/uiEffects.hpp"
+#include "ui/popupStyle.hpp"
 
 #include <array>
 #include <algorithm>
@@ -120,30 +120,8 @@ void drawPreview(Game& game, sf::RenderTarget& target) {
     if (popupY < 20.f)
         popupY = 20.f;
 
-    sf::RectangleShape background({ popupWidth, popupHeight });
-    background.setPosition({ popupX, popupY });
-    background.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::BlueAlsoNearBlack, popupAlpha));
-    target.draw(background);
-
-    sf::Color frameColor = ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, popupAlpha);
-    game.uiFrame.draw(target, background, frameColor);
-
-    uiEffects::drawGlowFrame(
-        target,
-        game.uiFrame,
-        { popupX, popupY },
-        { popupWidth, popupHeight },
-        uiEffects::computeGlowColor(
-            ColorHelper::Palette::BlueLight,
-            game.uiGlowClock.getElapsedTime().asSeconds(),
-            popupAlpha,
-            110.f,
-            50.f,
-            { 12.f, 28.f },
-            0.f
-        ),
-        6.f
-    );
+    sf::FloatRect popupBounds{ { popupX, popupY }, { popupWidth, popupHeight } };
+    ui::popup::drawPopupFrame(target, popupBounds, popupAlpha);
 
     float contentWidth = popupWidth - (kMargin * 2.f);
     float contentHeight = popupHeight - (kMargin * 2.f);

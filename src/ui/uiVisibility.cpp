@@ -52,15 +52,45 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
                     game.setCurrentLocation(location, false);
             };
 
-            auto startGonadDialogue = [&]() {
-                game.currentDialogue = &gonad;
+            auto startGonadPartOneDialogue = [&]() {
+                game.currentDialogue = &gonad_part_one;
                 game.dialogueIndex = 0;
                 game.visibleText.clear();
                 game.charIndex = 0;
                 game.typewriterClock.restart();
                 game.introDialogueFinished = false;
                 game.state = GameState::Dialogue;
-                game.setCurrentLocation(Locations::findById(game.locations, LocationId::Gonad), false);
+                if (auto location = Locations::findById(game.locations, LocationId::Gonad))
+                    game.setCurrentLocation(location, false);
+                game.currentProcessedLine.clear();
+                game.askingName = false;
+                game.nameInput.clear();
+            };
+
+            auto startBlacksmithDialogue = [&]() {
+                game.currentDialogue = &blacksmith;
+                game.dialogueIndex = 0;
+                game.visibleText.clear();
+                game.charIndex = 0;
+                game.typewriterClock.restart();
+                game.introDialogueFinished = false;
+                game.state = GameState::Dialogue;
+                game.setCurrentLocation(&game.blacksmithLocation, false);
+                game.currentProcessedLine.clear();
+                game.askingName = false;
+                game.nameInput.clear();
+            };
+
+            auto startGonadPartTwoDialogue = [&]() {
+                game.currentDialogue = &gonad_part_two;
+                game.dialogueIndex = 0;
+                game.visibleText.clear();
+                game.charIndex = 0;
+                game.typewriterClock.restart();
+                game.introDialogueFinished = false;
+                game.state = GameState::Dialogue;
+                if (auto location = Locations::findById(game.locations, LocationId::Gonad))
+                    game.setCurrentLocation(location, false);
                 game.currentProcessedLine.clear();
                 game.askingName = false;
                 game.nameInput.clear();
@@ -74,9 +104,17 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
                 game.pendingPerigonalDialogue = false;
                 startPerigonalDialogue();
             }
-            else if (game.pendingGonadDialogue) {
-                game.pendingGonadDialogue = false;
-                startGonadDialogue();
+            else if (game.pendingGonadPartOneDialogue) {
+                game.pendingGonadPartOneDialogue = false;
+                startGonadPartOneDialogue();
+            }
+            else if (game.pendingBlacksmithDialogue) {
+                game.pendingBlacksmithDialogue = false;
+                startBlacksmithDialogue();
+            }
+            else if (game.pendingGonadPartTwoDialogue) {
+                game.pendingGonadPartTwoDialogue = false;
+                startGonadPartTwoDialogue();
             }
         }
     }
@@ -104,7 +142,11 @@ UiVisibility computeUiVisibility(Game& game, UiElementMask elements) {
                     game.backgroundFadeClock.restart();
                     visibility.backgroundFadeTriggered = true;
                 }
-                if ((game.pendingPerigonalDialogue || game.pendingGonadDialogue) && !game.uiFadeInActive) {
+                if ((game.pendingPerigonalDialogue
+                    || game.pendingGonadPartOneDialogue
+                    || game.pendingBlacksmithDialogue
+                    || game.pendingGonadPartTwoDialogue)
+                    && !game.uiFadeInActive) {
                     game.introDialogueFinished = false;
                     game.uiFadeInActive = true;
                     game.uiFadeClock.restart();

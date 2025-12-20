@@ -53,6 +53,8 @@ target_include_directories(Glandular PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+target_compile_definitions(Glandular PRIVATE TEXTADVENTURE_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
+
 # Assets kopieren
 add_custom_target(copy_textadventure_assets ALL
     COMMAND ${CMAKE_COMMAND}

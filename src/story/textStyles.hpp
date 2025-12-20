@@ -17,6 +17,7 @@ enum class SpeakerId {
     NoNameWanderer,
     VillageElder,
     VillageWanderer,
+    Blacksmith,
     FireDragon,
     WaterDragon,
     AirDragon,

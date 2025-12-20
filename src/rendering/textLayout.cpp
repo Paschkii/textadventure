@@ -13,7 +13,9 @@ sf::Vector2f drawColoredSegments(
     sf::Vector2f startPos,
     unsigned int characterSize,
     float maxWidth,
-    float alphaFactor
+    float alphaFactor,
+    float lineSpacingMultiplier,
+    bool measureOnly
 ) {
     if (segments.empty())
         return startPos;
@@ -24,7 +26,8 @@ sf::Vector2f drawColoredSegments(
     sf::Text metrics(font, sf::String(), characterSize);
     metrics.setString("Hg");
     float lineSpacing = metrics.getLineSpacing();
-    const float lineAdvance = lineSpacing * 40.f;
+    float baseSpacing = std::max(lineSpacing, static_cast<float>(characterSize));
+    const float lineAdvance = baseSpacing * std::max(lineSpacingMultiplier, 1.f);
 
     for (const auto& segment : segments) {
         if (segment.text.empty())
@@ -83,7 +86,8 @@ sf::Vector2f drawColoredSegments(
 
                         // Draw the space and advance the cursor.
                         drawable.setPosition(cursor);
-                        target.draw(drawable);
+                        if (!measureOnly)
+                            target.draw(drawable);
                         cursor.x += tokenWidth;
                     } else {
                         // Handles long words that need to split across multiple lines.
@@ -108,7 +112,8 @@ sf::Vector2f drawColoredSegments(
                                 if (chunkWidth > availableWidth && !currentChunk.empty()) {
                                     drawable.setString(currentChunk);
                                     drawable.setPosition(cursor);
-                                    target.draw(drawable);
+                                    if (!measureOnly)
+                                        target.draw(drawable);
                                     cursor.x += drawable.getLocalBounds().size.x;
                                     cursor.x = baseLineStartX;
                                     cursor.y += lineAdvance;
@@ -120,7 +125,8 @@ sf::Vector2f drawColoredSegments(
                                 // Draw single oversized glyphs on their own line when needed.
                                 if (cursor.x + chunkWidth > wrapLimit && currentChunk.empty()) {
                                 drawable.setPosition(cursor);
-                                target.draw(drawable);
+                                if (!measureOnly)
+                                    target.draw(drawable);
                                 cursor.x += chunkWidth;
                                 continue;
                             }
@@ -132,7 +138,8 @@ sf::Vector2f drawColoredSegments(
                             if (!currentChunk.empty()) {
                                 drawable.setString(currentChunk);
                                 drawable.setPosition(cursor);
-                                target.draw(drawable);
+                                if (!measureOnly)
+                                    target.draw(drawable);
                                 cursor.x += drawable.getLocalBounds().size.x;
                             }
                         };
@@ -152,14 +159,16 @@ sf::Vector2f drawColoredSegments(
                         // Standard branch: fits on current line.
                         if (tokenWidth <= availableWidth) {
                             drawable.setPosition(cursor);
-                            target.draw(drawable);
+                            if (!measureOnly)
+                                target.draw(drawable);
                             cursor.x += tokenWidth;
                         // Word fits on its own line after we wrap down.
                         } else if (tokenWidth <= maxWidth) {
                             cursor.x = baseLineStartX;
                             cursor.y += lineAdvance;
                             drawable.setPosition(cursor);
-                            target.draw(drawable);
+                            if (!measureOnly)
+                                target.draw(drawable);
                             cursor.x += tokenWidth;
                         // Word is too long even for an empty line; split it.
                         } else {

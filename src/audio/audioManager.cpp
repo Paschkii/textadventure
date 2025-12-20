@@ -15,6 +15,7 @@ const sf::SoundBuffer* AudioManager::locationMusicBuffer(LocationId id) const {
         case LocationId::Cladrenal: return &resources->locationMusicCladrenal;
         case LocationId::Aerobronchi: return &resources->locationMusicAerobronchi;
         case LocationId::Seminiferous: return &resources->locationMusicSeminiferous;
+        case LocationId::FigsidsForge: return &resources->locationMusicBlacksmith;
         default: return nullptr;
     }
 }

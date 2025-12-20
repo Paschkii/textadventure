@@ -33,6 +33,8 @@ namespace TextStyles {
             return SpeakerId::VillageElder;
         if (equalsIgnoreCase(name, "Wanda Rinn"))
             return SpeakerId::VillageWanderer;
+        if (equalsIgnoreCase(name, "Will Figsid"))
+            return SpeakerId::Blacksmith;
         if (equalsIgnoreCase(name, "Master Bates"))
             return SpeakerId::MasterBates;
         if (equalsIgnoreCase(name, "Noah Bates"))
@@ -62,6 +64,8 @@ namespace TextStyles {
                     return { "Noah Lott", ColorHelper::Palette::PurpleBlue };
                 case SpeakerId::VillageWanderer:
                     return { "Wanda Rinn", ColorHelper::Palette::PurpleBlue };
+                case SpeakerId::Blacksmith:
+                    return { "Will Figsid", ColorHelper::Palette::PurpleBlue };
                 case SpeakerId::MasterBates:
                     return { "Master Bates", ColorHelper::Palette::DarkPurple };
                 case SpeakerId::NoahBates:

@@ -30,6 +30,8 @@ namespace {
                 return &game.resources.portraitVillageElder;
             case SpeakerId::VillageWanderer:
                 return &game.resources.portraitVillageWanderer;
+            case SpeakerId::Blacksmith:
+                return &game.resources.portraitBlacksmith;
             case SpeakerId::MasterBates:
                 return &game.resources.portraitMasterBates;
             case SpeakerId::NoahBates:

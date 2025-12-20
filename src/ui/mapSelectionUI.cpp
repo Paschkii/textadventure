@@ -13,6 +13,7 @@
 #include "core/game.hpp"             // Accesses map/dialogue state, sprite bounds, and resources.
 #include "story/textStyles.hpp"      // Formats dragon names and colors shown in location popups.
 #include "story/storyIntro.hpp"      // Supplies dragon dialogue references used by the UI.
+#include "story/quests.hpp"          // Reads quest metadata to finish quests once destinations are chosen.
 #include "helper/colorHelper.hpp"    // Applies color palettes to map labels and node outlines.
 #include "helper/textColorHelper.hpp"// Draws highlighted text segments inside popups.
 #include "rendering/textLayout.hpp"  // Wraps multi-line descriptions shown near the map.
@@ -168,10 +169,18 @@ namespace {
         std::string message = "Travel to " + locPtr->name + "?";
         auto prevText = game.visibleText;
         auto prevChar = game.charIndex;
+        auto onConfirm = [id](Game& confirmed) {
+            if (confirmed.forcedDestinationSelection) {
+                if (auto quest = Story::questNamed("Dragonbound Destinations"))
+                    confirmed.completeQuest(*quest);
+                confirmed.exitForcedDestinationSelection();
+            }
+            confirmed.beginTeleport(id);
+        };
         showConfirmationPrompt(
             game,
             message,
-            [id](Game& confirmed) { confirmed.beginTeleport(id); },
+            onConfirm,
             [](Game&) {}
         );
         game.visibleText = prevText;
@@ -336,7 +345,7 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
             regionArea = toGlobalRect(*loc.normalizedContentBounds);
 
         bool isCompleted = locIdOpt && game.locationCompleted[locationIndex(*locIdOpt)];
-        bool allowedForHover = !locIdOpt || !isCompleted;
+        bool allowedForHover = (!locIdOpt || !isCompleted) && !game.mapTutorialActive;
 
         if (locIdOpt)
             game.mapLocationHitboxes[locationIndex(*locIdOpt)] = regionArea;
@@ -400,6 +409,10 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
 
             pendingPopup = popup;
         }
+    }
+
+    if (game.mapTutorialHighlight) {
+        highlightedOverlayIndex = locationIndex(*game.mapTutorialHighlight);
     }
 
     for (std::size_t idx = 0; idx < locationsCache.size(); ++idx) {
@@ -669,15 +682,22 @@ void drawMapSelectionPopup(Game& game, sf::RenderTarget& target, const MapPopupR
     drawLocationPopup(game, target, popup);
 }
 
-void handleMapSelectionEvent(Game& game, const sf::Event& event) {
+void handleMapSelectionEvent(Game& game, const sf::Event& event, const sf::View* viewOverride) {
+    if (game.mapTutorialActive)
+        return;
+    auto convertPixel = [&](const sf::Vector2i& pixel) {
+        if (viewOverride)
+            return game.window.mapPixelToCoords(pixel, *viewOverride);
+        return game.window.mapPixelToCoords(pixel);
+    };
     if (event.is<sf::Event::MouseMoved>()) {
-        auto mousePos = game.window.mapPixelToCoords(sf::Mouse::getPosition(game.window));
+        auto mousePos = convertPixel(sf::Mouse::getPosition(game.window));
         game.mouseMapHover = locationAtPoint(game, mousePos);
     }
     else if (auto button = event.getIf<sf::Event::MouseButtonReleased>()) {
         if (button->button != sf::Mouse::Button::Left)
             return;
-        sf::Vector2f clickPos = game.window.mapPixelToCoords(button->position);
+        sf::Vector2f clickPos = convertPixel(button->position);
         auto target = locationAtPoint(game, clickPos);
         if (target && canTravelTo(game, *target))
             promptTravel(game, *target);

@@ -6,6 +6,7 @@
 #include "core/game.hpp"                   // Supplies Game state, resources, and controllers for rendering.
 #include "helper/colorHelper.hpp"          // Supplies ColorHelper::Palette colors used while drawing text.
 #include "ui/dialogUI.hpp"                 // Draws the dialogue UI during most GameState modes.
+#include "ui/confirmationUI.hpp"           // Renders the confirmation popup when weapon selection is active.
 #include "ui/introScreen.hpp"              // Renders the intro screen when GameState is IntroScreen.
 #include "ui/introTitle.hpp"               // Handles the intro title overlay used before dialogue.
 #include "ui/mapSelectionUI.hpp"           // Displays the map UI and popup when in map selection.
@@ -13,6 +14,7 @@
 #include "ui/quizUI.hpp"                   // Draws the quiz UI when GameState is Quiz.
 #include "ui/rankingUI.hpp"                // Renders the leaderboard once the ending finishes.
 #include "ui/weaponSelectionUI.hpp"        // Renders weapon selection graphics when active.
+#include "ui/menuUI.hpp"                   // Draws the in-game menu button overlay.
 
 // Returns the current overlay opacity driven by the end-sequence controller.
 inline float endOverlayAlpha(const Game& game) {
@@ -106,11 +108,15 @@ inline void renderGame(Game& game) {
                 drawConfirmationPrompt(game, game.window, mapUiAlpha);
             break;
         }
-        case GameState::WeaponSelection:
+        case GameState::WeaponSelection: {
+            float weaponDialogueAlpha = 1.f;
+            drawDialogueUI(game, game.window, true, &weaponDialogueAlpha, false);
             drawWeaponSelectionUI(game, game.window);
-            // Draw dialogue UI afterward so confirmation popups sit above weapon sprites.
-            drawDialogueUI(game, game.window);
+            ui::menu::draw(game, game.window);
+            if (game.confirmationPrompt.active)
+                drawConfirmationPrompt(game, game.window, weaponDialogueAlpha);
             break;
+        }
         case GameState::Quiz:
             drawDialogueUI(game, game.window);
             drawQuizUI(game, game.window);

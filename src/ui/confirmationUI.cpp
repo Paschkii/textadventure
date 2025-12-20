@@ -8,6 +8,9 @@
 #include "confirmationUI.hpp"        // Declares show/hide/draw/handle functions implemented here.
 #include "helper/colorHelper.hpp"    // Applies shared palette colors to the popup visuals.
 #include "story/textStyles.hpp"      // Uses TextStyles::UI colors when rendering text/button outlines.
+#include "helper/textColorHelper.hpp"// Breaks the message into colored segments.
+#include "rendering/textLayout.hpp"  // Reuses the tutorial line-spacing helper.
+#include "ui/popupStyle.hpp"         // Draws the standardized popup frame.
 
 namespace {
     constexpr float kButtonHeight = 44.f;
@@ -46,7 +49,7 @@ namespace {
         baseColor = ColorHelper::applyAlphaFactor(baseColor, uiAlphaFactor * (isActive ? 0.9f : 0.7f));
         outlineColor = ColorHelper::applyAlphaFactor(outlineColor, uiAlphaFactor);
 
-        sf::RectangleShape buttonShape({ bounds.size.x, bounds.size.y });
+        RoundedRectangleShape buttonShape({ bounds.size.x, bounds.size.y }, bounds.size.y * 0.5f, 20);
         buttonShape.setPosition({ bounds.position.x, bounds.position.y });
         buttonShape.setFillColor(baseColor);
         buttonShape.setOutlineThickness(2.f);
@@ -106,21 +109,27 @@ void drawConfirmationPrompt(Game& game, sf::RenderTarget& target, float uiAlphaF
     popupX = std::max(8.f, popupX);
     popupY = std::max(8.f, popupY);
 
-    sf::RectangleShape bg({ popupWidth, popupHeight });
-    bg.setPosition({ popupX, popupY });
-    bg.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor));
-    bg.setOutlineThickness(2.f);
-    bg.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::FrameGoldLight, uiAlphaFactor));
-    target.draw(bg);
+    sf::FloatRect popupBounds{ { popupX, popupY }, { popupWidth, popupHeight } };
+    ui::popup::drawPopupFrame(target, popupBounds, uiAlphaFactor);
 
-    // message on left
     float msgX = popupX + popupPadding;
     float msgY = popupY + popupPadding;
-    message.setPosition({ msgX, msgY });
-    target.draw(message);
+    float buttonsX = popupX + popupWidth - popupPadding - kButtonWidth;
+    float textEndX = buttonsX - popupPadding * 0.5f;
+    float maxTextWidth = std::max(0.f, textEndX - msgX);
+    auto segments = buildColoredSegments(game.confirmationPrompt.message);
+    drawColoredSegments(
+        target,
+        game.resources.uiFont,
+        segments,
+        { msgX, msgY },
+        20,
+        maxTextWidth,
+        uiAlphaFactor,
+        ui::popup::kLineSpacingMultiplier
+    );
 
     // buttons on right stacked vertically
-    float buttonsX = popupX + popupWidth - popupPadding - kButtonWidth;
     float yesY = popupY + popupPadding;
     float noY = yesY + kButtonHeight + 8.f;
     game.confirmationPrompt.yesBounds = { { buttonsX, yesY }, { kButtonWidth, kButtonHeight } };

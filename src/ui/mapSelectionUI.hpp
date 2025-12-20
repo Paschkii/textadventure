@@ -25,4 +25,4 @@ struct MapPopupRenderData {
 
 std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarget& target);
 void drawMapSelectionPopup(Game& game, sf::RenderTarget& target, const MapPopupRenderData& popup);
-void handleMapSelectionEvent(Game& game, const sf::Event& event);
+void handleMapSelectionEvent(Game& game, const sf::Event& event, const sf::View* viewOverride = nullptr);

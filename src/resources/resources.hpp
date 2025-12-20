@@ -23,12 +23,16 @@ struct Resources {
     sf::Texture dividerRight; // Divider asset used in location header
     sf::Texture menuButton; // Menu button graphic used for the overlay toggle
     sf::Texture buttonInventory;
+    sf::Texture buttonSkills;
     sf::Texture buttonCharacter;
     sf::Texture buttonMap;
     sf::Texture buttonQuests;
     sf::Texture buttonSettings;
     sf::Texture buttonRankings;
     sf::Texture buttonHelp;
+    sf::Texture questbookBackground;
+    sf::Texture skilltree;
+    sf::Texture skillbar;
     // Item Textures
     sf::Texture dragonstoneAir; // Air Dragon Stone
     sf::Texture dragonstoneEarth; // Earth Dragon Stone
@@ -42,6 +46,7 @@ struct Resources {
     sf::Texture weaponStiggedin;
     sf::Texture weaponStiggedinBroken;
     sf::Texture healPotion;
+    sf::Texture mapGlandular; // Map item texture
     // Character Textures
     sf::Texture airDragon; // Air Dragon Texture
     sf::Texture earthDragon; // Earth Dragon Texture
@@ -55,6 +60,7 @@ struct Resources {
     sf::Texture portraitStoryTeller; // Tory Tailor Portrait
     sf::Texture portraitVillageElder; // Noah Lott Portrait
     sf::Texture portraitVillageWanderer; // Wanda Rinn Portrait
+    sf::Texture portraitBlacksmith; // Will Figsid Portrait
     sf::Texture portraitNoahBates; // Noah bates Portrait
     sf::Texture portraitFireDragon; // Rowsted Sheacane Portrait
     sf::Texture portraitWaterDragon; // Flawtin Seamen Portrait
@@ -118,6 +124,7 @@ struct Resources {
     sf::SoundBuffer teleportMiddle; // Sound played during teleportation
     sf::SoundBuffer teleportStop; // Sound played when teleportation ends
     sf::SoundBuffer healSound; // Sound played when using the healing potion
+    sf::SoundBuffer forgeSound; // Sound played during forging sleep timer
     sf::SoundBuffer locationMusicPerigonal; // Sound played during the Perigonal dialogue
     sf::SoundBuffer locationMusicGonad; // Sound played while in Gonad
     sf::SoundBuffer locationMusicBlyathyroid; // Sound played while in Blyathyroid
@@ -125,6 +132,7 @@ struct Resources {
     sf::SoundBuffer locationMusicCladrenal; // Sound played while in Cladrenal
     sf::SoundBuffer locationMusicAerobronchi; // Sound played while in Aerobronchi
     sf::SoundBuffer locationMusicSeminiferous; // Sound played while in Seminiferous
+    sf::SoundBuffer locationMusicBlacksmith; // Sound played while at Figsid's Forge
     sf::SoundBuffer introTitle; // Sound played while on the intro title
     sf::SoundBuffer introDialogue; // Sound played during the intro dialogue
     sf::SoundBuffer buttonHovered; // Sound played when hovering buttons

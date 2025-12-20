@@ -1,7 +1,9 @@
 // === C++ Libraries ===
+#include <algorithm>  // Searches quest log entries and clamps XP.
 #include <cstddef>    // Needed for std::size_t definitions like playerNameMaxLength.
 #include <cstdlib>    // Provides std::exit for the fatal resource-loading failure path.
 #include <ctime>      // Formats the start timestamp stored for each run.
+#include <cmath>      // Provides pow/round used for XP curve.
 #include <iostream>   // Used for logging resource errors via std::cout.
 #include <chrono>     // Tracks session start/finish times for the leaderboard.
 // === SFML Libraries ===
@@ -28,17 +30,29 @@
 #include "ui/weaponSelectionUI.hpp"   // Declares handleWeaponSelectionEvent and related callbacks.
 #include "ui/menuUI.hpp"              // Handles the in-game menu button + overlay.
 #include "ui/bookshelfUI.hpp"         // Draws the optional bookshelf puzzle.
+#include "story/quests.hpp"           // Provides shared quest definitions and lookup helpers.
 
 constexpr unsigned int windowWidth = 1280;
 constexpr unsigned int windowHeight = 720;
 constexpr unsigned int fpsLimit = 60;
 constexpr std::size_t playerNameMaxLength = 18;
 
+constexpr float kXpCurveExponent = 1.2f;
+constexpr int kBaseXpRequirement = 100;
+
+inline int xpForLevel(int level) {
+    int clampedLevel = std::max(1, level);
+    float xp = kBaseXpRequirement * std::pow(static_cast<float>(clampedLevel), kXpCurveExponent);
+    int rounded = static_cast<int>(std::round(xp / 5.f) * 5.f);
+    return std::max(5, rounded);
+}
+
 namespace {
     const sf::Texture* backgroundForLocation(const Game& game, LocationId id) {
         switch (id) {
             case LocationId::Perigonal: return &game.resources.backgroundPetrigonal;
             case LocationId::Gonad: return &game.resources.backgroundGonad;
+            case LocationId::FigsidsForge: return &game.resources.backgroundBlacksmith;
             case LocationId::Blyathyroid: return &game.resources.backgroundBlyathyroid;
             case LocationId::Lacrimere: return &game.resources.backgroundLacrimere;
             case LocationId::Cladrenal: return &game.resources.backgroundCladrenal;
@@ -68,6 +82,10 @@ Game::Game()
 
     locations = Locations::buildLocations(resources);
 
+    blacksmithLocation.id = LocationId::FigsidsForge;
+    blacksmithLocation.name = "Figsid's Forge";
+    blacksmithLocation.color = ColorHelper::Palette::SoftYellow;
+
     enterSound.emplace(resources.enterKey);
     confirmSound.emplace(resources.confirm);
     rejectSound.emplace(resources.reject);
@@ -83,6 +101,7 @@ Game::Game()
     quizQuestionStartSound.emplace(resources.quizQuestionStart);
     quizQuestionThinkingSound.emplace(resources.quizQuestionThinking);
     quizEndSound.emplace(resources.quizEnd);
+    forgeSound.emplace(resources.forgeSound);
     // === Framerate limitieren ===
     window.setFramerateLimit(fpsLimit);
     // === NameBox Style setzen ===
@@ -120,6 +139,7 @@ Game::Game()
     menuPanel.setOutlineThickness(2.f);
 
     currentDialogue = &intro;
+    playerXpMax = static_cast<float>(xpForLevel(playerLevel));
 
     ui::weapons::loadWeaponOptions(*this);
     ui::dragons::loadDragonPortraits(*this);
@@ -170,6 +190,33 @@ void Game::beginTeleport(LocationId id) {
     stopTypingSound();
     transientReturnToMap = false;
     teleportController.begin(id, audioManager);
+}
+
+void Game::beginForcedDestinationSelection() {
+    forcedDestinationSelection = true;
+    menuActive = true;
+    menuActiveTab = 2;
+    menuHoveredTab = -1;
+    menuButtonUnlocked = true;
+    menuButtonFadeActive = false;
+    menuButtonAlpha = 1.f;
+    menuButtonHovered = false;
+    mouseMapHover.reset();
+    keyboardMapHover.reset();
+    mapTutorialActive = false;
+    mapTutorialAwaitingOk = false;
+    mapTutorialHighlight.reset();
+    mapTutorialPopupBounds = {};
+    mapTutorialOkBounds = {};
+    mapTutorialOkHovered = false;
+    menuMapPopup.reset();
+}
+
+void Game::exitForcedDestinationSelection() {
+    forcedDestinationSelection = false;
+    menuActive = false;
+    menuHoveredTab = -1;
+    menuMapPopup.reset();
 }
 
 // Advances the teleport sequence and invokes callbacks when ready.
@@ -339,6 +386,7 @@ void Game::run() {
         ui::ranking::updateOverlay(rankingOverlay);
         audioManager.update();
         updateQuizIntro(*this);
+        updateWeaponForging(*this);
         helper::healingPotion::update(*this);
         updateLayout();
 
@@ -370,4 +418,58 @@ void Game::exitBookshelfQuest() {
     if (state != GameState::Bookshelf)
         return;
     state = bookshelf.previousState;
+}
+
+void Game::grantXp(int amount) {
+    if (amount <= 0)
+        return;
+
+    playerXp += static_cast<float>(amount);
+    while (playerXpMax > 0.f && playerXp >= playerXpMax) {
+        playerXp -= playerXpMax;
+        playerLevel++;
+        playerXpMax = static_cast<float>(xpForLevel(playerLevel));
+    }
+
+    if (playerXp < 0.f)
+        playerXp = 0.f;
+}
+
+void Game::startQuest(const Story::QuestDefinition& quest) {
+    auto existing = std::find_if(questLog.begin(), questLog.end(), [&](const QuestLogEntry& entry) {
+        return entry.name == quest.name;
+    });
+    if (existing != questLog.end())
+        return;
+
+    QuestLogEntry entry{
+        quest.name,
+        quest.giver,
+        quest.goal,
+        quest.xpReward,
+        quest.loot
+    };
+    questLog.push_back(entry);
+
+    questPopup.entry = entry;
+    questPopup.phase = QuestPopupState::Phase::Entering;
+    questPopup.clock.restart();
+    questPopup.message = "New Quest: " + entry.name;
+}
+
+void Game::completeQuest(const Story::QuestDefinition& quest) {
+    auto existing = std::find_if(questLog.begin(), questLog.end(), [&](const QuestLogEntry& entry) {
+        return entry.name == quest.name;
+    });
+    if (existing == questLog.end() || existing->rewardGranted)
+        return;
+
+    existing->completed = true;
+    existing->rewardGranted = true;
+    grantXp(existing->xpReward);
+
+    questPopup.entry = *existing;
+    questPopup.phase = QuestPopupState::Phase::Entering;
+    questPopup.clock.restart();
+    questPopup.message = "Finished Quest: " + existing->name;
 }

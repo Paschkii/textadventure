@@ -5,6 +5,8 @@
 #include <cstdint>    // Provides uint8_t for opacity manipulation on sprites/text.
 #include <limits>     // Supplies std::numeric_limits for resetting showcase timers.
 #include <optional>   // Manages optional dragon indices/state used by the showcase logic.
+#include <string>     // Used for crafting weapon names in the forged-weapon popup.
+#include <vector>
 // === Header Files ===
 #include "dialogUI.hpp"             // Declares drawDialogueUI/related APIs implemented below.
 #include "dialogDrawElements.hpp"   // Renders the dialogue boxes, name labels, and text draws.
@@ -14,10 +16,13 @@
 #include "ui/genderSelectionUI.hpp" // Handles the dragonborn selection panel overlay.
 #include "uiVisibility.hpp"         // Computes fade/visibility rules shared across UI modules.
 #include "ui/menuUI.hpp"            // Draws and handles the new in-game menu button.
+#include "ui/mapSelectionUI.hpp"    // Draws the map popups requested by the menu map tab.
 #include "story/dialogInput.hpp"    // Handles Enter logic and quiz transitions used in dialogue flow.
 #include "story/storyIntro.hpp"     // Drives the intro, dragon, and quiz dialogues referenced here.
 #include "story/textStyles.hpp"     // Provides speaker styles/colors for names and portraits.
 #include "helper/colorHelper.hpp"   // Applies palette colors when drawing names/dragon labels.
+#include "rendering/textLayout.hpp"
+#include "ui/popupStyle.hpp"
 
 namespace {
     UiVisibility computeDialogueVisibility(Game& game) {
@@ -58,6 +63,228 @@ namespace {
         bgColor.a = static_cast<std::uint8_t>(255.f * fadeProgress * uiAlphaFactor);
         game.background->setColor(bgColor);
         target.draw(*game.background);
+    }
+
+    void drawForgedWeaponPopup(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
+        if (!game.forgedWeaponPopupActive)
+            return;
+        if (game.selectedWeaponIndex < 0 || static_cast<std::size_t>(game.selectedWeaponIndex) >= game.weaponOptions.size())
+            return;
+
+        sf::Vector2f viewSize = target.getView().getSize();
+        float popupWidth = std::clamp(viewSize.x * 0.4f, 360.f, 640.f);
+        float popupHeight = std::clamp(viewSize.y * 0.35f, 220.f, 420.f);
+        float bottomY = game.textBox.getPosition().y - 12.f;
+        float popupX = viewSize.x * 0.5f - (popupWidth * 0.5f);
+        float popupY = bottomY - popupHeight;
+        if (popupY < 20.f)
+            popupY = 20.f;
+
+        sf::FloatRect popupBounds{ { popupX, popupY }, { popupWidth, popupHeight } };
+        ui::popup::drawPopupFrame(target, popupBounds, uiAlphaFactor);
+
+        const auto& option = game.weaponOptions[game.selectedWeaponIndex];
+        if (option.texture.getSize().x > 0 && option.texture.getSize().y > 0) {
+            sf::Sprite sprite{ option.texture };
+            float spriteAreaHeight = popupHeight * 0.55f;
+            float spriteAreaWidth = popupWidth * 0.8f;
+            auto textureSize = option.texture.getSize();
+            float scaleX = spriteAreaWidth / static_cast<float>(textureSize.x);
+            float scaleY = spriteAreaHeight / static_cast<float>(textureSize.y);
+            float scale = std::min(scaleX, scaleY);
+            sprite.setScale({ scale, scale });
+            auto localBounds = sprite.getLocalBounds();
+            sprite.setOrigin({
+                localBounds.position.x + localBounds.size.x * 0.5f,
+                localBounds.position.y + localBounds.size.y * 0.5f
+            });
+            sprite.setPosition({
+                popupX + popupWidth * 0.5f,
+                popupY + popupHeight * 0.45f
+            });
+            sf::Color spriteColor = sprite.getColor();
+            spriteColor.a = static_cast<std::uint8_t>(255.f * uiAlphaFactor);
+            sprite.setColor(spriteColor);
+            target.draw(sprite);
+        }
+
+        std::string displayName = game.forgedWeaponName;
+        if (displayName.empty() && game.selectedWeaponIndex >= 0) {
+            displayName = game.weaponOptions[game.selectedWeaponIndex].displayName;
+        }
+        sf::Text nameText{ game.resources.titleFont, displayName, 32 };
+        nameText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, uiAlphaFactor));
+        auto nameBounds = nameText.getLocalBounds();
+        nameText.setOrigin({
+            nameBounds.position.x + (nameBounds.size.x * 0.5f),
+            nameBounds.position.y + (nameBounds.size.y * 0.5f)
+        });
+        nameText.setPosition({
+            popupX + (popupWidth * 0.5f),
+            popupY + popupHeight - 32.f
+        });
+        target.draw(nameText);
+    }
+
+void drawMapItemPopup(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
+    if (!game.mapItemPopupActive)
+        return;
+
+        sf::Vector2f viewSize = target.getView().getSize();
+        float popupWidth = std::clamp(viewSize.x * 0.33f, 320.f, 440.f);
+        float popupHeight = std::clamp(viewSize.y * 0.26f, 200.f, 280.f);
+        float bottomY = game.textBox.getPosition().y - 12.f;
+        float popupX = viewSize.x * 0.5f - (popupWidth * 0.5f);
+        float popupY = bottomY - popupHeight;
+        if (popupY < 20.f)
+            popupY = 20.f;
+
+        sf::FloatRect popupBounds{ { popupX, popupY }, { popupWidth, popupHeight } };
+        ui::popup::drawPopupFrame(target, popupBounds, uiAlphaFactor);
+
+        const sf::Texture& mapTexture = game.resources.mapGlandular;
+        if (mapTexture.getSize().x > 0 && mapTexture.getSize().y > 0) {
+            sf::Sprite sprite{ mapTexture };
+            float spriteAreaWidth = popupWidth * 0.78f;
+            float spriteAreaHeight = popupHeight * 0.55f;
+            auto texSize = mapTexture.getSize();
+            float scale = std::min(spriteAreaWidth / static_cast<float>(texSize.x), spriteAreaHeight / static_cast<float>(texSize.y));
+            sprite.setScale({ scale, scale });
+            auto bounds = sprite.getLocalBounds();
+            sprite.setOrigin({
+                bounds.position.x + bounds.size.x * 0.5f,
+                bounds.position.y + bounds.size.y * 0.5f
+            });
+            sprite.setPosition({ popupX + popupWidth * 0.5f, popupY + popupHeight * 0.45f });
+            sf::Color spriteColor = sprite.getColor();
+            spriteColor.a = static_cast<std::uint8_t>(255.f * uiAlphaFactor);
+            sprite.setColor(spriteColor);
+            target.draw(sprite);
+        }
+
+    sf::Text titleText{ game.resources.uiFont, "Map of Glandular", 28 };
+    titleText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, uiAlphaFactor));
+    auto titleBounds = titleText.getLocalBounds();
+    titleText.setOrigin({
+        titleBounds.position.x + titleBounds.size.x * 0.5f,
+        titleBounds.position.y + titleBounds.size.y * 0.5f
+    });
+    titleText.setPosition({ popupX + popupWidth * 0.5f, popupY + popupHeight - 32.f });
+    target.draw(titleText);
+}
+
+namespace {
+    constexpr float kQuestPopupEnterDuration = 0.45f;
+    constexpr float kQuestPopupVisibleDuration = 5.f;
+    constexpr float kQuestPopupExitDuration = 0.35f;
+    constexpr float kQuestPopupLineSpacing = 2.5f;
+    constexpr float kQuestPopupHorizontalPadding = 20.f;
+    constexpr float kQuestPopupVerticalPadding = 12.f;
+
+    void advanceQuestPopupState(Game& game) {
+        auto& popup = game.questPopup;
+        bool transitioned = false;
+        do {
+            transitioned = false;
+            float elapsed = popup.clock.getElapsedTime().asSeconds();
+            switch (popup.phase) {
+                case Game::QuestPopupState::Phase::Entering:
+                    if (elapsed >= kQuestPopupEnterDuration) {
+                        popup.phase = Game::QuestPopupState::Phase::Visible;
+                        popup.clock.restart();
+                        transitioned = true;
+                    }
+                    break;
+                case Game::QuestPopupState::Phase::Visible:
+                    if (elapsed >= kQuestPopupVisibleDuration) {
+                        popup.phase = Game::QuestPopupState::Phase::Exiting;
+                        popup.clock.restart();
+                        transitioned = true;
+                    }
+                    break;
+                case Game::QuestPopupState::Phase::Exiting:
+                    if (elapsed >= kQuestPopupExitDuration) {
+                        popup.phase = Game::QuestPopupState::Phase::Idle;
+                        popup.entry.reset();
+                        transitioned = true;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        } while (transitioned);
+    }
+
+    void drawQuestPopup(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
+        advanceQuestPopupState(game);
+        auto& popup = game.questPopup;
+        if (!popup.entry || popup.phase == Game::QuestPopupState::Phase::Idle)
+            return;
+
+        float viewWidth = static_cast<float>(target.getSize().x);
+        float viewHeight = static_cast<float>(target.getSize().y);
+        float popupWidth = std::clamp(viewWidth * 0.3f, 360.f, 560.f);
+        float popupHeight = std::clamp(viewHeight * 0.12f, 70.f, 120.f);
+        float settleY = 20.f;
+        float startY = -popupHeight - 12.f;
+
+        float alpha = 1.f;
+        float y = settleY;
+        float elapsed = popup.clock.getElapsedTime().asSeconds();
+        switch (popup.phase) {
+            case Game::QuestPopupState::Phase::Entering: {
+                float progress = std::clamp(elapsed / kQuestPopupEnterDuration, 0.f, 1.f);
+                y = startY + (settleY - startY) * progress;
+                alpha = progress;
+                break;
+            }
+            case Game::QuestPopupState::Phase::Visible:
+                y = settleY;
+                alpha = 1.f;
+                break;
+            case Game::QuestPopupState::Phase::Exiting: {
+                float progress = std::clamp(elapsed / kQuestPopupExitDuration, 0.f, 1.f);
+                y = settleY + (startY - settleY) * progress;
+                alpha = 1.f - progress;
+                break;
+            }
+            default:
+                return;
+        }
+
+        float x = (viewWidth - popupWidth) * 0.5f;
+        sf::FloatRect bounds({ x, y }, { popupWidth, popupHeight });
+        float compositeAlpha = uiAlphaFactor * alpha;
+        ui::popup::drawPopupFrame(target, bounds, compositeAlpha);
+
+        std::string message = popup.message.empty()
+            ? "Quest Update"
+            : popup.message;
+        sf::Text messageText{ game.resources.uiFont, message, 26 };
+        messageText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, compositeAlpha));
+        messageText.setOutlineThickness(0.f);
+        messageText.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, compositeAlpha));
+        auto textBounds = messageText.getLocalBounds();
+        messageText.setOrigin({
+            textBounds.position.x + (textBounds.size.x * 0.5f),
+            textBounds.position.y + (textBounds.size.y * 0.5f)
+        });
+        messageText.setPosition({
+            bounds.position.x + (bounds.size.x * 0.5f),
+            bounds.position.y + (bounds.size.y * 0.5f)
+        });
+        target.draw(messageText);
+    }
+}
+
+    void drawForgingOverlay(Game& game, sf::RenderTarget& target) {
+        float alpha = weaponForgingOverlayAlpha(game);
+        if (alpha <= 0.f)
+            return;
+        auto size = target.getSize();
+        sf::RectangleShape overlay({ static_cast<float>(size.x), static_cast<float>(size.y) });
+        overlay.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(std::clamp(alpha, 0.f, 1.f) * 255.f)));
+        target.draw(overlay);
     }
 
     bool updateTypewriter(Game& game, const std::string& fullText, float delay) {
@@ -187,7 +414,6 @@ namespace {
         sf::Color spriteColor = prevColor;
         spriteColor.a = static_cast<std::uint8_t>(std::clamp(combinedAlpha, 0.f, 1.f) * 255.f);
         portrait.sprite.setColor(spriteColor);
-        target.draw(portrait.sprite);
 
         auto spriteBounds = portrait.sprite.getGlobalBounds();
 
@@ -202,6 +428,29 @@ namespace {
             labelBounds.position.y + (labelBounds.size.y / 2.f)
         });
         label.setPosition({ center.x, center.y + (spriteBounds.size.y / 2.f) + kDragonLabelSpacing });
+        auto labelGlobalBounds = label.getGlobalBounds();
+
+        constexpr float kDragonBackdropPadding = 28.f;
+        constexpr float kDragonBackdropRadius = 24.f;
+        float spriteLeft = spriteBounds.position.x;
+        float spriteTop = spriteBounds.position.y;
+        float spriteRight = spriteLeft + spriteBounds.size.x;
+        float spriteBottom = spriteTop + spriteBounds.size.y;
+        float labelLeft = labelGlobalBounds.position.x;
+        float labelTop = labelGlobalBounds.position.y;
+        float labelRight = labelLeft + labelGlobalBounds.size.x;
+        float labelBottom = labelTop + labelGlobalBounds.size.y;
+        float backdropLeft = std::min(spriteLeft, labelLeft) - kDragonBackdropPadding;
+        float backdropTop = std::min(spriteTop, labelTop) - (kDragonBackdropPadding * 0.5f);
+        float backdropRight = std::max(spriteRight, labelRight) + kDragonBackdropPadding;
+        float backdropBottom = std::max(spriteBottom, labelBottom) + (kDragonBackdropPadding * 0.5f);
+
+        RoundedRectangleShape backdrop({ backdropRight - backdropLeft, backdropBottom - backdropTop }, kDragonBackdropRadius, 16);
+        backdrop.setPosition({ backdropLeft, backdropTop });
+        backdrop.setFillColor(ColorHelper::applyAlphaFactor(sf::Color(4, 4, 6, 220), combinedAlpha));
+        target.draw(backdrop);
+
+        target.draw(portrait.sprite);
         target.draw(label);
 
         portrait.sprite.setScale(prevScale);
@@ -392,10 +641,14 @@ void drawLocationBox(Game& game, sf::RenderTarget& target, float uiAlphaFactor, 
         localBounds.position.x + (localBounds.size.x * 0.5f),
         localBounds.position.y + (localBounds.size.y * 0.5f)
     });
-    float textY = boxPos.y + kLocationTopInset + (localBounds.size.y * 0.5f);
-    locationName.setPosition({ boxPos.x + (boxSize.x / 2.f), textY });
+    sf::Vector2f boxCenter{
+        boxPos.x + (boxSize.x * 0.5f),
+        boxPos.y + (boxSize.y * 0.5f)
+    };
+    locationName.setPosition(boxCenter);
 
     auto globalBounds = locationName.getGlobalBounds();
+    float textY = globalBounds.position.y + (globalBounds.size.y * 0.5f);
 
     sf::Sprite leftDivider{ game.resources.dividerLeft };
     sf::Sprite rightDivider{ game.resources.dividerRight };
@@ -418,7 +671,7 @@ void drawLocationBox(Game& game, sf::RenderTarget& target, float uiAlphaFactor, 
     target.draw(locationName);
 }
 
-void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation, float* outAlpha) {
+void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation, float* outAlpha, bool renderMenu) {
 
     ui::brokenweapon::updatePreview(game);
     UiVisibility visibility = computeDialogueVisibility(game);
@@ -446,8 +699,15 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
 
     // Hide location/item boxes during the intro title/state; they should only appear afterward.
     bool introTitleActive = game.state == GameState::IntroTitle || game.state == GameState::IntroScreen;
-    bool inIntroTransition = game.pendingIntroDialogue || game.pendingPerigonalDialogue || game.pendingGonadDialogue || game.uiFadeOutActive;
-    bool showLocationBox = !introTitleActive && !inIntroTransition && game.currentDialogue && game.currentDialogue != &intro;
+    bool inIntroTransition =
+        game.pendingIntroDialogue
+        || game.pendingPerigonalDialogue
+        || game.pendingGonadPartOneDialogue
+        || game.pendingBlacksmithDialogue
+        || game.pendingGonadPartTwoDialogue
+        || game.uiFadeOutActive;
+    bool forgingOverlayActive = weaponForgingOverlayVisible(game);
+    bool showLocationBox = !introTitleActive && !inIntroTransition && !forgingOverlayActive && game.currentDialogue && game.currentDialogue != &intro;
 
     dialogDraw::drawDialogueFrames(game, target, uiAlphaFactor, glowColor);
 
@@ -465,7 +725,8 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
         && game.currentDialogue == &game.transientDialogue
         && !game.visibleText.empty()
         && game.bookshelf.awaitingDragonstoneReward;
-    if (game.currentDialogue == &dragon || keepShowingLastFeedbackLine) {
+    bool skipDragonDuringQuiz = (game.state == GameState::Quiz && !keepShowingLastFeedbackLine);
+    if ((game.currentDialogue == &dragon || keepShowingLastFeedbackLine) && !skipDragonDuringQuiz) {
         std::optional<LocationId> highlightLocation;
         if (keepShowingLastFeedbackLine)
             highlightLocation = game.quiz.targetLocation;
@@ -490,10 +751,23 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
 
     float delay = 0.02f;
     bool isTyping = false;
+    bool isMapTutorialLine =
+        hasDialogueLine
+        && game.currentDialogue == &gonad_part_two
+        && game.mapTutorialActive
+        && game.dialogueIndex >= kMapTutorialStartLineIndex
+        && game.dialogueIndex <= kMapTutorialEndLineIndex;
+
+    if (isMapTutorialLine) {
+        game.visibleText = fullText;
+        game.charIndex = fullText.size();
+    }
+
     bool allowTyping = !game.teleportController.active()
         && !game.confirmationPrompt.active
         && hasDialogueLine
-        && game.state != GameState::IntroTitle;
+        && game.state != GameState::IntroTitle
+        && !isMapTutorialLine;
     if (allowTyping)
         isTyping = updateTypewriter(game, fullText, delay);
 
@@ -502,24 +776,29 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
         bool sameSpeakerAsPrevious = game.lastSpeaker && *game.lastSpeaker == line->speaker;
         // Hide the speaker name until some text is visible (prevents leftover
         // speaker names from appearing immediately after the intro title).
-        if (game.visibleText.empty() && !game.askingName && !sameSpeakerAsPrevious) {
-            TextStyles::SpeakerStyle emptyInfo = info;
-            emptyInfo.name.clear();
-            dialogDraw::drawSpeakerName(target, game, emptyInfo, uiAlphaFactor);
+        if (!isMapTutorialLine) {
+            if (game.visibleText.empty() && !game.askingName && !sameSpeakerAsPrevious) {
+                TextStyles::SpeakerStyle emptyInfo = info;
+                emptyInfo.name.clear();
+                dialogDraw::drawSpeakerName(target, game, emptyInfo, uiAlphaFactor);
+            }
+            else {
+                dialogDraw::drawSpeakerName(target, game, info, uiAlphaFactor);
+            }
+            game.lastSpeaker = line->speaker;
+
+            std::string textToDraw = game.visibleText;
+            if (game.askingName) {
+                auto newlinePos = textToDraw.find('\n');
+                if (newlinePos != std::string::npos)
+                    textToDraw = textToDraw.substr(0, newlinePos + 1);
+            }
+
+            dialogDraw::drawDialogueText(target, game, textToDraw, uiAlphaFactor);
         }
         else {
-            dialogDraw::drawSpeakerName(target, game, info, uiAlphaFactor);
+            game.lastSpeaker = line->speaker;
         }
-        game.lastSpeaker = line->speaker;
-
-        std::string textToDraw = game.visibleText;
-        if (game.askingName) {
-            auto newlinePos = textToDraw.find('\n');
-            if (newlinePos != std::string::npos)
-                textToDraw = textToDraw.substr(0, newlinePos + 1);
-        }
-
-        dialogDraw::drawDialogueText(target, game, textToDraw, uiAlphaFactor);
     }
 
     if (line
@@ -529,19 +808,48 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
         ui::genderSelection::start(game);
     }
 
+    if (game.state == GameState::Dialogue
+        && game.currentDialogue == &blacksmith
+        && game.dialogueIndex == kBlacksmithSelectionLineIndex
+        && !game.confirmationPrompt.active
+        && game.state != GameState::WeaponSelection
+        && !fullText.empty()
+        && game.visibleText.size() >= fullText.size()) {
+        openBlacksmithWeaponSelection(game, fullText);
+        return;
+    }
+
     ui::genderSelection::draw(game, target, uiAlphaFactor);
 
-    if (game.confirmationPrompt.active && !skipConfirmation) {
+    bool deferredConfirmation = game.confirmationPrompt.active && !skipConfirmation && game.forcedDestinationSelection;
+    if (game.confirmationPrompt.active && !skipConfirmation && !deferredConfirmation) {
         drawConfirmationPrompt(game, target, uiAlphaFactor);
+        drawQuestPopup(game, target, uiAlphaFactor);
         return;
     }
 
     if (game.askingName)
         dialogDraw::drawNameInput(target, game, uiAlphaFactor);
 
-    if (!game.genderSelectionActive)
+    if (!game.genderSelectionActive && !isMapTutorialLine)
         dialogDraw::drawReturnPrompt(target, game, uiAlphaFactor, isTyping);
 
     ui::brokenweapon::drawPreview(game, target);
+    drawMapItemPopup(game, target, uiAlphaFactor);
+    drawForgedWeaponPopup(game, target, uiAlphaFactor);
+    drawForgingOverlay(game, target);
+    if (renderMenu)
     ui::menu::draw(game, target);
+
+    if (game.menuMapPopup) {
+        drawMapSelectionPopup(game, target, *game.menuMapPopup);
+        game.menuMapPopup.reset();
+    }
+
+    drawQuestPopup(game, target, uiAlphaFactor);
+
+    if (deferredConfirmation) {
+        drawConfirmationPrompt(game, target, uiAlphaFactor);
+        return;
+    }
 }

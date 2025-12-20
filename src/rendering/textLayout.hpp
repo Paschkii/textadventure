@@ -14,4 +14,7 @@ sf::Vector2f drawColoredSegments(
     sf::Vector2f startPos,
     unsigned int characterSize,
     float maxWidth,
-    float alphaFactor = 1.f);
+    float alphaFactor = 1.f,
+    float lineSpacingMultiplier = 40.f,
+    bool measureOnly = false
+);

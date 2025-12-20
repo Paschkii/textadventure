@@ -23,10 +23,12 @@
 #include "resources/resources.hpp"              // Supplies the Resources member with textures and sounds.
 #include "rendering/locations.hpp"              // Provides Location and LocationId for map logic.
 #include "story/storyIntro.hpp"                 // Supplies the intro dialogue referenced by default state.
+#include "story/quests.hpp"                     // Brings quest definitions used for logging and triggering.
 #include "story/textStyles.hpp"                 // Defines TextStyles::SpeakerId and style helpers.
 #include "ui/confirmationUI.hpp"                // Brings the ConfirmationPrompt used in the game state.
 #include "ui/nineSliceBox.hpp"                  // Declares the NineSliceBox frame used for the UI.
 #include "ui/quizGenerator.hpp"                 // Defines quiz::Question for the quiz data structure.
+#include "ui/mapSelectionUI.hpp"                // Needed for caching map popup metadata.
 #include "core/ranking.hpp"                     // Tracks leaderboard entries persisted on disk.
 #include "ui/rankingUI.hpp"                     // Renders the ranking overlay once the ending completes.
 
@@ -106,6 +108,20 @@ struct Game {
         float weaponFadeStart = 0.f;
     };
 
+    struct WeaponForgingState {
+        enum class Phase {
+            Idle,
+            FadingOut,
+            Sleeping,
+            FadingIn
+        };
+
+        Phase phase = Phase::Idle;
+        sf::Clock clock;
+        float alpha = 0.f;
+        bool autoAdvancePending = false;
+    };
+
     // Stores the state and progression for the quiz minigame.
     struct QuizData {
         bool active = false;
@@ -170,6 +186,30 @@ struct Game {
         bool finalCheerTriggered = false;
         std::optional<quiz::Question> pendingSillyReplacement;
         std::mt19937 rng;
+    };
+
+    struct QuestLogEntry {
+        std::string name;
+        std::string giver;
+        std::string goal;
+        int xpReward = 0;
+        std::optional<std::string> loot;
+        bool completed = false;
+        bool rewardGranted = false;
+    };
+
+    struct QuestPopupState {
+        enum class Phase {
+            Idle,
+            Entering,
+            Visible,
+            Exiting
+        };
+
+        Phase phase = Phase::Idle;
+        sf::Clock clock;
+        std::optional<QuestLogEntry> entry;
+        std::string message;
     };
 
     // Tracks the bookshelf puzzle layout and interactive books.
@@ -237,6 +277,10 @@ struct Game {
     void startBookshelfQuest();
     // Exits the bookshelf scene and returns to the prior state.
     void exitBookshelfQuest();
+    // Grants the provided amount of XP, handling level progression if needed.
+    void grantXp(int amount);
+    void startQuest(const Story::QuestDefinition& quest);
+    void completeQuest(const Story::QuestDefinition& quest);
 
         // === Public game data ===
         sf::RenderWindow window;                            // Main SFML window for rendering.
@@ -269,12 +313,25 @@ struct Game {
         bool inventoryTutorialAdvancePending = false;     // Auto-advance dialogue when the tutorial closes.
         float inventoryTutorialCloseProgress = 0.f;       // Tracks fade progress when closing the tutorial.
         sf::Clock inventoryTutorialCloseClock;            // Drives the tutorial fade-out timer.
+        bool mapItemPopupActive = false;                  // Shows the map-acquisition popup during Gonad part two.
+        bool mapItemCollected = false;                    // Ensures the map icon is only added once.
+        bool mapTutorialActive = false;                   // Controls the Tory Tailor map tutorial.
+        bool mapTutorialAwaitingOk = false;               // Blocks advancement until the Ok button is clicked.
+        sf::Vector2f mapTutorialAnchorNormalized{ 0.5f, 0.5f }; // Normalized anchor point for the tutorial popups.
+        std::optional<LocationId> mapTutorialHighlight;   // Location forced to highlight while the tutorial runs.
+        sf::FloatRect mapTutorialPopupBounds;             // Cached bounds of the current tutorial popup.
+        sf::FloatRect mapTutorialOkBounds;                // Hitbox for the popup's Ok button.
+        bool mapTutorialOkHovered = false;                // Mouse hover state for the Ok button.
+        std::optional<MapPopupRenderData> menuMapPopup;    // Cached map popup data from the menu tab.
         bool healingPotionActive = false;                 // Tracks whether a healing sequence is running.
         bool healingPotionReceived = false;               // Ensures the potion is only granted once.
         float healingPotionStartHp = 0.f;                 // HP recorded when the potion started healing.
         sf::Clock healingPotionClock;                     // Drives the healing interpolation timer.
         float playerXp = 0.f;                            // Player XP value for the status bar.
         float playerXpMax = 100.f;                       // XP required for the next level.
+        int playerLevel = 1;                             // Current player level used for XP scaling.
+        std::vector<QuestLogEntry> questLog;              // Track quests the player has been awarded.
+        QuestPopupState questPopup;                       // Controls the quest popups shown at the top.
         sf::RectangleShape textBox;                      // Outline around dialogue text.
         sf::RectangleShape locationBox;                  // Box showing the current location.
         sf::RectangleShape itemBox;                      // Outline for the item list.
@@ -291,6 +348,7 @@ struct Game {
         bool menuButtonFadeActive = false;                // Tracks whether the button is currently fading in.
         float menuButtonAlpha = 0.f;                      // Fade progress used for button visibility.
         sf::Clock menuButtonFadeClock;                    // Drives the 1-second menu button fade.
+        bool forcedDestinationSelection = false;          // Locks the menu on the map until a destination is chosen.
 
         std::optional<sf::Sprite> background;             // Background art for the current scene.
         std::optional<sf::Sprite> returnSprite;           // Icon drawn when returning to map.
@@ -315,6 +373,7 @@ struct Game {
         std::optional<sf::Sound> buttonHoverSound;          // Plays when hovering interactive buttons.
         std::optional<sf::Sound> introTitleHoverSound;      // Plays when hovering intro title options.
         std::optional<sf::Sound> healPotionSound;           // Plays when the healing potion restores HP.
+        std::optional<sf::Sound> forgeSound;                // Plays while the blacksmith rests.
 
         ConfirmationPrompt confirmationPrompt;            // Wrapped modal yes/no dialog.
 
@@ -369,7 +428,7 @@ struct Game {
             Phase phase = Phase::Idle;
             int selection = -1;
             sf::Clock clock;
-            float approachDuration = 0.8f;
+            float approachDuration = 0.95f;
             float fadeDuration = 0.5f;
             bool labelsHidden = false;
         };
@@ -384,7 +443,9 @@ struct Game {
         bool uiFadeInActive = false;                     // UI is currently fading in.
         bool pendingIntroDialogue = false;               // Queue the intro dialogue after the title.
         bool pendingPerigonalDialogue = false;           // Queue the perigonal dialogue before Gonad.
-        bool pendingGonadDialogue = false;                // Queue Gonad dialogue after the intro.
+        bool pendingGonadPartOneDialogue = false;        // Queue the first Gonad segment after Perigonal.
+        bool pendingBlacksmithDialogue = false;          // Queue the blacksmith segment after Gonad Part One.
+        bool pendingGonadPartTwoDialogue = false;        // Queue the second Gonad segment after the blacksmith.
         float uiFadeInDuration = 1.0f;                   // Fade-in duration.
 
         bool backgroundFadeInActive = false;              // Background fade animation running.
@@ -393,6 +454,7 @@ struct Game {
 
         std::vector<Location> locations;                    // All locations available for travel.
         const Location* currentLocation = nullptr;          // Currently active location pointer.
+        Location blacksmithLocation;                        // Special location used for the forge dialogue.
         std::optional<LocationId> keyboardMapHover;         // Location hovered via keyboard navigation.
         std::optional<LocationId> mouseMapHover;            // Location under the mouse cursor.
         std::array<sf::FloatRect, 5> mapLocationHitboxes{}; // Hitboxes for clickable locations.
@@ -405,11 +467,20 @@ struct Game {
         int hoveredWeaponIndex = -1;                    // Hovered weapon index.
         int selectedWeaponIndex = -1;                   // Currently selected weapon slot.
         bool weaponItemAdded = false;                   // Did we already add the weapon item?
+        std::string forgedWeaponName;                    // Display name of the newly forged weapon.
         bool brokenWeaponsStored = false;                // Ensures the broken weapons are recorded only once.
+        struct WeaponSelectionPopupEntry {
+            std::size_t optionIndex = 0;
+            sf::FloatRect bounds;
+            sf::Vector2f labelPosition;
+        };
+        std::vector<WeaponSelectionPopupEntry> weaponSelectionPopupEntries; // Layout used while picking a forged weapon.
 
         std::vector<DragonPortrait> dragonPortraits;    // Portraits used in the dragon showcase UI.
         DragonShowcaseState dragonShowcase;             // State machine for the showcase animation.
         BrokenWeaponPopup brokenWeaponPopup;             // Handles the broken weapon preview popup.
+        WeaponForgingState weaponForging;                // Tracks the 5-second forge rest animation.
+        bool forgedWeaponPopupActive = false;             // Controls the new weapon reveal popup.
         core::ItemController itemController;            // Controls collected items.
         QuizData quiz;                                  // Manages quiz mode state and lines.
         BookshelfState bookshelf;                       // Interactive bookshelf quest state.
@@ -435,6 +506,8 @@ struct Game {
         ui::ranking::OverlayState rankingOverlay;        // State for drawing the leaderboard.
     // Hand off location travel to the dedicated handler.
     void startTravel(LocationId id);
+    void beginForcedDestinationSelection();
+    void exitForcedDestinationSelection();
     // Starts the teleport animation and audio transition.
     void beginTeleport(LocationId id);
     // Steps the teleport phase machine forward each frame.

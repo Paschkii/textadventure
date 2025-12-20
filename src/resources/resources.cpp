@@ -68,6 +68,9 @@ bool Resources::loadAll()
     if (!healPotion.loadFromFile(ResourceFiles::Items::kHealPotionTexture)) { // Item: Healing Potion
         std::cout << "Failed to load Healing Potion Texture\n"; return false;
     }
+    if (!mapGlandular.loadFromFile("assets/gfx/items/map_glandular.png")) { // Item: Map of Glandular
+        std::cout << "Failed to load Map of Glandular Texture\n"; return false;
+    }
 
     // ----------------------------
     //      Character Textures
@@ -107,6 +110,9 @@ bool Resources::loadAll()
     }
     if (!portraitVillageWanderer.loadFromFile("assets/gfx/characters/wanda_rinn.png")) { // Portrait: Wanda Rinn
         std::cout << "Failed to load Village Wanderer Portrait\n"; return false;
+    }
+    if (!portraitBlacksmith.loadFromFile("assets/gfx/characters/will_figsid.png")) { // Portrait: Wanda Rinn
+        std::cout << "Failed to load Blacksmith Portrait\n"; return false;
     }
     if (!portraitNoahBates.loadFromFile("assets/gfx/characters/noah_bates.png")) { // Portrait: Noah Bates
         std::cout << "Failed to load Noah Bates Portrait\n"; return false;
@@ -280,6 +286,9 @@ bool Resources::loadAll()
     if (!buttonInventory.loadFromFile("assets/gfx/buttons/button_inventory.png")) {
         std::cout << "Failed to load Inventory Button Texture\n"; return false;
     }
+    if (!buttonSkills.loadFromFile("assets/gfx/buttons/button_skills.png")) {
+        std::cout << "Failed to load Skills Button Texture\n"; return false;
+    }
     if (!buttonCharacter.loadFromFile("assets/gfx/buttons/button_character.png")) {
         std::cout << "Failed to load Character Button Texture\n"; return false;
     }
@@ -294,6 +303,15 @@ bool Resources::loadAll()
     }
     if (!buttonRankings.loadFromFile("assets/gfx/buttons/button_rankings.png")) {
         std::cout << "Failed to load Rankings Button Texture\n"; return false;
+    }
+    if (!questbookBackground.loadFromFile("assets/gfx/menu/quests/questbook.png")) {
+        std::cout << "Failed to load Questbook Background\n"; return false;
+    }
+    if (!skilltree.loadFromFile("assets/gfx/menu/skills/skilltree.png")) {
+        std::cout << "Failed to load Skilltree Texture\n"; return false;
+    }
+    if (!skillbar.loadFromFile("assets/gfx/menu/skills/Skillbar_DarkPurple.png")) {
+        std::cout << "Failed to load Skillbar Texture\n"; return false;
     }
     if (!buttonHelp.loadFromFile("assets/gfx/buttons/button_help.png")) {
         std::cout << "Failed to load Help Button Texture\n"; return false;
@@ -332,6 +350,9 @@ bool Resources::loadAll()
     if (!healSound.loadFromFile(ResourceFiles::Items::kHealPotionSound)) { // Heal Potion Sound
         std::cout << "Failed to load Heal Potion Sound\n"; return false;
     }
+    if (!forgeSound.loadFromFile("assets/audio/forgeSound.mp3")) { // Forge Sleep Sound
+        std::cout << "Failed to load Forge Sound\n"; return false;
+    }
     if (!locationMusicAerobronchi.loadFromFile("assets/audio/locationMusicAerobronchi.mp3")) { // Aerobronchi Location Sound
         std::cout << "Failed to load Aerobronchi Location Music\n"; return false;
     }
@@ -343,6 +364,9 @@ bool Resources::loadAll()
     }
     if (!locationMusicPerigonal.loadFromFile("assets/audio/locationMusicPerigonal.mp3")) { // Perigonal Location Sound
         std::cout << "Failed to load Perigonal Location Music\n"; return false;
+    }
+    if (!locationMusicBlacksmith.loadFromFile("assets/audio/LocationMusicBlacksmith.mp3")) {
+        std::cout << "Failed to load Blacksmith Location Music\n"; return false;
     }
     if (!locationMusicGonad.loadFromFile("assets/audio/locationMusicGonad.mp3")) { // Gonad Location Sound
         std::cout << "Failed to load Gonad Location Music\n"; return false;

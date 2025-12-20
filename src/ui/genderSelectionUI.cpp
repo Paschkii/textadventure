@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <string>
-#include <string_view>
 
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Sprite.hpp>
@@ -17,8 +16,6 @@
 #include "story/textStyles.hpp"
 
 namespace {
-    constexpr std::array<std::string_view, 2> kGenderLabels = { "Left", "Right" };
-
     void restoreGenderSelectionLine(Game& game, const std::string& text) {
         if (!text.empty()) {
             game.visibleText = text;
@@ -34,7 +31,7 @@ namespace {
     }
 
     int genderIndexAtPoint(const Game& game, const sf::Vector2f& point) {
-        for (int idx = 0; idx < static_cast<int>(kGenderLabels.size()); ++idx) {
+        for (int idx = 0; idx < static_cast<int>(game.genderSelectionBounds.size()); ++idx) {
             if (game.genderSelectionBounds[idx].contains(point))
                 return idx;
         }
@@ -67,7 +64,7 @@ void stop(Game& game) {
 }
 
 void choose(Game& game, int idx) {
-    if (idx < 0 || idx >= static_cast<int>(kGenderLabels.size()))
+    if (idx < 0 || idx >= 2)
         return;
     if (game.confirmationPrompt.active)
         return;
@@ -136,19 +133,21 @@ bool handleEvent(Game& game, const sf::Event& event) {
 
     if (auto key = event.getIf<sf::Event::KeyReleased>()) {
         switch (key->scancode) {
-            case sf::Keyboard::Scan::L:
+            case sf::Keyboard::Scan::Left:
                 if (game.genderSelectionHovered != 0) {
                     game.genderSelectionHovered = 0;
                     playButtonHoverSound(game);
                 }
-                choose(game, 0);
                 return true;
-            case sf::Keyboard::Scan::R:
+            case sf::Keyboard::Scan::Right:
                 if (game.genderSelectionHovered != 1) {
                     game.genderSelectionHovered = 1;
                     playButtonHoverSound(game);
                 }
-                choose(game, 1);
+                return true;
+            case sf::Keyboard::Scan::Enter:
+                if (game.genderSelectionHovered >= 0)
+                    choose(game, game.genderSelectionHovered);
                 return true;
             default:
                 return true;
@@ -302,7 +301,7 @@ void draw(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
     float femaleTop = femaleBounds.position.y;
     float maleTop = maleBounds.position.y;
     float hintTop = std::min(femaleTop, maleTop);
-    sf::Text hintText{ game.resources.uiFont, "Choose your Dragonborn", 18 };
+    sf::Text hintText{ game.resources.uiFont, "Choose Appearance", 24 };
     hintText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::PromptGray, uiAlphaFactor));
     auto hintBounds = hintText.getLocalBounds();
     hintText.setOrigin({ hintBounds.position.x + hintBounds.size.x * 0.5f, hintBounds.position.y + hintBounds.size.y * 0.5f });
@@ -311,15 +310,35 @@ void draw(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
         hintTop - kHintSpacing
     });
 
-    float tintedLeft = std::min(femaleBaseBounds.position.x, maleBaseBounds.position.x);
-    float tintedRight = std::max(
+    float baseLeft = std::min(femaleBaseBounds.position.x, maleBaseBounds.position.x);
+    float baseRight = std::max(
         femaleBaseBounds.position.x + femaleBaseBounds.size.x,
         maleBaseBounds.position.x + maleBaseBounds.size.x
     );
-    float tintedTop = std::min(hintText.getPosition().y - hintBounds.size.y * 0.5f, std::min(femaleBaseBounds.position.y, maleBaseBounds.position.y)) - 24.f;
+    float halfWidth = (baseRight - baseLeft) * 0.5f;
+    float baseCenter = (baseLeft + baseRight) * 0.5f;
+    float hintLeft = hintText.getPosition().x - (hintBounds.size.x * 0.5f);
+    float hintRight = hintText.getPosition().x + (hintBounds.size.x * 0.5f);
+    float leftLimit = hintLeft - 10.f;
+    float rightLimit = hintRight + 10.f;
+    float maxShrink = std::min({
+        std::max(0.f, leftLimit - (baseCenter - halfWidth)),
+        std::max(0.f, (baseCenter + halfWidth) - rightLimit),
+        halfWidth
+    });
+    float shrinkAmount = 0.f;
+    if (phase == Game::GenderSelectionAnimation::Phase::Approaching)
+        shrinkAmount = maxShrink * animationProgress;
+    else if (phase == Game::GenderSelectionAnimation::Phase::Reverting)
+        shrinkAmount = maxShrink * (1.f - animationProgress);
+    else if (phase == Game::GenderSelectionAnimation::Phase::FadingOut)
+        shrinkAmount = maxShrink;
+    float tintedLeft = baseCenter - (halfWidth - shrinkAmount);
+    float tintedRight = baseCenter + (halfWidth - shrinkAmount);
+    float tintedTop = std::min(hintText.getPosition().y - hintBounds.size.y * 0.5f, std::min(femaleBounds.position.y, maleBounds.position.y)) - 24.f;
     float labelBottom = std::max(
-        femaleBaseBounds.position.y + femaleBaseBounds.size.y,
-        maleBaseBounds.position.y + maleBaseBounds.size.y
+        femaleBounds.position.y + femaleBounds.size.y,
+        maleBounds.position.y + maleBounds.size.y
     ) + kLabelSpacing * 0.5f + 20.f;
     float tintedBottom = labelBottom + 40.f;
     constexpr float kSelectionPad = 28.f;
@@ -335,38 +354,6 @@ void draw(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
     target.draw(femaleSprite);
     target.draw(maleSprite);
     target.draw(hintText);
-
-    auto drawLabel = [&](const sf::FloatRect& bounds, std::string_view label, bool hovered) {
-        sf::Text labelText{ game.resources.uiFont, std::string(label), 24 };
-        float alphaFactor = hovered ? uiAlphaFactor : std::max(0.f, uiAlphaFactor * 0.85f);
-        labelText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, alphaFactor));
-        labelText.setStyle(sf::Text::Bold);
-        auto textBounds = labelText.getLocalBounds();
-        labelText.setOrigin({ textBounds.position.x + textBounds.size.x * 0.5f, textBounds.position.y + textBounds.size.y * 0.5f });
-        float baseY = bounds.position.y + bounds.size.y - kLabelSpacing * 0.5f + 20.f;
-        labelText.setPosition({ bounds.position.x + bounds.size.x * 0.5f, baseY });
-        target.draw(labelText);
-
-        std::size_t underlineIndex = 0;
-        auto firstPos = labelText.findCharacterPos(static_cast<unsigned>(underlineIndex));
-        auto nextPos = labelText.findCharacterPos(static_cast<unsigned>(std::min(label.size(), underlineIndex + 1)));
-        float underlineStart = firstPos.x;
-        float underlineEnd = nextPos.x;
-        if (underlineEnd <= underlineStart)
-            underlineEnd = underlineStart + textBounds.size.x * 0.1f;
-        float underlineY = labelText.getPosition().y + textBounds.size.y * 0.5f + 4.f;
-        sf::RectangleShape underline({ underlineEnd - underlineStart, 2.f });
-        underline.setPosition({ underlineStart, underlineY });
-        sf::Color underlineColor = ColorHelper::Palette::SoftYellow;
-        underlineColor = ColorHelper::applyAlphaFactor(underlineColor, uiAlphaFactor);
-        underline.setFillColor(underlineColor);
-        target.draw(underline);
-    };
-
-    if (!game.genderAnimation.labelsHidden) {
-        drawLabel(femaleBounds, kGenderLabels[0], game.genderSelectionHovered == 0);
-        drawLabel(maleBounds, kGenderLabels[1], game.genderSelectionHovered == 1);
-    }
 
     if (advanceAfterDraw) {
         animation.phase = Game::GenderSelectionAnimation::Phase::Idle;

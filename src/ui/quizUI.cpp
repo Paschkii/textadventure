@@ -168,6 +168,123 @@ namespace {
     constexpr float kSelectionBlinkInterval = 0.5f;
     constexpr unsigned kQuizFontSize = 28;
 
+    struct MixedTextMetrics {
+        float width = 0.f;
+        float height = 0.f;
+    };
+
+    float measureSegmentWidth(const sf::Font& font, const std::string& text, unsigned size) {
+        if (text.empty())
+            return 0.f;
+        sf::Text metrics(font, text, size);
+        return metrics.getLocalBounds().size.x;
+    }
+
+    MixedTextMetrics measureMixedText(
+        const std::string& text,
+        unsigned size,
+        const sf::Font& uiFont,
+        const sf::Font& quizFont
+    ) {
+        float lineSpacing = uiFont.getLineSpacing(size);
+        float maxWidth = 0.f;
+        float lineWidth = 0.f;
+        MixedTextMetrics metrics{ 0.f, lineSpacing };
+        std::string buffer;
+        bool bufferIsDigit = false;
+
+        auto flushBuffer = [&]() {
+            if (buffer.empty())
+                return;
+            const sf::Font& font = bufferIsDigit ? quizFont : uiFont;
+            lineWidth += measureSegmentWidth(font, buffer, size);
+            buffer.clear();
+        };
+
+        for (char raw : text) {
+            if (raw == '\n') {
+                flushBuffer();
+                maxWidth = std::max(maxWidth, lineWidth);
+                lineWidth = 0.f;
+                metrics.height += lineSpacing;
+                bufferIsDigit = false;
+                continue;
+            }
+            bool isDigit = std::isdigit(static_cast<unsigned char>(raw));
+            if (buffer.empty()) {
+                buffer.push_back(raw);
+                bufferIsDigit = isDigit;
+            }
+            else if (isDigit == bufferIsDigit) {
+                buffer.push_back(raw);
+            }
+            else {
+                flushBuffer();
+                buffer.push_back(raw);
+                bufferIsDigit = isDigit;
+            }
+        }
+
+        flushBuffer();
+        maxWidth = std::max(maxWidth, lineWidth);
+        metrics.width = maxWidth;
+        return metrics;
+    }
+
+    void drawMixedText(
+        sf::RenderTarget& target,
+        const std::string& text,
+        unsigned size,
+        const sf::Font& uiFont,
+        const sf::Font& quizFont,
+        const sf::Color& color,
+        sf::Vector2f position
+    ) {
+        float lineSpacing = uiFont.getLineSpacing(size);
+        float x = position.x;
+        float y = position.y;
+        std::string buffer;
+        bool bufferIsDigit = false;
+
+        auto flushBuffer = [&]() {
+            if (buffer.empty())
+                return;
+            const sf::Font& font = bufferIsDigit ? quizFont : uiFont;
+            sf::Text drawable(font, buffer, size);
+            drawable.setFillColor(color);
+            auto bounds = drawable.getLocalBounds();
+            drawable.setPosition({ x - bounds.position.x, y - bounds.position.y });
+            target.draw(drawable);
+            x += bounds.size.x;
+            buffer.clear();
+        };
+
+        for (char raw : text) {
+            if (raw == '\n') {
+                flushBuffer();
+                x = position.x;
+                y += lineSpacing;
+                bufferIsDigit = false;
+                continue;
+            }
+            bool isDigit = std::isdigit(static_cast<unsigned char>(raw));
+            if (buffer.empty()) {
+                buffer.push_back(raw);
+                bufferIsDigit = isDigit;
+            }
+            else if (isDigit == bufferIsDigit) {
+                buffer.push_back(raw);
+            }
+            else {
+                flushBuffer();
+                buffer.push_back(raw);
+                bufferIsDigit = isDigit;
+            }
+        }
+
+        flushBuffer();
+    }
+
     bool selectionBlinkHighlight(const Game::QuizData& quiz) {
         float elapsed = quiz.blinkClock.getElapsedTime().asSeconds();
         int cycle = static_cast<int>(elapsed / kSelectionBlinkInterval);
@@ -596,8 +713,6 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
     if (!question)
         return;
 
-    const sf::Font& quizFont = game.resources.quizFont;
-
     auto textPos = game.textBox.getPosition();
     auto textSize = game.textBox.getSize();
     float padding = 14.f;
@@ -607,15 +722,12 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
     int totalQuestions = static_cast<int>(game.quiz.questions.size());
     std::string progressLabel = "Riddle " + std::to_string(game.quiz.currentQuestion + 1) + "/" + std::to_string(std::max(1, totalQuestions));
 
-    sf::Text progressTxt{ quizFont, progressLabel, kQuizFontSize };
-    progressTxt.setFillColor(ColorHelper::Palette::Normal);
+    const sf::Font& quizFont = game.resources.quizFont;
+    const sf::Font& uiFont = game.resources.uiFont;
 
-    sf::Text promptTxt{ quizFont, question->prompt, kQuizFontSize };
-    promptTxt.setFillColor(ColorHelper::Palette::Normal);
-
-    auto progressBounds = progressTxt.getLocalBounds();
-    auto promptBounds = promptTxt.getLocalBounds();
-    float textBlockHeight = progressBounds.size.y + promptBounds.size.y + padding * 0.5f;
+    auto progressMetrics = measureMixedText(progressLabel, kQuizFontSize, uiFont, quizFont);
+    auto promptMetrics = measureMixedText(question->prompt, kQuizFontSize, uiFont, quizFont);
+    float textBlockHeight = progressMetrics.height + promptMetrics.height + padding * 0.5f;
 
     float popupWidth = textSize.x;
     float popupHeight = padding * 4.f + textBlockHeight + buttonHeight * 2.f + 10.f;
@@ -632,15 +744,11 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
 
     float contentY = popupY + padding;
 
-    progressTxt.setOrigin({ 0.f, progressBounds.position.y });
-    progressTxt.setPosition({ popupX + padding, contentY });
-    target.draw(progressTxt);
-    contentY += progressBounds.size.y + 6.f;
+    drawMixedText(target, progressLabel, kQuizFontSize, uiFont, quizFont, ColorHelper::Palette::Normal, { popupX + padding, contentY });
+    contentY += progressMetrics.height + 6.f;
 
-    promptTxt.setOrigin({ 0.f, promptBounds.position.y });
-    promptTxt.setPosition({ popupX + padding, contentY });
-    target.draw(promptTxt);
-    contentY += promptBounds.size.y + padding;
+    drawMixedText(target, question->prompt, kQuizFontSize, uiFont, quizFont, ColorHelper::Palette::Normal, { popupX + padding, contentY });
+    contentY += promptMetrics.height + padding;
 
     float buttonsTop = contentY;
     std::array<sf::Vector2f, 4> positions{
@@ -694,12 +802,17 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
         btn.setOutlineColor(ColorHelper::Palette::FrameGoldDark);
         target.draw(btn);
 
-        sf::Text txt{ quizFont, label, kQuizFontSize };
-        txt.setFillColor(ColorHelper::Palette::Normal);
-        auto tBounds = txt.getLocalBounds();
-        txt.setOrigin({ 0.f, tBounds.position.y });
-        txt.setPosition({ positions[i].x + 10.f, positions[i].y + (buttonHeight - tBounds.size.y) / 2.f });
-        target.draw(txt);
+        auto labelMetrics = measureMixedText(label, kQuizFontSize, uiFont, quizFont);
+        float labelY = positions[i].y + (buttonHeight - labelMetrics.height) * 0.5f;
+        drawMixedText(
+            target,
+            label,
+            kQuizFontSize,
+            uiFont,
+            quizFont,
+            ColorHelper::Palette::Normal,
+            { positions[i].x + 10.f, labelY }
+        );
 
         game.quiz.optionBounds[i] = btn.getGlobalBounds();
     }
@@ -938,6 +1051,7 @@ void drawFinalChoiceUI(Game& game, sf::RenderTarget& target) {
         return;
 
     const sf::Font& quizFont = game.resources.quizFont;
+    const sf::Font& uiFont = game.resources.uiFont;
 
     auto textPos = game.textBox.getPosition();
     auto textSize = game.textBox.getSize();
@@ -976,12 +1090,17 @@ void drawFinalChoiceUI(Game& game, sf::RenderTarget& target) {
         btn.setOutlineColor(ColorHelper::Palette::FrameGoldDark);
         target.draw(btn);
 
-        sf::Text txt{ quizFont, label, kQuizFontSize };
-        txt.setFillColor(ColorHelper::Palette::Normal);
-        auto tBounds = txt.getLocalBounds();
-        txt.setOrigin({ 0.f, tBounds.position.y });
-        txt.setPosition({ popupX + padding + 10.f, currentY + (buttonHeight - tBounds.size.y) / 2.f });
-        target.draw(txt);
+        auto labelMetrics = measureMixedText(label, kQuizFontSize, uiFont, quizFont);
+        float labelY = currentY + (buttonHeight - labelMetrics.height) * 0.5f;
+        drawMixedText(
+            target,
+            label,
+            kQuizFontSize,
+            uiFont,
+            quizFont,
+            ColorHelper::Palette::Normal,
+            { popupX + padding + 10.f, labelY }
+        );
 
         game.finalChoice.optionBounds[i] = btn.getGlobalBounds();
         currentY += buttonHeight + padding;
