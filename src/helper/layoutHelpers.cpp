@@ -77,7 +77,14 @@ void updateLayout(Game& game) {
     constexpr float kPlayerStatusBarHeight = 16.f;
     constexpr float kPlayerStatusVerticalPadding = 8.f;
     constexpr float kPlayerStatusRowSpacing = 5.f;
-    constexpr float kPlayerStatusBoxHeight = (kPlayerStatusBarHeight * 2.f) + (kPlayerStatusVerticalPadding * 2.f) + kPlayerStatusRowSpacing;
+    constexpr float kPlayerStatusLevelHeight = 32.f;
+    constexpr float kPlayerStatusLevelSpacing = 6.f;
+    constexpr float kPlayerStatusBoxHeight =
+        kPlayerStatusLevelHeight
+        + (kPlayerStatusBarHeight * 2.f)
+        + (kPlayerStatusVerticalPadding * 2.f)
+        + kPlayerStatusRowSpacing
+        + kPlayerStatusLevelSpacing;
     float statusWidth = std::max(0.f, game.nameBox.getSize().x * 0.9f);
     float statusX = game.nameBox.getPosition().x + (game.nameBox.getSize().x - statusWidth) * 0.5f;
     float statusY = game.nameBox.getPosition().y - kPlayerStatusBoxHeight - 10.f;

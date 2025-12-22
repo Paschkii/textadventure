@@ -31,6 +31,7 @@ namespace {
     constexpr float kStatusFontSize = 26.f;
     constexpr float kShelfHorizontalOffset = 40.f;
     constexpr float kShelfVerticalOffset = 20.f;
+    constexpr float kBookshelfVerticalDrop = 50.f;
     constexpr float kShelfRowVerticalOffset = 8.f;
 
     const std::array<std::pair<const char*, const char*>, 18> kSillyBooks = { {
@@ -129,10 +130,11 @@ namespace {
         float spriteTop = shelfTop + (totalHeight - shelfSpriteHeight) * 0.5f;
         spriteLeft = std::max(0.f, std::min(spriteLeft, windowWidth - shelfSpriteWidth));
         spriteTop = std::max(0.f, std::min(spriteTop, shelfBottom - shelfSpriteHeight));
-        state.shelfPosition = { spriteLeft, spriteTop };
+        state.shelfPosition = { spriteLeft, spriteTop + kBookshelfVerticalDrop };
         state.shelfScale = kBookshelfScale;
         float layoutTop = spriteTop + (shelfSpriteHeight - totalHeight) * 0.5f;
         layoutTop += kShelfRowVerticalOffset;
+        layoutTop += kBookshelfVerticalDrop;
 
         for (int shelfIndex = 0; shelfIndex < static_cast<int>(state.shelfBounds.size()); ++shelfIndex) {
             const float rowTop = layoutTop + shelfIndex * (shelfHeight + shelfGap);

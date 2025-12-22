@@ -7,12 +7,15 @@
 #include <random>      // Creates dice rolls when selecting silly names and quiz orders.
 #include <string_view> // Parses command-line arguments without copying full strings.
 #include <utility>     // Moves replacement questions into place without copies.
+#include <vector>      // Stores dynamic collections used while rendering/wrapping text.
 // === Header Files ===
 #include "quizUI.hpp"             // Declares quiz UI functions implemented in this file.
 #include "confirmationUI.hpp"     // Uses the confirmation modal for quiz transitions.
 #include "core/game.hpp"          // Mutates Game quiz state, dialog flow, and resources.
 #include "helper/colorHelper.hpp" // Applies palette colors for quiz text and prompts.
+#include "helper/textColorHelper.hpp" // Builds colored segments for wrapped quiz text.
 #include "helper/layoutHelpers.hpp" // Recalculates UI layout when the quiz pops up.
+#include "rendering/textLayout.hpp" // Wraps quiz text inside the question popup.
 #include "rendering/locations.hpp" // Maps LocationId values to the correct dragon speaker info.
 #include "story/textStyles.hpp"   // Provides dragon speaker names/colors used by quizzes.
 #include "story/storyIntro.hpp"   // Retrieves quiz scripts and responses linked to each dragon.
@@ -166,123 +169,14 @@ namespace {
     constexpr float kSelectionLoggingDuration = 3.f;
     constexpr float kSelectionBlinkDuration = 3.f;
     constexpr float kSelectionBlinkInterval = 0.5f;
-    constexpr unsigned kQuizFontSize = 28;
+    constexpr unsigned kQuizFontSize = 26;
+    constexpr float kQuizLineSpacingMultiplier = 1.2f;
 
-    struct MixedTextMetrics {
-        float width = 0.f;
-        float height = 0.f;
-    };
-
-    float measureSegmentWidth(const sf::Font& font, const std::string& text, unsigned size) {
-        if (text.empty())
-            return 0.f;
-        sf::Text metrics(font, text, size);
-        return metrics.getLocalBounds().size.x;
-    }
-
-    MixedTextMetrics measureMixedText(
-        const std::string& text,
-        unsigned size,
-        const sf::Font& uiFont,
-        const sf::Font& quizFont
-    ) {
-        float lineSpacing = uiFont.getLineSpacing(size);
-        float maxWidth = 0.f;
-        float lineWidth = 0.f;
-        MixedTextMetrics metrics{ 0.f, lineSpacing };
-        std::string buffer;
-        bool bufferIsDigit = false;
-
-        auto flushBuffer = [&]() {
-            if (buffer.empty())
-                return;
-            const sf::Font& font = bufferIsDigit ? quizFont : uiFont;
-            lineWidth += measureSegmentWidth(font, buffer, size);
-            buffer.clear();
-        };
-
-        for (char raw : text) {
-            if (raw == '\n') {
-                flushBuffer();
-                maxWidth = std::max(maxWidth, lineWidth);
-                lineWidth = 0.f;
-                metrics.height += lineSpacing;
-                bufferIsDigit = false;
-                continue;
-            }
-            bool isDigit = std::isdigit(static_cast<unsigned char>(raw));
-            if (buffer.empty()) {
-                buffer.push_back(raw);
-                bufferIsDigit = isDigit;
-            }
-            else if (isDigit == bufferIsDigit) {
-                buffer.push_back(raw);
-            }
-            else {
-                flushBuffer();
-                buffer.push_back(raw);
-                bufferIsDigit = isDigit;
-            }
-        }
-
-        flushBuffer();
-        maxWidth = std::max(maxWidth, lineWidth);
-        metrics.width = maxWidth;
-        return metrics;
-    }
-
-    void drawMixedText(
-        sf::RenderTarget& target,
-        const std::string& text,
-        unsigned size,
-        const sf::Font& uiFont,
-        const sf::Font& quizFont,
-        const sf::Color& color,
-        sf::Vector2f position
-    ) {
-        float lineSpacing = uiFont.getLineSpacing(size);
-        float x = position.x;
-        float y = position.y;
-        std::string buffer;
-        bool bufferIsDigit = false;
-
-        auto flushBuffer = [&]() {
-            if (buffer.empty())
-                return;
-            const sf::Font& font = bufferIsDigit ? quizFont : uiFont;
-            sf::Text drawable(font, buffer, size);
-            drawable.setFillColor(color);
-            auto bounds = drawable.getLocalBounds();
-            drawable.setPosition({ x - bounds.position.x, y - bounds.position.y });
-            target.draw(drawable);
-            x += bounds.size.x;
-            buffer.clear();
-        };
-
-        for (char raw : text) {
-            if (raw == '\n') {
-                flushBuffer();
-                x = position.x;
-                y += lineSpacing;
-                bufferIsDigit = false;
-                continue;
-            }
-            bool isDigit = std::isdigit(static_cast<unsigned char>(raw));
-            if (buffer.empty()) {
-                buffer.push_back(raw);
-                bufferIsDigit = isDigit;
-            }
-            else if (isDigit == bufferIsDigit) {
-                buffer.push_back(raw);
-            }
-            else {
-                flushBuffer();
-                buffer.push_back(raw);
-                bufferIsDigit = isDigit;
-            }
-        }
-
-        flushBuffer();
+    inline float quizLineAdvance(const sf::Font& font) {
+        sf::Text metrics(font, "Hg", kQuizFontSize);
+        float lineSpacing = metrics.getLineSpacing();
+        float baseSpacing = std::max(lineSpacing, static_cast<float>(kQuizFontSize));
+        return baseSpacing * std::max(kQuizLineSpacingMultiplier, 1.f);
     }
 
     bool selectionBlinkHighlight(const Game::QuizData& quiz) {
@@ -722,12 +616,33 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
     int totalQuestions = static_cast<int>(game.quiz.questions.size());
     std::string progressLabel = "Riddle " + std::to_string(game.quiz.currentQuestion + 1) + "/" + std::to_string(std::max(1, totalQuestions));
 
-    const sf::Font& quizFont = game.resources.quizFont;
     const sf::Font& uiFont = game.resources.uiFont;
+    float textAreaWidth = textSize.x - padding * 2.f;
 
-    auto progressMetrics = measureMixedText(progressLabel, kQuizFontSize, uiFont, quizFont);
-    auto promptMetrics = measureMixedText(question->prompt, kQuizFontSize, uiFont, quizFont);
-    float textBlockHeight = progressMetrics.height + promptMetrics.height + padding * 0.5f;
+    auto progressSegments = buildColoredSegments(progressLabel);
+    auto promptSegments = buildColoredSegments(question->prompt);
+    auto measureSegmentsHeight = [&](const std::vector<ColoredTextSegment>& segments) {
+        if (segments.empty())
+            return 0.f;
+        sf::Vector2f start{ 0.f, 0.f };
+        auto cursor = drawColoredSegments(
+            target,
+            uiFont,
+            segments,
+            start,
+            kQuizFontSize,
+            textAreaWidth,
+            1.f,
+            kQuizLineSpacingMultiplier,
+            true
+        );
+        return cursor.y + quizLineAdvance(uiFont);
+    };
+
+    float progressHeight = quizLineAdvance(uiFont);
+    float promptHeight = measureSegmentsHeight(promptSegments);
+    float questionSpacing = 8.f;
+    float textBlockHeight = progressHeight + questionSpacing + promptHeight;
 
     float popupWidth = textSize.x;
     float popupHeight = padding * 4.f + textBlockHeight + buttonHeight * 2.f + 10.f;
@@ -744,11 +659,29 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
 
     float contentY = popupY + padding;
 
-    drawMixedText(target, progressLabel, kQuizFontSize, uiFont, quizFont, ColorHelper::Palette::Normal, { popupX + padding, contentY });
-    contentY += progressMetrics.height + 6.f;
+    drawColoredSegments(
+        target,
+        uiFont,
+        progressSegments,
+        { popupX + padding, contentY },
+        kQuizFontSize,
+        textAreaWidth,
+        1.f,
+        kQuizLineSpacingMultiplier
+    );
+    contentY += progressHeight + 6.f;
 
-    drawMixedText(target, question->prompt, kQuizFontSize, uiFont, quizFont, ColorHelper::Palette::Normal, { popupX + padding, contentY });
-    contentY += promptMetrics.height + padding;
+    drawColoredSegments(
+        target,
+        uiFont,
+        promptSegments,
+        { popupX + padding, contentY },
+        kQuizFontSize,
+        textAreaWidth,
+        1.f,
+        kQuizLineSpacingMultiplier
+    );
+    contentY += promptHeight + padding;
 
     float buttonsTop = contentY;
     std::array<sf::Vector2f, 4> positions{
@@ -802,17 +735,12 @@ void drawQuizUI(Game& game, sf::RenderTarget& target) {
         btn.setOutlineColor(ColorHelper::Palette::FrameGoldDark);
         target.draw(btn);
 
-        auto labelMetrics = measureMixedText(label, kQuizFontSize, uiFont, quizFont);
-        float labelY = positions[i].y + (buttonHeight - labelMetrics.height) * 0.5f;
-        drawMixedText(
-            target,
-            label,
-            kQuizFontSize,
-            uiFont,
-            quizFont,
-            ColorHelper::Palette::Normal,
-            { positions[i].x + 10.f, labelY }
-        );
+        sf::Text labelText{ uiFont, label, kQuizFontSize };
+        labelText.setFillColor(ColorHelper::Palette::Normal);
+        auto labelBounds = labelText.getLocalBounds();
+        float labelY = positions[i].y + (buttonHeight - labelBounds.size.y) * 0.5f - labelBounds.position.y;
+        labelText.setPosition({ positions[i].x + 10.f, labelY });
+        target.draw(labelText);
 
         game.quiz.optionBounds[i] = btn.getGlobalBounds();
     }
@@ -1050,7 +978,6 @@ void drawFinalChoiceUI(Game& game, sf::RenderTarget& target) {
     if (!game.finalChoice.active)
         return;
 
-    const sf::Font& quizFont = game.resources.quizFont;
     const sf::Font& uiFont = game.resources.uiFont;
 
     auto textPos = game.textBox.getPosition();
@@ -1090,17 +1017,12 @@ void drawFinalChoiceUI(Game& game, sf::RenderTarget& target) {
         btn.setOutlineColor(ColorHelper::Palette::FrameGoldDark);
         target.draw(btn);
 
-        auto labelMetrics = measureMixedText(label, kQuizFontSize, uiFont, quizFont);
-        float labelY = currentY + (buttonHeight - labelMetrics.height) * 0.5f;
-        drawMixedText(
-            target,
-            label,
-            kQuizFontSize,
-            uiFont,
-            quizFont,
-            ColorHelper::Palette::Normal,
-            { popupX + padding + 10.f, labelY }
-        );
+        float labelHeight = quizLineAdvance(uiFont);
+        sf::Text labelText{ uiFont, label, kQuizFontSize };
+        labelText.setFillColor(ColorHelper::Palette::Normal);
+        float labelY = currentY + (buttonHeight - labelHeight) * 0.5f;
+        labelText.setPosition({ popupX + padding + 10.f, labelY });
+        target.draw(labelText);
 
         game.finalChoice.optionBounds[i] = btn.getGlobalBounds();
         currentY += buttonHeight + padding;

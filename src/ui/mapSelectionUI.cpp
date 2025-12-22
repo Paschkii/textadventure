@@ -206,8 +206,6 @@ std::optional<LocationId> locationAtPoint(const Game& game, sf::Vector2f pt) {
             continue;
 
         LocationId id = ids[i];
-        if (game.locationCompleted[locationIndex(id)])
-            continue;
 
         float area = rect.size.x * rect.size.y;
         if (area <= 0.f)
@@ -344,8 +342,7 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
         if (loc.normalizedContentBounds)
             regionArea = toGlobalRect(*loc.normalizedContentBounds);
 
-        bool isCompleted = locIdOpt && game.locationCompleted[locationIndex(*locIdOpt)];
-        bool allowedForHover = (!locIdOpt || !isCompleted) && !game.mapTutorialActive;
+        bool allowedForHover = !game.mapTutorialActive;
 
         if (locIdOpt)
             game.mapLocationHitboxes[locationIndex(*locIdOpt)] = regionArea;
@@ -374,6 +371,7 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
                 {},
                 {},
                 {},
+                loc.id,
                 posX,
                 posY,
                 regionArea,
@@ -452,6 +450,7 @@ namespace {
         if (!popup.residentTitle.empty()) {
             combined += popup.residentTitle + ":\n" + popup.residentDesc;
         }
+        bool visitedLocation = popup.locationId && game.locationCompleted[locationIndex(*popup.locationId)];
 
         auto segments = buildColoredSegments(combined);
         float maxTextW = popupW - (pad * 2.f);
@@ -634,7 +633,10 @@ namespace {
         const float textTopSpacing = 10.f;
         float textOffset = pad + titleBlockHeight + dividerThickness + dividerSpacing + textTopSpacing;
         float maxPopupHeight = std::max(minPopupH, popup.winH - 16.f);
-        float textHeight = measureTextHeight(popupTextSize);
+        float mainTextHeight = measureTextHeight(popupTextSize);
+        constexpr float kVisitedLabelSpacing = 6.f;
+        float visitedLabelHeight = visitedLocation ? (popupTextSize + kVisitedLabelSpacing) : 0.f;
+        float textHeight = mainTextHeight + visitedLabelHeight;
 
         while (textOffset + textHeight + pad > maxPopupHeight && popupTextSize > minPopupTextSize) {
             --popupTextSize;
@@ -675,6 +677,15 @@ namespace {
 
         float textStartY = dividerY + dividerThickness + textTopSpacing;
         layoutPopupText({ popupX + pad, textStartY }, popupTextSize, maxTextW, true);
+        if (visitedLocation) {
+            sf::Text visitedText{ game.resources.uiFont, "(Visited)", popupTextSize };
+            visitedText.setFillColor(ColorHelper::Palette::SoftRed);
+            auto visitedBounds = visitedText.getLocalBounds();
+            float visitedX = popupX + pad;
+            float visitedY = textStartY + mainTextHeight + kVisitedLabelSpacing - visitedBounds.position.y;
+            visitedText.setPosition({ visitedX, visitedY });
+            target.draw(visitedText);
+        }
     }
 }
 
@@ -684,6 +695,8 @@ void drawMapSelectionPopup(Game& game, sf::RenderTarget& target, const MapPopupR
 
 void handleMapSelectionEvent(Game& game, const sf::Event& event, const sf::View* viewOverride) {
     if (game.mapTutorialActive)
+        return;
+    if (!game.mapInteractionUnlocked)
         return;
     auto convertPixel = [&](const sf::Vector2i& pixel) {
         if (viewOverride)

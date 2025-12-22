@@ -17,8 +17,8 @@ struct MapTutorialStep {
 
 namespace MapTutorial {
     inline constexpr std::array<MapTutorialStep, 18> kSteps{{
-        { 7, std::nullopt, { 0.5f, 0.25f } },
-        { 8, std::nullopt, { 0.5f, 0.35f } },
+        { 7, std::nullopt, { 0.5f, 0.15f } },
+        { 8, std::nullopt, { 0.5f, 0.15f } },
         { 9, LocationId::Aerobronchi, { 0.5f, 0.15f } },
         { 10, LocationId::Aerobronchi, { 0.5f, 0.15f } },
         { 11, LocationId::Aerobronchi, { 0.5f, 0.15f } },

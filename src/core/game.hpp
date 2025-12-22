@@ -188,15 +188,17 @@ struct Game {
         std::mt19937 rng;
     };
 
-    struct QuestLogEntry {
-        std::string name;
-        std::string giver;
-        std::string goal;
-        int xpReward = 0;
-        std::optional<std::string> loot;
-        bool completed = false;
-        bool rewardGranted = false;
-    };
+        struct QuestLogEntry {
+            std::string name;
+            std::string giver;
+            std::string goal;
+            int xpReward = 0;
+            std::optional<std::string> loot;
+            bool completed = false;
+            bool rewardGranted = false;
+            bool collapsed = false;
+            float foldProgress = 1.f;
+        };
 
     struct QuestPopupState {
         enum class Phase {
@@ -297,6 +299,9 @@ struct Game {
 
         sf::RectangleShape nameBox;                      // Draws the speaker name frame.
         sf::RectangleShape playerStatusBox;               // Shows HP/XP bars above the name box.
+        bool playerStatusFolded = false;                  // Tracks whether the status box is folded.
+        float playerStatusFoldProgress = 1.f;             // Animates fold/unfold transitions.
+        sf::FloatRect playerStatusFoldBarBounds;          // Click target for the fold bar.
         sf::RectangleShape optionsBox;                    // Highlights hovered intro options.
         sf::RectangleShape introOptionBackdrop;           // Backdrop behind intro options.
         float playerHp = 5.f;                            // Player HP value for the status bar.
@@ -322,6 +327,7 @@ struct Game {
         sf::FloatRect mapTutorialPopupBounds;             // Cached bounds of the current tutorial popup.
         sf::FloatRect mapTutorialOkBounds;                // Hitbox for the popup's Ok button.
         bool mapTutorialOkHovered = false;                // Mouse hover state for the Ok button.
+        bool mapInteractionUnlocked = false;               // Gates menu map teleport selection.
         std::optional<MapPopupRenderData> menuMapPopup;    // Cached map popup data from the menu tab.
         bool healingPotionActive = false;                 // Tracks whether a healing sequence is running.
         bool healingPotionReceived = false;               // Ensures the potion is only granted once.
@@ -330,8 +336,17 @@ struct Game {
         float playerXp = 0.f;                            // Player XP value for the status bar.
         float playerXpMax = 100.f;                       // XP required for the next level.
         int playerLevel = 1;                             // Current player level used for XP scaling.
+        struct XpGainDisplay {
+            bool active = false;
+            int amount = 0;
+            sf::Clock clock;
+        };
+        XpGainDisplay xpGainDisplay;                      // Controls the XP gain visual effect.
+        float xpBarDisplayRatio = 0.f;                     // Smoothly animates XP bar fill.
         std::vector<QuestLogEntry> questLog;              // Track quests the player has been awarded.
         QuestPopupState questPopup;                       // Controls the quest popups shown at the top.
+        std::vector<sf::FloatRect> questFoldButtonBounds; // Active fold button hitboxes.
+        int questFoldHoveredIndex = -1;                   // Hovered fold button index.
         sf::RectangleShape textBox;                      // Outline around dialogue text.
         sf::RectangleShape locationBox;                  // Box showing the current location.
         sf::RectangleShape itemBox;                      // Outline for the item list.
@@ -374,6 +389,9 @@ struct Game {
         std::optional<sf::Sound> introTitleHoverSound;      // Plays when hovering intro title options.
         std::optional<sf::Sound> healPotionSound;           // Plays when the healing potion restores HP.
         std::optional<sf::Sound> forgeSound;                // Plays while the blacksmith rests.
+        std::optional<sf::Sound> levelUpSound;              // Triggered when the player levels up.
+        std::optional<sf::Sound> questStartSound;           // Plays when a new quest is granted.
+        std::optional<sf::Sound> questEndSound;             // Plays when a quest finishes.
 
         ConfirmationPrompt confirmationPrompt;            // Wrapped modal yes/no dialog.
 
@@ -487,6 +505,7 @@ struct Game {
         FinalChoiceData finalChoice;                    // Final choice UI state.
         std::vector<DialogueLine> transientDialogue;    // Temporary dialogue content.
         bool transientReturnToMap = false;              // Return map triggered when transient dialogue ends.
+        bool pendingReturnToMenuMap = false;             // Signals a menu map should open instead of the old layout.
         bool holdMapDialogue = false;                   // Prevents map dialogue updates.
         bool pendingTeleportToGonad = false;            // Teleport to Gonad next frame.
         bool finalEncounterPending = false;             // Indicates final encounter is queued.

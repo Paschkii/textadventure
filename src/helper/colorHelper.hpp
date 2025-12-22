@@ -143,9 +143,9 @@ namespace ColorHelper {
         // Speaker-specific colors (used by TextStyles)
         inline const sf::Color PurpleBlue = sf::Color(180, 180, 255);          // Extra light color for supportive NPCs.
         inline const sf::Color SpeakerBrown = sf::Color(139, 69, 19);          // Default brown tone for speaker names.
-        inline const sf::Color PlayerColor = sf::Color::Cyan;                  // Player dialogue color.
+        inline const sf::Color PlayerColor = ColorHelper::Palette::SoftRed;    // Player dialogue color.
         inline const sf::Color FireDragon = sf::Color::Red;                    // Fire dragon speaker color.
-        inline const sf::Color WaterDragon = sf::Color::Blue;                  // Water dragon speaker color.
+        inline const sf::Color WaterDragon = sf::Color::Cyan;                  // Water dragon speaker color.
         inline const sf::Color AirDragon = sf::Color::Green;                   // Air dragon speaker color.
         inline const sf::Color EarthDragon = SpeakerBrown;                     // Earth dragon reuses the speaker brown tone.
     }

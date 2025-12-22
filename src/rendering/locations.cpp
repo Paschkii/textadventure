@@ -9,16 +9,14 @@ namespace {
         Location makeLocation(
             LocationId id,
             const std::string& name,
-            const sf::Color& color,
-            sf::Texture& colored,
-            sf::Texture& sepia
+            const sf::Color& color
         ) {
             return Location{
                 id,
                 name,
                 color,
-                &colored,
-                &sepia
+                nullptr,
+                nullptr
             };
         }
 
@@ -36,57 +34,43 @@ namespace {
         locations.push_back(makeLocation(
             LocationId::Perigonal,
             "Perigonal",
-            ColorHelper::Palette::TitleAccent,
-            resources.locationGonadColored,
-            resources.locationGonadSepia
+            ColorHelper::Palette::TitleAccent
         ));
 
         locations.push_back(makeLocation(
             LocationId::Gonad,
             "Gonad",
-            ColorHelper::Palette::SoftYellow,
-            resources.locationGonadColored,
-            resources.locationGonadSepia
+            ColorHelper::Palette::SoftYellow
         ));
 
         locations.push_back(makeLocation(
             LocationId::Blyathyroid,
             "Blyathyroid",
-            speakerColor(TextStyles::SpeakerId::FireDragon),
-            resources.locationBlyathyroidColored,
-            resources.locationBlyathyroidSepia
+            speakerColor(TextStyles::SpeakerId::FireDragon)
         ));
 
         locations.push_back(makeLocation(
             LocationId::Lacrimere,
             "Lacrimere",
-            speakerColor(TextStyles::SpeakerId::WaterDragon),
-            resources.locationLacrimereColored,
-            resources.locationLacrimereSepia
+            speakerColor(TextStyles::SpeakerId::WaterDragon)
         ));
 
         locations.push_back(makeLocation(
             LocationId::Cladrenal,
             "Cladrenal",
-            speakerColor(TextStyles::SpeakerId::EarthDragon),
-            resources.locationCladrenalColored,
-            resources.locationCladrenalSepia
+            speakerColor(TextStyles::SpeakerId::EarthDragon)
         ));
 
         locations.push_back(makeLocation(
             LocationId::Aerobronchi,
             "Aerobronchi",
-            speakerColor(TextStyles::SpeakerId::AirDragon),
-            resources.locationAerobronchiColored,
-            resources.locationAerobronchiSepia
+            speakerColor(TextStyles::SpeakerId::AirDragon)
         ));
 
         locations.push_back(makeLocation(
             LocationId::Seminiferous,
             "Seminiferous",
-            ColorHelper::Palette::DarkPurple,
-            resources.locationSeminiferousColored,
-            resources.locationSeminiferousSepia
+            ColorHelper::Palette::DarkPurple
         ));
 
         return locations;

@@ -27,12 +27,12 @@ constexpr float kWeaponForgingSleepDuration = 5.f;
 }
 
 inline constexpr std::size_t kBlacksmithSelectionLineIndex = 19;
-inline constexpr std::size_t kBlacksmithRestLineIndex = 19;
-inline constexpr std::size_t kBlacksmithRevealLineIndex = 20;
+inline constexpr std::size_t kBlacksmithRestLineIndex = 20;
 inline constexpr std::size_t kBlacksmithPlayerLineIndex = 21;
 inline constexpr std::size_t kMapAcquisitionLineIndex = 5;
 inline constexpr std::size_t kMapTutorialStartLineIndex = StoryIntro::MapTutorial::kStartIndex;
 inline constexpr std::size_t kMapTutorialEndLineIndex = StoryIntro::MapTutorial::kEndIndex;
+inline constexpr int kMenuMapTabIndex = 2;                     // Tab index used when opening the map through the menu.
 constexpr char kInventoryArrowLineText[] = "You can open your inventory through this menu button."; // StoryTeller line that introduces the menu button.
 
 inline void removeBrokenWeaponIcons(Game& game) {
@@ -143,6 +143,44 @@ inline void startMapTutorial(Game& game) {
 }
 
 
+inline void openMenuMapFromDialogue(Game& game) {
+    game.menuActive = true;
+    game.menuActiveTab = kMenuMapTabIndex;
+    game.menuHoveredTab = -1;
+    game.mouseMapHover.reset();
+    game.keyboardMapHover.reset();
+    game.menuButtonUnlocked = true;
+    game.menuButtonAlpha = 1.f;
+    game.menuButtonFadeActive = false;
+    game.menuButtonHovered = false;
+    game.menuMapPopup.reset();
+    game.mapInteractionUnlocked = true;
+}
+
+inline void triggerQuestAction(Game& game, const std::optional<std::string>& questName, bool start) {
+    if (!questName)
+        return;
+    if (auto questDefinition = Story::questNamed(*questName)) {
+        if (start)
+            game.startQuest(*questDefinition);
+        else
+            game.completeQuest(*questDefinition);
+    }
+}
+
+inline void handleDialogueLineActions(Game& game, const DialogueLine& line) {
+    using Action = DialogueLineAction;
+    if (dialogueLineHasAction(line.actions, Action::StartsQuest))
+        triggerQuestAction(game, line.questStart, true);
+    if (dialogueLineHasAction(line.actions, Action::CompletesQuest))
+        triggerQuestAction(game, line.questComplete, false);
+    if (dialogueLineHasAction(line.actions, Action::OpensMapFromMenu)) {
+        openMenuMapFromDialogue(game);
+        game.pendingReturnToMenuMap = true;
+    }
+}
+
+
 inline EnterAction processEnter(
     bool askingName,
     const std::string& nameInput,
@@ -237,6 +275,9 @@ inline void maybeTriggerFinalCheer(Game& game) {
 // Advances the dialogue index and handles dragon quiz transitions as if Enter was pressed.
 inline bool advanceDialogueLine(Game& game) {
     game.stopTypingSound();
+    const DialogueLine* completedLine = nullptr;
+    if (game.currentDialogue && game.dialogueIndex < game.currentDialogue->size())
+        completedLine = &(*game.currentDialogue)[game.dialogueIndex];
     game.dialogueIndex++;
     game.visibleText.clear();
     game.charIndex = 0;
@@ -252,8 +293,7 @@ inline bool advanceDialogueLine(Game& game) {
     }
 
     if (game.currentDialogue == &blacksmith) {
-        game.forgedWeaponPopupActive = (game.dialogueIndex == kBlacksmithRevealLineIndex
-            || game.dialogueIndex == kBlacksmithPlayerLineIndex);
+        game.forgedWeaponPopupActive = (game.dialogueIndex == kBlacksmithPlayerLineIndex);
     }
     else {
         game.forgedWeaponPopupActive = false;
@@ -278,7 +318,7 @@ inline bool advanceDialogueLine(Game& game) {
     }
 
     if (game.currentDialogue == &blacksmith
-        && game.dialogueIndex == kBlacksmithRevealLineIndex)
+        && game.dialogueIndex == kBlacksmithPlayerLineIndex)
     {
         giveForgedWeapon(game);
     }
@@ -315,12 +355,8 @@ inline bool advanceDialogueLine(Game& game) {
             }
         }
     }
-    if (auto questDefinition = Story::questForTrigger(game.currentDialogue, game.dialogueIndex)) {
-        game.startQuest(*questDefinition);
-    }
-    if (auto completionDefinition = Story::questForCompletionTrigger(game.currentDialogue, game.dialogueIndex)) {
-        game.completeQuest(*completionDefinition);
-    }
+    if (completedLine)
+        handleDialogueLineActions(game, *completedLine);
     return true;
 }
 
@@ -589,6 +625,9 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
     if (action.nextLine)
         return advanceDialogueLine(game);
 
+    if (!action.skipToEnd)
+        handleDialogueLineActions(game, line);
+
     // If the player is still naming the weapon, stay in weapon-selection mode.
     if (game.currentDialogue == &weapon && game.selectedWeaponIndex < 0) {
         game.stopTypingSound();
@@ -730,11 +769,15 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
         if (game.pendingTeleportToGonad) {
             game.pendingTeleportToGonad = false;
             game.transientReturnToMap = false;
+            game.pendingReturnToMenuMap = false;
             game.beginTeleport(LocationId::Gonad);
             return true;
         }
 
-        game.state = GameState::MapSelection;
+        if (!game.pendingReturnToMenuMap)
+            game.state = GameState::MapSelection;
+        else
+            game.pendingReturnToMenuMap = false;
         game.transientReturnToMap = false;
         game.keyboardMapHover.reset();
         game.mouseMapHover.reset();

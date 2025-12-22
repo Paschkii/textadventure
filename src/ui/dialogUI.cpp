@@ -223,7 +223,32 @@ namespace {
 
         float viewWidth = static_cast<float>(target.getSize().x);
         float viewHeight = static_cast<float>(target.getSize().y);
-        float popupWidth = std::clamp(viewWidth * 0.3f, 360.f, 560.f);
+        std::string message = popup.message.empty()
+            ? "Quest Update"
+            : popup.message;
+        std::string prefix;
+        std::string tail = message;
+        if (message.rfind("New Quest: ", 0) == 0) {
+            prefix = "New Quest: ";
+            tail = message.substr(prefix.size());
+        }
+        else if (message.rfind("Finished Quest: ", 0) == 0) {
+            prefix = "Finished Quest: ";
+            tail = message.substr(prefix.size());
+        }
+
+        sf::Text prefixMeasurement{ game.resources.uiFont, prefix, 26 };
+        prefixMeasurement.setOutlineThickness(0.f);
+        sf::Text tailMeasurement{ game.resources.uiFont, tail, 26 };
+        tailMeasurement.setOutlineThickness(0.f);
+        float prefixWidth = prefix.empty() ? 0.f : prefixMeasurement.getLocalBounds().size.x;
+        float tailWidth = tail.empty() ? 0.f : tailMeasurement.getLocalBounds().size.x;
+        float textWidth = prefixWidth + tailWidth;
+        float minPopupWidth = 320.f;
+        float maxPopupWidth = std::min(viewWidth - 24.f, 560.f);
+        float minWidth = std::min(minPopupWidth, maxPopupWidth);
+        float contentWidth = textWidth + (kQuestPopupHorizontalPadding * 2.f);
+        float popupWidth = std::clamp(contentWidth, minWidth, maxPopupWidth);
         float popupHeight = std::clamp(viewHeight * 0.12f, 70.f, 120.f);
         float settleY = 20.f;
         float startY = -popupHeight - 12.f;
@@ -257,23 +282,39 @@ namespace {
         float compositeAlpha = uiAlphaFactor * alpha;
         ui::popup::drawPopupFrame(target, bounds, compositeAlpha);
 
-        std::string message = popup.message.empty()
-            ? "Quest Update"
-            : popup.message;
-        sf::Text messageText{ game.resources.uiFont, message, 26 };
-        messageText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, compositeAlpha));
-        messageText.setOutlineThickness(0.f);
-        messageText.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, compositeAlpha));
-        auto textBounds = messageText.getLocalBounds();
-        messageText.setOrigin({
-            textBounds.position.x + (textBounds.size.x * 0.5f),
-            textBounds.position.y + (textBounds.size.y * 0.5f)
-        });
-        messageText.setPosition({
-            bounds.position.x + (bounds.size.x * 0.5f),
-            bounds.position.y + (bounds.size.y * 0.5f)
-        });
-        target.draw(messageText);
+        sf::Text prefixText{ game.resources.uiFont, prefix, 26 };
+        prefixText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::PurpleBlue, compositeAlpha));
+        prefixText.setOutlineThickness(0.f);
+        prefixText.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, compositeAlpha));
+        sf::Text tailText{ game.resources.uiFont, tail, 26 };
+        tailText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, compositeAlpha));
+        tailText.setOutlineThickness(0.f);
+        tailText.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Normal, compositeAlpha));
+
+        float combinedWidth = prefixWidth + tailWidth;
+        float startX = bounds.position.x + (bounds.size.x - combinedWidth) * 0.5f;
+        float centerY = bounds.position.y + (bounds.size.y * 0.5f);
+
+        if (!prefix.empty()) {
+            auto prefixBounds = prefixText.getLocalBounds();
+            prefixText.setOrigin({
+                prefixBounds.position.x,
+                prefixBounds.position.y + (prefixBounds.size.y * 0.5f)
+            });
+            prefixText.setPosition({ startX, centerY });
+            startX += prefixBounds.size.x;
+            target.draw(prefixText);
+        }
+
+        if (!tail.empty()) {
+            auto tailBounds = tailText.getLocalBounds();
+            tailText.setOrigin({
+                tailBounds.position.x,
+                tailBounds.position.y + (tailBounds.size.y * 0.5f)
+            });
+            tailText.setPosition({ startX, centerY });
+            target.draw(tailText);
+        }
     }
 }
 
@@ -540,82 +581,288 @@ namespace {
         if (game.playerStatusBox.getSize().x <= 0.f || game.playerStatusBox.getSize().y <= 0.f)
             return;
 
-        sf::RectangleShape statusBox = game.playerStatusBox;
-        statusBox.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor));
-        statusBox.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::FrameGoldLight, uiAlphaFactor));
-        statusBox.setOutlineThickness(game.playerStatusBox.getOutlineThickness());
-        target.draw(statusBox);
+        auto statusPos = game.playerStatusBox.getPosition();
+        auto statusSize = game.playerStatusBox.getSize();
 
-        constexpr float kBarHeight = 16.f;
+        constexpr float kFoldMinProgress = 0.25f;
+        constexpr float kFoldStep = 0.08f;
+        float foldTarget = game.playerStatusFolded ? kFoldMinProgress : 1.f;
+        if (game.playerStatusFoldProgress < foldTarget)
+            game.playerStatusFoldProgress = std::min(foldTarget, game.playerStatusFoldProgress + kFoldStep);
+        else if (game.playerStatusFoldProgress > foldTarget)
+            game.playerStatusFoldProgress = std::max(foldTarget, game.playerStatusFoldProgress - kFoldStep);
+
         constexpr float kPadding = 8.f;
-        constexpr float kLabelColumnWidth = 32.f;
-        constexpr float kBarSpacing = 5.f;
+        constexpr float kBarHeight = 10.f;
+        constexpr float kBarSpacing = 13.f;
+        constexpr float kLevelBoxHeight = 11.f;
+        constexpr float kLevelBoxSpacing = 11.f;
+        constexpr float kBadgeVerticalShift = 10.f;
+        constexpr unsigned int kLevelTextSize = 18;
         constexpr unsigned int kLabelTextSize = 16;
+        constexpr unsigned int kBadgeValueTextSize = 12;
+        constexpr float kLabelColumnExtra = 8.f;
+        constexpr float kBadgeWidth = 40.f;
+        constexpr float kBadgeHeight = 16.f;
+        constexpr float kXpGainDuration = 4.5f;
+        constexpr float kXpGainSpacing = 12.f;
 
-        float barX = statusBox.getPosition().x + kPadding + kLabelColumnWidth;
-        float barWidth = std::max(0.f, statusBox.getSize().x - (kPadding * 2.f) - kLabelColumnWidth);
-        if (barWidth <= 0.f)
+        float panelAlpha = uiAlphaFactor;
+        float foldIndicatorAlpha = uiAlphaFactor;
+        float levelBaseWidth = std::clamp(statusSize.x * 0.21f, 84.f, statusSize.x - (kPadding * 2.f));
+        float collapsedWidth = levelBaseWidth + 10.f;
+        float foldRatio = std::clamp((game.playerStatusFoldProgress - kFoldMinProgress) / (1.f - kFoldMinProgress), 0.f, 1.f);
+        float contentWidth = collapsedWidth + (statusSize.x - collapsedWidth) * foldRatio;
+        float contentLeft = statusPos.x;
+        if (contentWidth <= 0.f)
             return;
-
-        float hpBarY = statusBox.getPosition().y + kPadding;
-        float xpBarY = hpBarY + kBarHeight + kBarSpacing;
-
-        sf::Text hpLabel{ game.resources.uiFont, "HP", kLabelTextSize };
-        hpLabel.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Health, uiAlphaFactor));
-        auto hpLabelBounds = hpLabel.getLocalBounds();
-        hpLabel.setOrigin({
-            hpLabelBounds.position.x,
-            hpLabelBounds.position.y + (hpLabelBounds.size.y * 0.5f)
-        });
-        hpLabel.setPosition({ statusBox.getPosition().x + kPadding, hpBarY + (kBarHeight * 0.5f) });
-        target.draw(hpLabel);
-
-        float hpRatio = (game.playerHpMax > 0.f)
-            ? std::clamp(game.playerHp / game.playerHpMax, 0.f, 1.f)
-            : 0.f;
-        float blinkAlpha = 1.f;
-        sf::Color hpColor = ColorHelper::Palette::Health;
-        if (hpRatio < 0.2f) {
-            float blinkPhase = (std::sin(game.uiGlowClock.getElapsedTime().asSeconds() * 8.f) + 1.f) * 0.5f;
-            blinkAlpha = 0.45f + (0.45f * blinkPhase);
-            hpColor = ColorHelper::lighten(hpColor, blinkPhase * 0.35f);
-        }
-        sf::RectangleShape hpFill({ barWidth * hpRatio, kBarHeight });
-        hpFill.setPosition({ barX, hpBarY });
-        hpFill.setFillColor(ColorHelper::applyAlphaFactor(hpColor, uiAlphaFactor * blinkAlpha));
-        target.draw(hpFill);
-
-        sf::RectangleShape hpBorder({ barWidth, kBarHeight });
-        hpBorder.setPosition({ barX, hpBarY });
-        hpBorder.setFillColor(sf::Color::Transparent);
-        hpBorder.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Dim, uiAlphaFactor));
-        hpBorder.setOutlineThickness(2.f);
-        target.draw(hpBorder);
-
-        sf::Text xpLabel{ game.resources.uiFont, "XP", kLabelTextSize };
-        xpLabel.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::DarkPurple, uiAlphaFactor));
-        auto xpLabelBounds = xpLabel.getLocalBounds();
-        xpLabel.setOrigin({
-            xpLabelBounds.position.x,
-            xpLabelBounds.position.y + (xpLabelBounds.size.y * 0.5f)
-        });
-        xpLabel.setPosition({ statusBox.getPosition().x + kPadding, xpBarY + (kBarHeight * 0.5f) });
-        target.draw(xpLabel);
+        bool collapsedView = foldRatio <= 0.05f;
 
         float xpRatio = (game.playerXpMax > 0.f)
             ? std::clamp(game.playerXp / game.playerXpMax, 0.f, 1.f)
             : 0.f;
-        sf::RectangleShape xpFill({ barWidth * xpRatio, kBarHeight });
-        xpFill.setPosition({ barX, xpBarY });
-        xpFill.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::DarkPurple, uiAlphaFactor));
-        target.draw(xpFill);
+        auto& xpDisplay = game.xpBarDisplayRatio;
+        constexpr float kXpLerp = 0.05f;
+        if (xpRatio >= xpDisplay) {
+            xpDisplay += (xpRatio - xpDisplay) * kXpLerp;
+        }
+        else {
+            xpDisplay = xpRatio;
+        }
+        xpDisplay = std::clamp(xpDisplay, 0.f, 1.f);
 
-        sf::RectangleShape xpBorder({ barWidth, kBarHeight });
-        xpBorder.setPosition({ barX, xpBarY });
-        xpBorder.setFillColor(sf::Color::Transparent);
-        xpBorder.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Dim, uiAlphaFactor));
-        xpBorder.setOutlineThickness(2.f);
-        target.draw(xpBorder);
+        RoundedRectangleShape statusFrame({ contentWidth, statusSize.y }, 20.f, 24);
+        statusFrame.setPosition({ contentLeft, statusPos.y });
+        statusFrame.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, panelAlpha));
+        statusFrame.setOutlineThickness(game.playerStatusBox.getOutlineThickness());
+        statusFrame.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::FrameGoldLight, panelAlpha));
+        target.draw(statusFrame);
+
+        float levelBoxWidth = levelBaseWidth;
+        float levelBoxX = contentLeft + kPadding;
+        float levelBoxY = statusPos.y + kPadding + kBadgeVerticalShift;
+
+        RoundedRectangleShape levelFrame({ levelBoxWidth, kLevelBoxHeight }, 14.f, 18);
+        levelFrame.setPosition({ levelBoxX, levelBoxY });
+        levelFrame.setFillColor(ColorHelper::applyAlphaFactor(sf::Color::White, panelAlpha * 0.95f));
+        levelFrame.setOutlineThickness(2.f);
+        levelFrame.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, panelAlpha));
+        target.draw(levelFrame);
+
+        sf::Text levelLabel{ game.resources.uiFont, "Lvl: ", kLevelTextSize };
+        levelLabel.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, panelAlpha));
+        levelLabel.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, panelAlpha));
+        levelLabel.setOutlineThickness(1.f);
+        levelLabel.setStyle(sf::Text::Bold);
+
+        sf::Text levelValue{ game.resources.uiFont, std::to_string(game.playerLevel), kLevelTextSize };
+        levelValue.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftRed, panelAlpha));
+        levelValue.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, panelAlpha));
+        levelValue.setOutlineThickness(1.f);
+        levelValue.setStyle(sf::Text::Bold);
+
+        auto labelBounds = levelLabel.getLocalBounds();
+        auto valueBounds = levelValue.getLocalBounds();
+        float textCenterY = levelBoxY + (kLevelBoxHeight * 0.5f);
+        float totalTextWidth = labelBounds.size.x + valueBounds.size.x;
+        float textStartX = levelBoxX + (levelBoxWidth * 0.5f) - (totalTextWidth * 0.5f);
+
+        levelLabel.setOrigin({ labelBounds.position.x, labelBounds.position.y + (labelBounds.size.y * 0.5f) });
+        levelLabel.setPosition({ textStartX, textCenterY });
+        levelValue.setOrigin({ valueBounds.position.x, valueBounds.position.y + (valueBounds.size.y * 0.5f) });
+        levelValue.setPosition({ textStartX + labelBounds.size.x, textCenterY });
+        target.draw(levelLabel);
+        target.draw(levelValue);
+
+        float hpBarY = levelBoxY + kLevelBoxHeight + kLevelBoxSpacing;
+        float xpBarY = hpBarY + kBarHeight + kBarSpacing;
+
+        float labelColumnWidth = kBadgeWidth + kLabelColumnExtra;
+        float barX = contentLeft + kPadding + labelColumnWidth;
+        float barWidth = std::max(0.f, contentWidth - (kPadding * 2.f) - labelColumnWidth);
+
+        auto formatValue = [](float current, float maximum) {
+            int cur = static_cast<int>(std::lround(std::max(0.f, current)));
+            int maxv = static_cast<int>(std::lround(std::max(0.f, maximum)));
+            return std::to_string(cur) + "/" + std::to_string(maxv);
+        };
+
+        auto formatPercent = [](float current, float maximum) {
+            float ratio = (maximum > 0.f) ? std::clamp(current / maximum, 0.f, 1.f) : 0.f;
+            int percent = static_cast<int>(std::lround(ratio * 100.f));
+            return std::to_string(percent) + "%";
+        };
+
+        float badgeLeft = statusPos.x + kPadding;
+        auto drawStatBadge = [&](const std::string& label, const sf::Color& outlineColor, float centerY) {
+            RoundedRectangleShape badge({ kBadgeWidth, kBadgeHeight }, kBadgeHeight * 0.5f, 16);
+            badge.setPosition({
+                badgeLeft,
+                centerY - (kBadgeHeight * 0.5f)
+            });
+            badge.setFillColor(ColorHelper::applyAlphaFactor(sf::Color::White, panelAlpha));
+            badge.setOutlineThickness(2.f);
+            badge.setOutlineColor(ColorHelper::applyAlphaFactor(outlineColor, panelAlpha));
+            target.draw(badge);
+
+            sf::Text labelText{ game.resources.uiFont, label, kLabelTextSize };
+            labelText.setFillColor(ColorHelper::applyAlphaFactor(outlineColor, panelAlpha));
+            labelText.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, panelAlpha));
+            labelText.setOutlineThickness(1.f);
+            labelText.setStyle(sf::Text::Bold);
+            auto labelBoundsLocal = labelText.getLocalBounds();
+            labelText.setOrigin({
+                labelBoundsLocal.position.x,
+                labelBoundsLocal.position.y + (labelBoundsLocal.size.y * 0.5f)
+            });
+            labelText.setPosition({ badgeLeft + 10.f, centerY });
+            target.draw(labelText);
+
+        };
+        auto drawBarValue = [&](const std::string& value, float centerY) {
+            sf::Text valueText{ game.resources.uiFont, value, kBadgeValueTextSize };
+            valueText.setFillColor(ColorHelper::applyAlphaFactor(sf::Color::White, panelAlpha));
+            valueText.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, panelAlpha));
+            valueText.setOutlineThickness(1.f);
+            auto valueBoundsLocal = valueText.getLocalBounds();
+            valueText.setOrigin({
+                valueBoundsLocal.position.x + (valueBoundsLocal.size.x * 0.5f),
+                valueBoundsLocal.position.y + (valueBoundsLocal.size.y * 0.5f)
+            });
+            valueText.setPosition({ barX + (barWidth * 0.5f), centerY });
+            target.draw(valueText);
+        };
+
+        if (barWidth > 0.f) {
+            const std::string hpValueStr = formatValue(game.playerHp, game.playerHpMax);
+            const std::string xpValueStr = formatValue(game.playerXp, game.playerXpMax);
+            const std::string hpPercentStr = formatPercent(game.playerHp, game.playerHpMax);
+            const std::string xpPercentStr = formatPercent(game.playerXp, game.playerXpMax);
+
+            drawStatBadge("HP", ColorHelper::Palette::SoftRed, hpBarY + (kBarHeight * 0.5f));
+            drawStatBadge("XP", ColorHelper::Palette::DarkPurple, xpBarY + (kBarHeight * 0.5f));
+
+            float hpRatio = (game.playerHpMax > 0.f)
+                ? std::clamp(game.playerHp / game.playerHpMax, 0.f, 1.f)
+                : 0.f;
+            float blinkAlpha = 1.f;
+            sf::Color hpColor = ColorHelper::Palette::Health;
+            if (hpRatio < 0.2f) {
+                float blinkPhase = (std::sin(game.uiGlowClock.getElapsedTime().asSeconds() * 8.f) + 1.f) * 0.5f;
+                blinkAlpha = 0.45f + (0.45f * blinkPhase);
+                hpColor = ColorHelper::lighten(hpColor, blinkPhase * 0.35f);
+            }
+
+            RoundedRectangleShape hpBackground({ barWidth, kBarHeight }, kBarHeight * 0.5f, 20);
+            hpBackground.setPosition({ barX, hpBarY });
+            hpBackground.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::BlueNearBlack, panelAlpha * 0.65f));
+            target.draw(hpBackground);
+
+            if (hpRatio > 0.f) {
+                float hpFillWidth = std::max(barWidth * hpRatio, kBarHeight);
+                hpFillWidth = std::min(barWidth, hpFillWidth);
+                RoundedRectangleShape hpFill({ hpFillWidth, kBarHeight }, kBarHeight * 0.5f, 20);
+                hpFill.setPosition({ barX, hpBarY });
+                hpFill.setFillColor(ColorHelper::applyAlphaFactor(hpColor, panelAlpha * blinkAlpha));
+                target.draw(hpFill);
+            }
+
+            RoundedRectangleShape hpBorder({ barWidth, kBarHeight }, kBarHeight * 0.5f, 20);
+            hpBorder.setPosition({ barX, hpBarY });
+            hpBorder.setFillColor(sf::Color::Transparent);
+            hpBorder.setOutlineThickness(2.f);
+            hpBorder.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Dim, panelAlpha));
+            target.draw(hpBorder);
+
+            RoundedRectangleShape xpBackground({ barWidth, kBarHeight }, kBarHeight * 0.5f, 20);
+            xpBackground.setPosition({ barX, xpBarY });
+            xpBackground.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::BlueNearBlack, panelAlpha * 0.45f));
+            target.draw(xpBackground);
+
+            if (xpDisplay > 0.f) {
+                float xpFillWidth = std::max(barWidth * xpDisplay, kBarHeight);
+                xpFillWidth = std::min(barWidth, xpFillWidth);
+                RoundedRectangleShape xpFill({ xpFillWidth, kBarHeight }, kBarHeight * 0.5f, 20);
+                xpFill.setPosition({ barX, xpBarY });
+                xpFill.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::DarkPurple, panelAlpha));
+                target.draw(xpFill);
+            }
+
+            RoundedRectangleShape xpBorder({ barWidth, kBarHeight }, kBarHeight * 0.5f, 20);
+            xpBorder.setPosition({ barX, xpBarY });
+            xpBorder.setFillColor(sf::Color::Transparent);
+            xpBorder.setOutlineThickness(2.f);
+            xpBorder.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Dim, panelAlpha));
+            target.draw(xpBorder);
+
+            if (collapsedView) {
+                drawBarValue(hpPercentStr, hpBarY + (kBarHeight * 0.5f));
+                drawBarValue(xpPercentStr, xpBarY + (kBarHeight * 0.5f));
+            }
+            else {
+                drawBarValue(hpValueStr, hpBarY + (kBarHeight * 0.5f));
+                drawBarValue(xpValueStr, xpBarY + (kBarHeight * 0.5f));
+            }
+        }
+
+        auto& xpGain = game.xpGainDisplay;
+        if (xpGain.active) {
+            float progress = std::clamp(xpGain.clock.getElapsedTime().asSeconds() / kXpGainDuration, 0.f, 1.f);
+            if (progress >= 1.f) {
+                xpGain.active = false;
+            }
+            else {
+                float fade = (1.f - progress) * panelAlpha;
+                float pop = std::sin(progress * 3.14159265f);
+                float scale = 1.f + (0.25f * pop);
+                sf::Text gainText{
+                    game.resources.uiFont,
+                    "+" + std::to_string(xpGain.amount) + " XP",
+                    kLabelTextSize + 2
+                };
+                gainText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::DarkPurple, fade));
+                gainText.setOutlineColor(ColorHelper::applyAlphaFactor(sf::Color::White, fade));
+                gainText.setOutlineThickness(2.f);
+                gainText.setStyle(sf::Text::Bold);
+                auto gainBounds = gainText.getLocalBounds();
+                gainText.setOrigin({
+                    gainBounds.position.x,
+                    gainBounds.position.y + (gainBounds.size.y * 0.5f)
+                });
+                gainText.setScale({ scale, scale });
+                gainText.setPosition({
+                    contentLeft + contentWidth + kXpGainSpacing,
+                    xpBarY + (kBarHeight * 0.5f)
+                });
+                target.draw(gainText);
+            }
+        }
+
+        constexpr float kFoldBarWidth = 12.f;
+        constexpr float kFoldBarPadding = 4.f;
+        float foldBarHeight = statusSize.y * 0.85f;
+        RoundedRectangleShape foldBar({ kFoldBarWidth, foldBarHeight }, kFoldBarWidth * 0.5f, 12);
+        float foldBarX = contentLeft - kFoldBarWidth - kFoldBarPadding;
+        float foldBarY = statusPos.y + (statusSize.y - foldBarHeight) * 0.5f;
+        foldBar.setPosition({ foldBarX, foldBarY });
+        foldBar.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, foldIndicatorAlpha));
+        target.draw(foldBar);
+
+        sf::Text foldSymbol{ game.resources.uiFont, "+", 18 };
+        foldSymbol.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor));
+        foldSymbol.setStyle(sf::Text::Bold);
+        auto foldBounds = foldSymbol.getLocalBounds();
+        foldSymbol.setOrigin({
+            foldBounds.position.x + (foldBounds.size.x * 0.5f),
+            foldBounds.position.y + (foldBounds.size.y * 0.5f)
+        });
+        foldSymbol.setPosition({ foldBarX + (kFoldBarWidth * 0.5f), foldBarY + (foldBarHeight * 0.5f) });
+        target.draw(foldSymbol);
+
+        game.playerStatusFoldBarBounds = sf::FloatRect(
+            sf::Vector2f{ foldBarX, foldBarY },
+            sf::Vector2f{ kFoldBarWidth, foldBarHeight }
+        );
     }
 }
 
@@ -771,35 +1018,43 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
     if (allowTyping)
         isTyping = updateTypewriter(game, fullText, delay);
 
-    if (line) {
-        TextStyles::SpeakerStyle info = TextStyles::speakerStyle(line->speaker);
-        bool sameSpeakerAsPrevious = game.lastSpeaker && *game.lastSpeaker == line->speaker;
-        // Hide the speaker name until some text is visible (prevents leftover
-        // speaker names from appearing immediately after the intro title).
-        if (!isMapTutorialLine) {
-            if (game.visibleText.empty() && !game.askingName && !sameSpeakerAsPrevious) {
-                TextStyles::SpeakerStyle emptyInfo = info;
-                emptyInfo.name.clear();
-                dialogDraw::drawSpeakerName(target, game, emptyInfo, uiAlphaFactor);
+        if (line) {
+            TextStyles::SpeakerStyle info = TextStyles::speakerStyle(line->speaker);
+            bool sameSpeakerAsPrevious = game.lastSpeaker && *game.lastSpeaker == line->speaker;
+            // Hide the speaker name until some text is visible (prevents leftover
+            // speaker names from appearing immediately after the intro title).
+            if (!isMapTutorialLine) {
+                if (game.visibleText.empty() && !game.askingName && !sameSpeakerAsPrevious) {
+                    TextStyles::SpeakerStyle emptyInfo = info;
+                    emptyInfo.name.clear();
+                    dialogDraw::drawSpeakerName(target, game, emptyInfo, uiAlphaFactor);
+                }
+                else {
+                    dialogDraw::drawSpeakerName(target, game, info, uiAlphaFactor);
+                }
+                game.lastSpeaker = line->speaker;
+
+                std::string textToDraw = game.visibleText;
+                if (game.askingName) {
+                    auto newlinePos = textToDraw.find('\n');
+                    if (newlinePos != std::string::npos)
+                        textToDraw = textToDraw.substr(0, newlinePos + 1);
+                }
+
+                dialogDraw::drawDialogueText(target, game, textToDraw, uiAlphaFactor);
+                if (game.currentDialogue == &blacksmith
+                    && game.dialogueIndex == kBlacksmithRestLineIndex
+                    && game.visibleText.size() >= fullText.size()
+                    && game.weaponForging.phase == Game::WeaponForgingState::Phase::Idle
+                    && game.selectedWeaponIndex >= 0)
+                {
+                    startWeaponForgingRest(game);
+                }
             }
             else {
-                dialogDraw::drawSpeakerName(target, game, info, uiAlphaFactor);
+                game.lastSpeaker = line->speaker;
             }
-            game.lastSpeaker = line->speaker;
-
-            std::string textToDraw = game.visibleText;
-            if (game.askingName) {
-                auto newlinePos = textToDraw.find('\n');
-                if (newlinePos != std::string::npos)
-                    textToDraw = textToDraw.substr(0, newlinePos + 1);
-            }
-
-            dialogDraw::drawDialogueText(target, game, textToDraw, uiAlphaFactor);
         }
-        else {
-            game.lastSpeaker = line->speaker;
-        }
-    }
 
     if (line
         && line->triggersGenderSelection

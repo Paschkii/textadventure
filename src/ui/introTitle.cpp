@@ -193,7 +193,7 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
         game.introTitleRevealClock.restart();
         game.introTitleOptionsFadeTriggered = false;
         game.introTitleOptionsFadeProgress = 0.f;
-        game.introTitleHoveredOption = 0;
+        game.introTitleHoveredOption = -1;
     }
 
     float globalFade = 1.f;
@@ -259,7 +259,7 @@ void drawIntroTitle(Game& game, sf::RenderTarget& target) {
         game.introTitleOptionsFadeTriggered = true;
         game.introTitleOptionsFadeActive = true;
         game.introTitleOptionsFadeClock.restart();
-        game.introTitleHoveredOption = 0;
+        game.introTitleHoveredOption = -1;
     }
 
     if (game.introTitleOptionsFadeActive) {

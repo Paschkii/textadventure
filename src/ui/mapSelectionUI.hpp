@@ -6,6 +6,7 @@
 #include <SFML/Graphics/RenderTarget.hpp>  // Draws the map and popup overlays.
 #include <SFML/Graphics/Rect.hpp>             // Represents map and icon bounds.
 #include <SFML/Window/Event.hpp>              // Processes map-specific mouse and keyboard events.
+#include "rendering/locations.hpp"             // Provides LocationId used by map actions.
 
 struct Game;
 
@@ -14,6 +15,7 @@ struct MapPopupRenderData {
     std::string shortDesc;
     std::string residentTitle;
     std::string residentDesc;
+    std::optional<LocationId> locationId;
     float posX = 0.f;
     float posY = 0.f;
     sf::FloatRect iconBounds{};

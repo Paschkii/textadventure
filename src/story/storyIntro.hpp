@@ -215,10 +215,10 @@ inline const std::vector<DialogueLine> perigonal = {
     { Speaker::VillageWanderer, "Or maybe it was. If you're telling the truth... then we're all in danger." },
     { Speaker::Player, "Here, I'll prove it **Pulls back sleeve, scales glinting** These aren't scars. They are..." },
     { Speaker::VillageWanderer, "Dragon Scales! Only true Dragonborns have them! So the legends tend to have some weight in them." },
-    { Speaker::Player, "I need to go back and save {dragonbornSiblingName}. Where are my weapons?" },
+    { Speaker::Player, "I need to go back and save {dragonbornSiblingName}. Where are my weapons?", false, false, true },
     { Speaker::VillageWanderer, "They are here. But they've been scattered. I will take care of them." },
     { Speaker::VillageWanderer, "There is a village nearby named Gonad. A mighty Blacksmith resides there. His name is Will Figsid." },
-    { Speaker::VillageWanderer, "He is well known across Glandular for his smithcraft. I'm sure he can help!" },
+    { Speaker::VillageWanderer, "He is well known across Glandular for his smithcraft. I'm sure he can help!", false, false, true, DialogueLineAction::StartsQuest, std::optional<std::string>{"Forged Destiny"} },
     { Speaker::VillageWanderer, "Get up {playerName}. Gonad isn't far - and if Master Bates is involved, we don't have much time." },
     { Speaker::StoryTeller, "Wanda Rinn is a very helpful companion. She will handle your inventory and can give you hints and explanations along your travel." },
     { Speaker::StoryTeller, "You can open your inventory through this menu button." },
@@ -276,7 +276,7 @@ inline const std::vector<DialogueLine> blacksmith = {
     { Speaker::Player, "Yeah, it feels like it." },
     { Speaker::Blacksmith, "The forge is hot. Which weapon shall I create?" }, // New WeaponSelection UI, take broken weapons out of players inventory
     { Speaker::Blacksmith, "This will take some time. Feel free to get some rest. I will wake you when I'm done." }, // When Weapon is Selected, after this Line 5 second black screen
-    { Speaker::Blacksmith, "Wake up, I'm done. This is your new {weaponName}." }, // Give new weapon to Player, display it in a popup
+    { Speaker::Blacksmith, "Wake up, I'm done. This is your new {weaponName}.", false, false, true, DialogueLineAction::CompletesQuest, std::nullopt, std::optional<std::string>{"Forged Destiny"} }, // Give new weapon to Player, display it in a popup
     { Speaker::Player, "This... is better than I expected." },
     { Speaker::Blacksmith, "Expectation is what brought you here in the first place." },
     { Speaker::Blacksmith, "What you presented to me was broken. What you're holding now is flawless." },
@@ -358,7 +358,7 @@ inline const std::vector<DialogueLine> weapon = {};
 inline const std::vector<DialogueLine> gonadWelcomeBack = {
     { Speaker::VillageElder, "Welcome back, {playerName}! You made it out of {lastLocation}!" },
     { Speaker::VillageElder, "I see you've retrieved the Dragon Stone from {lastDragonName}." },
-    { Speaker::VillageElder, "Catch your breath, then head toward your next destination!" },
+    { Speaker::VillageElder, "Catch your breath, then head toward your next destination!", false, false, true, DialogueLineAction::OpensMapFromMenu },
 };
 
 // Story-heavy dialogue triggered before the final battle in Gonad.

@@ -1,5 +1,6 @@
 // === C++ Libraries ===
 #include <algorithm>  // Uses std::min and std::clamp when sizing portraits and layout helpers.
+#include <cstdint>    // Needed for std::uint8_t when tinting sprites.
 #include <vector>     // Builds temporary sets of texts/colors when drawing speaker names.
 // === Header Files ===
 #include "dialogDrawElements.hpp"  // Declares the draw helpers implemented in this file.
@@ -8,6 +9,7 @@
 #include "helper/textColorHelper.hpp"  // Breaks speaker names into colored segments when rendering.
 #include "helper/colorHelper.hpp"  // Applies palette colors for outlines, text, and frames.
 #include "rendering/textLayout.hpp"  // Lays out multi-line colored text segments inside boxes.
+#include "rendering/locations.hpp" // Needed for LocationId definitions used by portrait backgrounds.
 #include "story/textStyles.hpp"    // Retrieves speaker styles for portraits and name labels.
 
 namespace {
@@ -16,6 +18,9 @@ namespace {
     constexpr unsigned int kNameCharacterSize = kTextCharacterSize - 4;
     constexpr float kNameVerticalNudge = -10.f;
     constexpr float kPortraitPadding = 10.f;
+    constexpr float kPortraitRenderScale = 0.88f;
+    constexpr float kPortraitBackgroundScale = 0.92f;
+    constexpr float kDialogueLineSpacingMultiplier = 1.2f;
 
     const sf::Texture* portraitForSpeaker(const Game& game, const std::string& speakerName) {
         using TextStyles::SpeakerId;
@@ -54,8 +59,27 @@ namespace {
         }
     }
 
+    const sf::Texture* portraitBackgroundForLocation(const Game& game) {
+        if (!game.currentLocation)
+            return &game.resources.portraitBackgroundToryTailor;
+
+        switch (game.currentLocation->id) {
+            case LocationId::Perigonal: return &game.resources.portraitBackgroundPetrigonal;
+            case LocationId::Gonad: return &game.resources.portraitBackgroundGonad;
+            case LocationId::FigsidsForge: return &game.resources.portraitBackgroundBlacksmith;
+            case LocationId::Blyathyroid: return &game.resources.portraitBackgroundBlyathyroid;
+            case LocationId::Lacrimere: return &game.resources.portraitBackgroundLacrimere;
+            case LocationId::Cladrenal: return &game.resources.portraitBackgroundCladrenal;
+            case LocationId::Aerobronchi: return &game.resources.portraitBackgroundAerobronchi;
+            case LocationId::Seminiferous: return &game.resources.portraitBackgroundSeminiferous;
+        }
+
+        return &game.resources.portraitBackgroundToryTailor;
+    }
+
     void drawSpeakerPortrait(
         sf::RenderTarget& target,
+        const Game& game,
         const sf::RectangleShape& nameBox,
         const sf::Text& nameText,
         const sf::Texture& texture,
@@ -79,28 +103,42 @@ namespace {
         if (portraitAreaWidth <= 0.f || portraitAreaHeight <= 0.f)
             return;
 
-        sf::Sprite portrait{ texture };
-        auto texSize = texture.getSize();
-        float scaleX = portraitAreaWidth / static_cast<float>(texSize.x);
-        float scaleY = portraitAreaHeight / static_cast<float>(texSize.y);
-        float scale = std::min(scaleX, scaleY);
-        portrait.setScale({ scale, scale });
-
-        auto localBounds = portrait.getLocalBounds();
-        portrait.setOrigin({
-            localBounds.position.x + (localBounds.size.x / 2.f),
-            localBounds.position.y + (localBounds.size.y / 2.f)
-        });
-
         float centerX = boxPos.x + (boxSize.x / 2.f);
         float centerY = portraitAreaTop + (portraitAreaHeight / 2.f);
-        portrait.setPosition({ centerX, centerY });
 
-        sf::Color color = portrait.getColor();
-        color.a = static_cast<std::int8_t>(255.f * uiAlphaFactor);
-        portrait.setColor(color);
+        auto drawTextureInArea = [&](const sf::Texture& tex, float scaleFactor, bool fill, bool alignBottom) {
+            auto texSize = tex.getSize();
+            if (texSize.x == 0 || texSize.y == 0)
+                return;
 
-        target.draw(portrait);
+            sf::Sprite sprite{ tex };
+            float areaWidth = portraitAreaWidth * scaleFactor;
+            float areaHeight = portraitAreaHeight * scaleFactor;
+            float scaleX = areaWidth / static_cast<float>(texSize.x);
+            float scaleY = areaHeight / static_cast<float>(texSize.y);
+            float scale = fill ? std::max(scaleX, scaleY) : std::min(scaleX, scaleY);
+            sprite.setScale({ scale, scale });
+
+            auto localBounds = sprite.getLocalBounds();
+            float originY = localBounds.position.y + (localBounds.size.y * (alignBottom ? 1.f : 0.5f));
+            sprite.setOrigin({
+                localBounds.position.x + (localBounds.size.x * 0.5f),
+                originY
+            });
+            float positionY = alignBottom ? portraitAreaBottom : centerY;
+            sprite.setPosition({ centerX, positionY });
+
+            sf::Color color = sprite.getColor();
+            color.a = static_cast<std::uint8_t>(std::clamp(uiAlphaFactor, 0.f, 1.f) * 255.f);
+            sprite.setColor(color);
+
+            target.draw(sprite);
+        };
+
+        if (const sf::Texture* background = portraitBackgroundForLocation(game)) {
+            drawTextureInArea(*background, kPortraitBackgroundScale, false, false);
+        }
+        drawTextureInArea(texture, kPortraitRenderScale, false, true);
     }
 }
 
@@ -198,7 +236,7 @@ namespace dialogDraw {
 
         // Draw portrait using the un-nudged name position so its area stays stable.
         if (const sf::Texture* portraitTex = portraitForSpeaker(game, info.name)) {
-            drawSpeakerPortrait(target, game.nameBox, nameText, *portraitTex, uiAlphaFactor);
+            drawSpeakerPortrait(target, game, game.nameBox, nameText, *portraitTex, uiAlphaFactor);
         }
 
         // Apply visual nudge to bring the name closer to the portrait.
@@ -228,7 +266,16 @@ namespace dialogDraw {
 
         auto segments = buildColoredSegments(textToDraw);
         float maxWidth = game.textBox.getSize().x - (kTextBoxPadding * 2.f);
-        auto cursorPos = drawColoredSegments(target, game.resources.uiFont, segments, basePos, kTextCharacterSize, maxWidth, uiAlphaFactor);
+        auto cursorPos = drawColoredSegments(
+            target,
+            game.resources.uiFont,
+            segments,
+            basePos,
+            kTextCharacterSize,
+            maxWidth,
+            uiAlphaFactor,
+            kDialogueLineSpacingMultiplier
+        );
 
         (void)cursorPos;
     }

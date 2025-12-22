@@ -75,7 +75,7 @@ namespace {
     constexpr float kMapTutorialButtonHeight = 44.f;
     constexpr float kMapTutorialButtonPadding = 12.f;
     constexpr unsigned int kMapTutorialTextSize = 20;
-    constexpr float kMapTutorialLineSpacing = 14.f;
+    constexpr float kMapTutorialLineSpacing = 1.f;
 
     void beginInventoryTutorial(Game& game) {
         if (!game.inventoryTutorialPending)
@@ -690,6 +690,9 @@ namespace {
             return cleaned.empty() ? source : cleaned;
         };
 
+        game.questFoldButtonBounds.assign(game.questLog.size(), {});
+        game.questFoldHoveredIndex = -1;
+
         sf::Text activeHeader{ game.resources.titleFont, "Active Quests", 30 };
         activeHeader.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
         activeHeader.setPosition({ leftColumnX + 18.f, columnTop + 16.f });
@@ -702,110 +705,153 @@ namespace {
         float cardWidth = columnWidth - (kEntryPadding * 2.f);
         float cardX = leftColumnX + kEntryPadding;
 
-        if (game.questLog.empty()) {
-            sf::Text placeholder{
-                game.resources.uiFont,
-                "No active quests yet.\nContinue through the story to receive your first task.",
-                18
+        float cursorY = entryStartY;
+        constexpr float kCardHorizontalPadding = 14.f;
+        constexpr float kCardVerticalPadding = 12.f;
+        constexpr float kTextSpacing = 6.f;
+        constexpr float kQuestLineSpacingMultiplier = 0.8f;
+        constexpr float kFoldAnimationStep = 0.08f;
+        constexpr sf::Vector2f kFoldButtonSize{ 36.f, 18.f };
+        constexpr float kFoldButtonVerticalMargin = 10.f;
+        for (std::size_t idx = 0; idx < game.questLog.size(); ++idx) {
+            auto& entry = game.questLog[idx];
+            if (entry.completed)
+                continue;
+
+            float targetProgress = entry.collapsed ? 0.f : 1.f;
+            float diff = targetProgress - entry.foldProgress;
+            if (std::abs(diff) <= kFoldAnimationStep)
+                entry.foldProgress = targetProgress;
+            else
+                entry.foldProgress += (diff > 0.f ? kFoldAnimationStep : -kFoldAnimationStep);
+
+            float textX = cardX + kCardHorizontalPadding;
+            float measurementBaseY = cursorY + kCardVerticalPadding;
+
+            std::string displayName = sanitizeQuestName(entry.name);
+            sf::Text nameText{ game.resources.titleFont, displayName, 22 };
+            float nameHeight = nameText.getLocalBounds().size.y;
+
+            float giverY = measurementBaseY + nameHeight + kTextSpacing;
+            sf::Text giverText{ game.resources.uiFont, "From " + entry.giver, 16 };
+            float giverHeight = giverText.getLocalBounds().size.y;
+            float goalStartY = giverY + giverHeight + kTextSpacing;
+
+            std::vector<ColoredTextSegment> goalSegments = {
+                { entry.goal, ColorHelper::Palette::Normal }
             };
-            placeholder.setFillColor(applyAlpha(columnTextColor));
-            placeholder.setLineSpacing(1.8f);
-            placeholder.setPosition({ cardX + 8.f, entryStartY + 8.f });
-            target.draw(placeholder);
-        }
-        else {
-            float cursorY = entryStartY;
-                constexpr float kCardHorizontalPadding = 14.f;
-                constexpr float kCardVerticalPadding = 12.f;
-                constexpr float kTextSpacing = 6.f;
-                constexpr float kQuestLineSpacingMultiplier = 0.8f;
-            for (const auto& entry : game.questLog) {
-                float textX = cardX + kCardHorizontalPadding;
-                float measurementBaseY = cursorY + kCardVerticalPadding;
+            auto measuredCursor = drawColoredSegments(
+                target,
+                game.resources.uiFont,
+                goalSegments,
+                { textX, goalStartY },
+                16,
+                cardWidth - 28.f,
+                1.f,
+                kQuestLineSpacingMultiplier,
+                true
+            );
+            float goalHeight = measuredCursor.y - goalStartY;
 
-                std::string displayName = sanitizeQuestName(entry.name);
-                sf::Text nameText{ game.resources.titleFont, displayName, 22 };
-                float nameHeight = nameText.getLocalBounds().size.y;
+            float contentHeight = (goalStartY - cursorY) + goalHeight + kCardVerticalPadding;
+            float expandedHeight = std::max(kEntryHeight, contentHeight);
 
-                float giverY = measurementBaseY + nameHeight + kTextSpacing;
-                sf::Text giverText{ game.resources.uiFont, "From " + entry.giver, 16 };
-                float giverHeight = giverText.getLocalBounds().size.y;
-                float goalStartY = giverY + giverHeight + kTextSpacing;
+            float titleOnlyHeight = nameHeight + (kCardVerticalPadding * 2.f);
+            float buttonAreaHeight = (kFoldButtonVerticalMargin * 2.f) + kFoldButtonSize.y;
+            float collapsedHeight = std::max(titleOnlyHeight, buttonAreaHeight);
+            collapsedHeight = std::min(collapsedHeight, expandedHeight);
+            float cardHeight = collapsedHeight + (expandedHeight - collapsedHeight) * entry.foldProgress;
+            if (cursorY + cardHeight > columnTop + columnHeight - 12.f)
+                break;
 
-                std::vector<ColoredTextSegment> goalSegments = {
-                    { entry.goal, applyAlpha(ColorHelper::Palette::Normal) }
-                };
-                auto measuredCursor = drawColoredSegments(
-                    target,
-                    game.resources.uiFont,
-                    goalSegments,
-                    { textX, goalStartY },
-                    16,
-                    cardWidth - 28.f,
-                    1.f,
-                    kQuestLineSpacingMultiplier,
-                    true
-                );
-                float goalHeight = measuredCursor.y - goalStartY;
+            float detailAlpha = entry.foldProgress;
 
-                float contentHeight = (goalStartY - cursorY) + goalHeight + kCardVerticalPadding;
-                float cardHeight = std::max(kEntryHeight, contentHeight);
-                if (cursorY + cardHeight > columnTop + columnHeight - 12.f)
-                    break;
+            RoundedRectangleShape card({ cardWidth, cardHeight }, 16.f, 18);
+            card.setPosition({ cardX, cursorY });
+            card.setFillColor(applyAlpha(sf::Color(18, 12, 6, 220)));
+            card.setOutlineThickness(2.f);
+            card.setOutlineColor(applyAlpha(ColorHelper::Palette::FrameGoldLight));
+            target.draw(card);
 
-                RoundedRectangleShape card({ cardWidth, cardHeight }, 16.f, 18);
-                card.setPosition({ cardX, cursorY });
-                card.setFillColor(applyAlpha(sf::Color(18, 12, 6, 220)));
-                card.setOutlineThickness(2.f);
-                card.setOutlineColor(applyAlpha(ColorHelper::Palette::FrameGoldLight));
-                target.draw(card);
+            float textY = measurementBaseY;
+            nameText.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
+            nameText.setPosition({ textX, textY });
+            target.draw(nameText);
+            textY += nameHeight + kTextSpacing;
 
-                float textY = measurementBaseY;
-                nameText.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
-                nameText.setPosition({ textX, textY });
-                target.draw(nameText);
-                textY += nameHeight + kTextSpacing;
+            auto detailColorize = [&](const sf::Color& base) {
+                return ColorHelper::applyAlphaFactor(base, alphaFactor * detailAlpha);
+            };
+            giverText.setFillColor(detailColorize(sf::Color::White));
+            giverText.setPosition({ textX, textY });
+            target.draw(giverText);
+            textY += giverHeight + kTextSpacing;
 
-                giverText.setFillColor(applyAlpha(sf::Color::White));
-                giverText.setPosition({ textX, textY });
-                target.draw(giverText);
-                textY += giverHeight + kTextSpacing;
+            auto goalCursor = drawColoredSegments(
+                target,
+                game.resources.uiFont,
+                goalSegments,
+                { textX, textY },
+                16,
+                cardWidth - 28.f,
+                detailAlpha,
+                kQuestLineSpacingMultiplier,
+                false
+            );
 
-                auto goalCursor = drawColoredSegments(
-                    target,
-                    game.resources.uiFont,
-                    goalSegments,
-                    { textX, textY },
-                    16,
-                    cardWidth - 28.f,
-                    1.f,
-                    kQuestLineSpacingMultiplier,
-                    false
-                );
+            sf::Text spacingMetrics{ game.resources.uiFont, "Hg", 16 };
+            float extraSpacing = spacingMetrics.getLineSpacing() * 0.8f - 4.f;
+            textY = goalCursor.y + extraSpacing;
 
-                sf::Text spacingMetrics{ game.resources.uiFont, "Hg", 16 };
-                float extraSpacing = spacingMetrics.getLineSpacing() * 0.8f - 4.f;
-                textY = goalCursor.y + extraSpacing;
+            float xpLineY = std::max(cursorY + cardHeight - 28.f, textY);
+            sf::Text xpText{ game.resources.uiFont, "XP Reward: " + std::to_string(entry.xpReward), 18 };
+            xpText.setFillColor(detailColorize(ColorHelper::Palette::DarkPurple));
+            xpText.setPosition({ textX, xpLineY });
+            target.draw(xpText);
 
-                float xpLineY = std::max(cursorY + cardHeight - 28.f, textY);
-                sf::Text xpText{ game.resources.uiFont, "XP Reward: " + std::to_string(entry.xpReward), 18 };
-                xpText.setFillColor(applyAlpha(ColorHelper::Palette::DarkPurple));
-                xpText.setPosition({ textX, xpLineY });
-                target.draw(xpText);
-
-                if (entry.loot) {
-                    sf::Text lootText{ game.resources.uiFont, "Loot: " + *entry.loot, 18 };
-                    lootText.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
-                    auto lootBounds = lootText.getLocalBounds();
-                    lootText.setPosition({
-                        cardX + cardWidth - 12.f - lootBounds.size.x,
-                        xpLineY
-                    });
-                    target.draw(lootText);
-                }
-
-                cursorY += cardHeight + kEntrySpacing;
+            if (entry.loot) {
+                sf::Text lootText{ game.resources.uiFont, "Loot: " + *entry.loot, 18 };
+                lootText.setFillColor(detailColorize(ColorHelper::Palette::SoftYellow));
+                auto lootBounds = lootText.getLocalBounds();
+                lootText.setPosition({
+                    cardX + cardWidth - 12.f - lootBounds.size.x,
+                    xpLineY
+                });
+                target.draw(lootText);
             }
+
+            sf::Vector2f buttonPos{
+                cardX + cardWidth - kFoldButtonSize.x - 16.f,
+                cursorY + 10.f
+            };
+            RoundedRectangleShape buttonShape(kFoldButtonSize, kFoldButtonSize.y * 0.5f, 10);
+            buttonShape.setPosition(buttonPos);
+            float buttonHoverAlpha = (game.questFoldHoveredIndex == static_cast<int>(idx)) ? 1.f : 0.85f;
+            buttonShape.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, alphaFactor * buttonHoverAlpha));
+            buttonShape.setOutlineThickness(1.5f);
+            buttonShape.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, alphaFactor * buttonHoverAlpha));
+            target.draw(buttonShape);
+
+            sf::Text foldLabel{
+                game.resources.uiFont,
+                entry.collapsed ? "+" : "-",
+                14
+            };
+            foldLabel.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, alphaFactor));
+            auto foldBounds = foldLabel.getLocalBounds();
+            foldLabel.setOrigin({
+                foldBounds.position.x + foldBounds.size.x * 0.5f,
+                foldBounds.position.y + foldBounds.size.y * 0.5f
+            });
+            foldLabel.setPosition({
+                buttonPos.x + (kFoldButtonSize.x * 0.5f),
+                buttonPos.y + (kFoldButtonSize.y * 0.5f)
+            });
+            target.draw(foldLabel);
+
+            game.questFoldButtonBounds[idx] = { buttonPos, kFoldButtonSize };
+
+            cursorY += cardHeight + kEntrySpacing;
         }
 
         sf::Text finishedHeader{ game.resources.titleFont, "Finished Quests", 30 };
@@ -813,15 +859,45 @@ namespace {
         finishedHeader.setPosition({ rightColumnX + 18.f, columnTop + 16.f });
         target.draw(finishedHeader);
 
-        sf::Text finishedPlaceholder{
-            game.resources.uiFont,
-            "Completed quests will appear here.\nThis section is under construction.",
-            18
-        };
-        finishedPlaceholder.setFillColor(applyAlpha(columnTextColor));
-        finishedPlaceholder.setLineSpacing(1.8f);
-        finishedPlaceholder.setPosition({ rightColumnX + 18.f, columnTop + 52.f });
-        target.draw(finishedPlaceholder);
+        float finishedStartY = columnTop + 56.f;
+        float finishedCursorY = finishedStartY;
+        const float kFinishedCardHeight = 46.f;
+        const float kFinishedNameSize = 20.f;
+        constexpr float kFinishedSpacing = 12.f;
+        for (const auto& entry : game.questLog) {
+            if (!entry.completed)
+                continue;
+
+            RoundedRectangleShape card({ cardWidth, kFinishedCardHeight }, 12.f, 12);
+            card.setPosition({ rightColumnX + kEntryPadding, finishedCursorY });
+            card.setFillColor(applyAlpha(sf::Color(10, 10, 10, 200)));
+            card.setOutlineThickness(2.f);
+            card.setOutlineColor(applyAlpha(sf::Color(255, 255, 255, 120)));
+            target.draw(card);
+
+            std::string displayName = sanitizeQuestName(entry.name);
+            sf::Text nameText{ game.resources.titleFont, displayName, static_cast<unsigned int>(kFinishedNameSize) };
+            nameText.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
+            nameText.setPosition({
+                rightColumnX + kEntryPadding + 8.f,
+                finishedCursorY + (kFinishedCardHeight - nameText.getLocalBounds().size.y) * 0.5f
+            });
+            target.draw(nameText);
+
+            auto nameBounds = nameText.getGlobalBounds();
+            sf::RectangleShape strike({ nameBounds.size.x, 1.5f });
+            strike.setFillColor(ColorHelper::applyAlphaFactor(sf::Color::White, alphaFactor));
+            strike.setPosition({
+                nameBounds.position.x,
+                nameBounds.position.y + (nameBounds.size.y * 0.5f)
+            });
+            target.draw(strike);
+
+            finishedCursorY += kFinishedCardHeight + kFinishedSpacing;
+            if (finishedCursorY > columnTop + columnHeight - 12.f)
+                break;
+        }
+
     }
 
     void drawSkillsContent(Game& game, sf::RenderTarget& target, const sf::FloatRect& bounds, float alphaFactor) {
@@ -988,7 +1064,12 @@ bool handleEvent(Game& game, const sf::Event& event) {
         }
     };
     bool menuButtonInteractable = game.menuButtonUnlocked && game.menuButtonAlpha >= 1.f;
-    if (game.forcedDestinationSelection && game.menuActive && game.menuActiveTab == static_cast<int>(MenuTab::Map)) {
+    bool mapTabActive = game.menuActive && game.menuActiveTab == static_cast<int>(MenuTab::Map);
+    auto dispatchMenuMapEvent = [&]() -> bool {
+        if (!mapTabActive)
+            return false;
+        if (!game.mapTutorialActive && !game.mapInteractionUnlocked)
+            return false;
         const auto viewFromPanel = [&]() -> std::optional<sf::View> {
             auto panelBounds = game.menuPanel.getGlobalBounds();
             auto windowSize = game.window.getSize();
@@ -1011,9 +1092,11 @@ bool handleEvent(Game& game, const sf::Event& event) {
             handleMapSelectionEvent(game, event, nullptr);
         }
         return true;
-    }
+    };
     if (game.forcedDestinationSelection && game.menuActive)
         game.menuActiveTab = static_cast<int>(MenuTab::Map);
+    if (!game.mapTutorialActive && dispatchMenuMapEvent())
+        return true;
 
     if (auto move = event.getIf<sf::Event::MouseMoved>()) {
         sf::Vector2f point = game.window.mapPixelToCoords(move->position);
@@ -1023,8 +1106,25 @@ bool handleEvent(Game& game, const sf::Event& event) {
             game.menuButtonHovered = false;
         }
         else if (game.menuActive) {
-            updateHovered(point);
+            if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing))
+                updateHovered(point);
+            else
+                game.menuHoveredTab = -1;
             game.mapTutorialOkHovered = false;
+            if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing)
+                && game.menuActiveTab == static_cast<int>(MenuTab::Quests))
+            {
+                game.questFoldHoveredIndex = -1;
+                for (std::size_t idx = 0; idx < game.questFoldButtonBounds.size(); ++idx) {
+                    if (game.questFoldButtonBounds[idx].contains(point)) {
+                        game.questFoldHoveredIndex = static_cast<int>(idx);
+                        break;
+                    }
+                }
+            }
+            else {
+                game.questFoldHoveredIndex = -1;
+            }
         }
         else if (menuButtonInteractable) {
             game.menuButtonHovered = game.menuButton.getGlobalBounds().contains(point);
@@ -1045,6 +1145,8 @@ bool handleEvent(Game& game, const sf::Event& event) {
         else {
             game.inventoryTutorialButtonHovered = false;
         }
+        if (!game.menuActive)
+            game.questFoldHoveredIndex = -1;
     }
 
     if (auto button = event.getIf<sf::Event::MouseButtonReleased>()) {
@@ -1068,11 +1170,13 @@ bool handleEvent(Game& game, const sf::Event& event) {
             }
             else if (game.menuActive) {
                 bool clickedTab = false;
-                for (std::size_t idx = 0; idx < game.menuTabBounds.size(); ++idx) {
-                    if (game.menuTabBounds[idx].contains(point)) {
-                        game.menuActiveTab = static_cast<int>(idx);
-                        clickedTab = true;
-                        break;
+                if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing)) {
+                    for (std::size_t idx = 0; idx < game.menuTabBounds.size(); ++idx) {
+                        if (game.menuTabBounds[idx].contains(point)) {
+                            game.menuActiveTab = static_cast<int>(idx);
+                            clickedTab = true;
+                            break;
+                        }
                     }
                 }
 
@@ -1082,6 +1186,20 @@ bool handleEvent(Game& game, const sf::Event& event) {
                 else {
                     auto panelBounds = game.menuPanel.getGlobalBounds();
                     bool insidePanel = panelBounds.contains(point);
+                    if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing)
+                        && game.menuActiveTab == static_cast<int>(MenuTab::Quests))
+                    {
+                        for (std::size_t idx = 0; idx < game.questFoldButtonBounds.size(); ++idx) {
+                            if (game.questFoldButtonBounds[idx].contains(point)) {
+                                auto& entry = game.questLog[idx];
+                                if (!entry.completed) {
+                                    entry.collapsed = !entry.collapsed;
+                                    consumed = true;
+                                    return true;
+                                }
+                            }
+                        }
+                    }
                     if (game.inventoryTutorialPopupActive) {
                         if (!game.inventoryTutorialClosing
                             && game.inventoryTutorialButtonBounds.contains(point))

@@ -102,6 +102,9 @@ Game::Game()
     quizQuestionThinkingSound.emplace(resources.quizQuestionThinking);
     quizEndSound.emplace(resources.quizEnd);
     forgeSound.emplace(resources.forgeSound);
+    levelUpSound.emplace(resources.levelUp);
+    questStartSound.emplace(resources.questStart);
+    questEndSound.emplace(resources.questEnd);
     // === Framerate limitieren ===
     window.setFramerateLimit(fpsLimit);
     // === NameBox Style setzen ===
@@ -189,6 +192,7 @@ void Game::beginTeleport(LocationId id) {
 
     stopTypingSound();
     transientReturnToMap = false;
+    mapInteractionUnlocked = false;
     teleportController.begin(id, audioManager);
 }
 
@@ -210,6 +214,7 @@ void Game::beginForcedDestinationSelection() {
     mapTutorialOkBounds = {};
     mapTutorialOkHovered = false;
     menuMapPopup.reset();
+    mapInteractionUnlocked = true;
 }
 
 void Game::exitForcedDestinationSelection() {
@@ -217,6 +222,7 @@ void Game::exitForcedDestinationSelection() {
     menuActive = false;
     menuHoveredTab = -1;
     menuMapPopup.reset();
+    mapInteractionUnlocked = false;
 }
 
 // Advances the teleport sequence and invokes callbacks when ready.
@@ -336,6 +342,11 @@ void Game::run() {
             }
 
             if (auto key = event->getIf<sf::Event::KeyReleased>()) {
+                if (key->scancode == sf::Keyboard::Scan::Tab) {
+                    playerStatusFolded = !playerStatusFolded;
+                    eventConsumed = true;
+                    continue;
+                }
                 if (key->scancode == sf::Keyboard::Scan::Enter) {
                     // Block Enter key while a confirmation prompt is active to avoid
                     // accidental confirmation via keyboard (prevent misclicks).
@@ -355,6 +366,19 @@ void Game::run() {
                     else if (state == GameState::Dialogue || state == GameState::MapSelection) {
                         if (currentDialogue && dialogueIndex < currentDialogue->size()) {
                             eventConsumed = waitForEnter(*this, (*currentDialogue)[dialogueIndex]);
+                        }
+                    }
+                }
+            }
+
+            if (!eventConsumed) {
+                if (auto button = event->getIf<sf::Event::MouseButtonReleased>()) {
+                    if (button->button == sf::Mouse::Button::Left) {
+                        auto mousePos = window.mapPixelToCoords(button->position);
+                        if (playerStatusFoldBarBounds.contains(mousePos)) {
+                            playerStatusFolded = !playerStatusFolded;
+                            eventConsumed = true;
+                            continue;
                         }
                     }
                 }
@@ -424,6 +448,10 @@ void Game::grantXp(int amount) {
     if (amount <= 0)
         return;
 
+    xpGainDisplay.amount = amount;
+    xpGainDisplay.active = true;
+    xpGainDisplay.clock.restart();
+
     playerXp += static_cast<float>(amount);
     while (playerXpMax > 0.f && playerXp >= playerXpMax) {
         playerXp -= playerXpMax;
@@ -447,14 +475,23 @@ void Game::startQuest(const Story::QuestDefinition& quest) {
         quest.giver,
         quest.goal,
         quest.xpReward,
-        quest.loot
+        quest.loot,
+        false,
+        false,
+        false,
+        1.f
     };
     questLog.push_back(entry);
+    questFoldButtonBounds.resize(questLog.size());
 
     questPopup.entry = entry;
     questPopup.phase = QuestPopupState::Phase::Entering;
     questPopup.clock.restart();
     questPopup.message = "New Quest: " + entry.name;
+    if (questStartSound) {
+        questStartSound->stop();
+        questStartSound->play();
+    }
 }
 
 void Game::completeQuest(const Story::QuestDefinition& quest) {
@@ -464,12 +501,18 @@ void Game::completeQuest(const Story::QuestDefinition& quest) {
     if (existing == questLog.end() || existing->rewardGranted)
         return;
 
-    existing->completed = true;
-    existing->rewardGranted = true;
+        existing->completed = true;
+        existing->rewardGranted = true;
+        existing->collapsed = true;
+        existing->foldProgress = 0.f;
     grantXp(existing->xpReward);
 
     questPopup.entry = *existing;
     questPopup.phase = QuestPopupState::Phase::Entering;
     questPopup.clock.restart();
     questPopup.message = "Finished Quest: " + existing->name;
+    if (questEndSound) {
+        questEndSound->stop();
+        questEndSound->play();
+    }
 }

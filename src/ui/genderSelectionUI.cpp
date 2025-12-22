@@ -50,7 +50,7 @@ namespace ui::genderSelection {
 
 void start(Game& game) {
     game.genderSelectionActive = true;
-    game.genderSelectionHovered = 0;
+    game.genderSelectionHovered = -1;
     game.genderSelectionBounds.fill({});
     game.genderAnimation.phase = Game::GenderSelectionAnimation::Phase::Idle;
     game.genderAnimation.selection = -1;

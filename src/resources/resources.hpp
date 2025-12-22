@@ -67,22 +67,36 @@ struct Resources {
     sf::Texture portraitAirDragon; // Gustavo Windimaess Portrait
     sf::Texture portraitEarthDragon; // Grounded Claymore Portrait
     sf::Texture portraitMasterBates; // Master Bates Portrait
+    sf::Texture portraitMasterBatesDragon; // Dragon form of Master Bates
     sf::Texture portraitDragonbornMale; // Dragonborn Male Portrait
     sf::Texture portraitDragonbornFemale; // Dragonborn Female Portrait
+    // Portrait Backgrounds
+    sf::Texture portraitBackgroundAerobronchi;
+    sf::Texture portraitBackgroundBlacksmith;
+    sf::Texture portraitBackgroundBlyathyroid;
+    sf::Texture portraitBackgroundCladrenal;
+    sf::Texture portraitBackgroundGonad;
+    sf::Texture portraitBackgroundLacrimere;
+    sf::Texture portraitBackgroundPetrigonal;
+    sf::Texture portraitBackgroundSeminiferous;
+    sf::Texture portraitBackgroundToryTailor;
+    // Character Sprites (new)
+    sf::Texture spriteDragonbornBack;
+    sf::Texture spriteDragonbornFemale;
+    sf::Texture spriteDragonbornFemaleNoCape;
+    sf::Texture spriteDragonbornMale;
+    sf::Texture spriteDragonbornMaleNoCape;
+    sf::Texture spriteFlawtinSeamen;
+    sf::Texture spriteGlandularCape;
+    sf::Texture spriteGroundedClaymore;
+    sf::Texture spriteGustavoWindimaess;
+    sf::Texture spriteMasterBates;
+    sf::Texture spriteMasterBatesDragon;
+    sf::Texture spriteNoahLott;
+    sf::Texture spriteRowstedSheacane;
+    sf::Texture spriteWandaRinn;
+    sf::Texture spriteWillFigsid;
     // Map Textures
-    sf::Texture locationGonadColored; // Gonad
-    sf::Texture locationGonadSepia; // Gonad
-    sf::Texture locationBlyathyroidColored; // Blyathyroid
-    sf::Texture locationBlyathyroidSepia; // Blyathyroid
-    sf::Texture locationLacrimereColored; // Lacrimere
-    sf::Texture locationLacrimereSepia; // Lacrimere
-    sf::Texture locationCladrenalColored; // Cladrenal
-    sf::Texture locationCladrenalSepia; // Cladrenal
-    sf::Texture locationAerobronchiColored; // Aerobronchi
-    sf::Texture locationAerobronchiSepia; // Aerobronchi
-    sf::Texture locationSeminiferousColored; // Seminiferous
-    sf::Texture locationSeminiferousSepia; // Seminiferous
-    sf::Texture mapBackground; // Map Background
     sf::Texture menuMapBackground; // Menu map base art
     sf::Texture menuMapGonad; // Gonad overlay
     sf::Texture menuMapLacrimere; // Lacrimere overlay
@@ -125,6 +139,7 @@ struct Resources {
     sf::SoundBuffer teleportStop; // Sound played when teleportation ends
     sf::SoundBuffer healSound; // Sound played when using the healing potion
     sf::SoundBuffer forgeSound; // Sound played during forging sleep timer
+    sf::SoundBuffer levelUp; // Sound played when levelling up
     sf::SoundBuffer locationMusicPerigonal; // Sound played during the Perigonal dialogue
     sf::SoundBuffer locationMusicGonad; // Sound played while in Gonad
     sf::SoundBuffer locationMusicBlyathyroid; // Sound played while in Blyathyroid
@@ -146,6 +161,8 @@ struct Resources {
     sf::SoundBuffer quizQuestionThinking;
     sf::SoundBuffer quizStart;
     sf::SoundBuffer quizEnd;
+    sf::SoundBuffer questStart; // Sound played when a new quest begins
+    sf::SoundBuffer questEnd; // Sound played when a quest completes
     sf::SoundBuffer titleButtons; // Sound played when hovering intro title options
 
     // Central Loader
