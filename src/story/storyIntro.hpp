@@ -327,6 +327,15 @@ inline const std::vector<DialogueLine> gonad_part_two = {
     { Speaker::VillageWanderer, "We are all set now. Let's open the map and choose our first destination." },
 };
 
+// Third Gonad dialogue that bridges the Dragon Stones with the final confrontation.
+inline const std::vector<DialogueLine> gonad_part_three = {
+    { Speaker::VillageElder, "The dragons refined your resolve. I can feel the lessons they've carved into you." },
+    { Speaker::VillageElder, "Have you finally found a way back to Umbra Ossea?" },
+    { Speaker::Player, "I have stitched all the pieces together - this is the Umbra Ossea map.", false, false, true, DialogueLineAction::OpensUmbraMapFromMenu },
+    { Speaker::StoryTeller, "The chart ignites with light as you present it to Noah." },
+    { Speaker::StoryTeller, "You should go now, your homeland is waiting for you!", false, false, true, DialogueLineAction::StartsSeminiferousTeleport },
+};
+
 
 // Extended village narrator text describing each dragon’s personality.
 inline const std::vector<DialogueLine> dragon = {
@@ -361,8 +370,8 @@ inline const std::vector<DialogueLine> gonadWelcomeBack = {
     { Speaker::VillageElder, "Catch your breath, then head toward your next destination!", false, false, true, DialogueLineAction::OpensMapFromMenu },
 };
 
-// Story-heavy dialogue triggered before the final battle in Gonad.
-inline const std::vector<DialogueLine> finalEncounter = {
+// Dialogue triggered once you survive the teleport to Seminiferous.
+inline const std::vector<DialogueLine> seminiferous = {
     { Speaker::StoryTeller, "Upon reaching ground, you freeze for a minute." },
     { Speaker::StoryTeller, "Gonad is gone. And right where it used to be stands a dark, ominous Castle." },
     { Speaker::StoryTeller, "A shady figure steps out of the castle greeting you with an evil smirk." },
@@ -421,7 +430,7 @@ inline const std::vector<DialogueLine> firedragon = {
     { Speaker::Player, "A duel? But I am not ready for a duel!" },
     { Speaker::FireDragon, "I vas just yoking again! Is so booooring in here. Heh heh heh!" },
     { Speaker::FireDragon, "I will give you my DRRAGON STONE if you can win in this Riddle Game." },
-    { Speaker::FireDragon, "Wyelcome byeck to dis shyow: Who wants tyo be Dragonborn? Dis is contestant {playerName}, he searches for DRRAGON STONES!" },
+    { Speaker::FireDragon, "Wyelcome byeck to dis shyow: Who wants tyo be Dragonborn? Dis is contestant {playerName}, he searches for DRRAGON STONES!", false, false, true, DialogueLineAction::StartsQuiz },
     { Speaker::FireDragon, "Vhat is my name?" }, // starts the question input
     { Speaker::FireDragon, "VRRONG! Try again." }, // Only if wrong
     { Speaker::FireDragon, "Da! You solved it! My name is Rowsted Sheacane!" },
@@ -441,7 +450,7 @@ inline const std::vector<DialogueLine> waterdragon = {
     { Speaker::Player, "A duel? But I am not ready for a duel!" },
     { Speaker::WaterDragon, "Sis was nur Fun, ja! It is sehr langweilig hier. Heh heh heh!" },
     { Speaker::WaterDragon, "I vill give you mein Dragon Stone if you can win in zis Riddle Game." },
-    { Speaker::WaterDragon, "And hier, ja, Willkommen back to: Hu vants to be a Dragonborn? Auer todays Teilnehmer ist {playerName}, ja, hu is searching for ze Dragon Stones!" },
+    { Speaker::WaterDragon, "And hier, ja, Willkommen back to: Hu vants to be a Dragonborn? Auer todays Teilnehmer ist {playerName}, ja, hu is searching for ze Dragon Stones!", false, false, true, DialogueLineAction::StartsQuiz },
     { Speaker::WaterDragon, "Vhat is mein name?" }, // starts the question input
     { Speaker::WaterDragon, "VRONG! Nochmal." }, // Only if wrong
     { Speaker::WaterDragon, "Jawoll! You are korrekt! Mein name ist Flawtin Seamen!" },
@@ -461,7 +470,7 @@ inline const std::vector<DialogueLine> earthdragon = {
     { Speaker::Player, "A duel? But I am not ready for a duel!" },
     { Speaker::EarthDragon, "Ha! I'm just foolin' with ya again! It gets real dang borin' in here. Heh heh heh!" },
     { Speaker::EarthDragon, "I will give you my Dragon Stone if you can win in this Riddle Game." },
-    { Speaker::EarthDragon, "And hereby I warmly welcome you back to: Who wants to be a Dragonborn? Our todays contestant is {playerName}, who is searching for the Dragon Stones!" },
+    { Speaker::EarthDragon, "And hereby I warmly welcome you back to: Who wants to be a Dragonborn? Our todays contestant is {playerName}, who is searching for the Dragon Stones!", false, false, true, DialogueLineAction::StartsQuiz },
     { Speaker::EarthDragon, "What's mah name?" }, // starts the question input
     { Speaker::EarthDragon, "Nope! That's wronger than a snake wearin' socks! Try again!" }, // Only if wrong
     { Speaker::EarthDragon, "YEEHAW! That's right! Mah name is Grounded Claymore!" },
@@ -481,7 +490,7 @@ inline const std::vector<DialogueLine> airdragon = {
     { Speaker::Player, "A duel? But I am not ready for a duel!" },
     { Speaker::AirDragon, "I was-a only joking again! It is SO BORING in here! Heh heh heh-a!" },
     { Speaker::AirDragon, "I will give you my Dragon Stone if you can win in this Riddle Game." },
-    { Speaker::AirDragon, "And molto welcome-a you back-a to: Who wants-a to be a Dragonborn? Our contestant-a today is-a {playerName}, who is searching-a for-a the Dragon Stones!" },
+    { Speaker::AirDragon, "And molto welcome-a you back-a to: Who wants-a to be a Dragonborn? Our contestant-a today is-a {playerName}, who is searching-a for-a the Dragon Stones!", false, false, true, DialogueLineAction::StartsQuiz },
     { Speaker::AirDragon, "What-a is my name?" }, // starts the question input
     { Speaker::AirDragon, "NOOO! Sbagliata! Try-a again!" }, // Only if wrong
     { Speaker::AirDragon, "BRAVISSIMO! You are correct-a! My name is Gustavo Windimaess!" },
@@ -491,9 +500,6 @@ inline const std::vector<DialogueLine> airdragon = {
 };
 
 inline const std::vector<DialogueLine> dragonstone = {
-    { Speaker::StoryTeller, "You have received the Dragon Stone of the {dragonelement} Dragon!" },
-    { Speaker::StoryTeller, "You now have {dragonstonecount} {dragonstoneword}!" },
-    { Speaker::StoryTeller, "Your Dragon Scales grow even stronger!" },
-    { Speaker::StoryTeller, "Your weapon has been upgraded! It can now use the power of the {dragonelement} Dragon." },
+    { Speaker::StoryTeller, "You have received many useful things. Noah Lott really spoke the truth!" },
     { Speaker::StoryTeller, "You will now be teleported back to Gonad." },
 };

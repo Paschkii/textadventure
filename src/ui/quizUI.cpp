@@ -19,6 +19,7 @@
 #include "rendering/locations.hpp" // Maps LocationId values to the correct dragon speaker info.
 #include "story/textStyles.hpp"   // Provides dragon speaker names/colors used by quizzes.
 #include "story/storyIntro.hpp"   // Retrieves quiz scripts and responses linked to each dragon.
+#include "ui/treasureChestUI.hpp"  // Displays the treasure chest reward overlay.
 #include "ui/sillyRiddles.hpp"     // Supplies the silly riddle pool for bonus questions.
 
 namespace {
@@ -171,6 +172,11 @@ namespace {
     constexpr float kSelectionBlinkInterval = 0.5f;
     constexpr unsigned kQuizFontSize = 26;
     constexpr float kQuizLineSpacingMultiplier = 1.2f;
+    constexpr float kQuizWrongDamage = 100.f;
+    constexpr float kHpDamageDuration = 0.6f;
+    constexpr float kHpLossPopupDuration = 0.9f;
+    constexpr float kCriticalHpRatio = 0.01f;
+    constexpr float kCriticalNoticeDuration = 3.2f;
 
     inline float quizLineAdvance(const sf::Font& font) {
         sf::Text metrics(font, "Hg", kQuizFontSize);
@@ -186,6 +192,32 @@ namespace {
     }
 
     void triggerRiddleAnnouncement(Game& game);
+
+    void startHpLoss(Game& game, int amount) {
+        if (amount <= 0)
+            return;
+        auto& pulse = game.hpDamagePulse;
+        pulse.active = true;
+        pulse.startHp = game.playerHp;
+        pulse.endHp = std::max(0.f, game.playerHp - static_cast<float>(amount));
+        pulse.clock.restart();
+
+        auto& popup = game.hpLossDisplay;
+        popup.active = true;
+        popup.amount = amount;
+        popup.duration = kHpLossPopupDuration;
+        popup.clock.restart();
+
+        float criticalThreshold = game.playerHpMax * kCriticalHpRatio;
+        if (pulse.endHp <= criticalThreshold) {
+            pulse.endHp = criticalThreshold;
+            pulse.pendingHealing = true;
+            auto& notice = game.criticalHpNotice;
+            notice.active = true;
+            notice.duration = kCriticalNoticeDuration;
+            notice.clock.restart();
+        }
+    }
 
     void applyPendingFeedback(Game& game) {
         const auto& pending = game.quiz.pendingFeedback;
@@ -226,6 +258,7 @@ namespace {
                 else if (game.quizIncorrectSound) {
                     game.quizIncorrectSound->stop();
                     game.quizIncorrectSound->play();
+                    startHpLoss(game, static_cast<int>(kQuizWrongDamage));
                 }
             }
             break;
@@ -803,21 +836,13 @@ void completeQuizSuccess(Game& game) {
     stopQuestionAudio(game);
     game.quiz.quizAutoStarted = false;
     game.quiz.active = false;
-    game.state = GameState::Dialogue;
     game.lastDragonName = game.quiz.dragonName;
 
     LocationId location = game.quiz.targetLocation;
-    game.bookshelf.rewardLocation = location;
-    game.bookshelf.awaitingDragonstoneReward = true;
-    game.bookshelf.promptDialogueActive = true;
-
     game.transientDialogue.clear();
     auto dragonSpeaker = speakerFor(location);
-    std::string bookshelfLine = "Take a look at this bookshelf. You might find something interesting!";
-    std::string followupLine = "Only after you bring back the tome hiding the piece of the Umbra Ossea map "
-        "will the Dragon Stone dialogue finally kick in.";
-    game.transientDialogue.push_back({ dragonSpeaker, bookshelfLine });
-    game.transientDialogue.push_back({ Speaker::StoryTeller, followupLine });
+    std::string chestLine = "And here are your prizes!";
+    game.transientDialogue.push_back({ dragonSpeaker, chestLine });
 
     game.currentDialogue = &game.transientDialogue;
     game.dialogueIndex = 0;
@@ -828,18 +853,11 @@ void completeQuizSuccess(Game& game) {
     game.pendingTeleportToGonad = false;
     game.keyboardMapHover.reset();
     game.mouseMapHover.reset();
+    ui::treasureChest::prepare(game, location);
 }
 
 void presentDragonstoneReward(Game& game) {
-    auto& state = game.bookshelf;
-    if (!state.awaitingDragonstoneReward)
-        return;
-
-    state.returnAfterBookDialogue = false;
-
-    LocationId location = state.rewardLocation;
-    state.awaitingDragonstoneReward = false;
-    state.promptDialogueActive = false;
+    LocationId location = game.treasureChest.targetLocation;
 
     stopQuestionAudio(game);
     game.quiz.quizAutoStarted = false;
@@ -847,12 +865,11 @@ void presentDragonstoneReward(Game& game) {
     game.state = GameState::Dialogue;
     game.lastCompletedLocation = location;
     game.locationCompleted[locIndex(location)] = true;
-    game.dragonStoneCount++;
+    ++game.dragonStoneCount;
     if (game.dragonStoneCount >= 4)
         game.finalEncounterPending = true;
-    game.itemController.collectDragonstone(location);
-    game.transientDialogue.clear();
     game.pendingTeleportToGonad = true;
+    game.transientDialogue.clear();
 
     for (const auto& line : dragonstone) {
         std::string text = line.text;
@@ -885,7 +902,11 @@ void presentDragonstoneReward(Game& game) {
     game.transientReturnToMap = true;
     game.keyboardMapHover.reset();
     game.mouseMapHover.reset();
-    state.rewardLocation = LocationId::Gonad;
+    game.treasureChest.rewardKeys.clear();
+    game.treasureChest.rewardIndex = 0;
+    game.treasureChest.rewardPopupReady = false;
+    game.treasureChest.confirmationBounds = {};
+    game.treasureChest.sequenceComplete = true;
 }
 
 namespace {

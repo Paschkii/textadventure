@@ -16,10 +16,10 @@ namespace {
     constexpr float kTextBoxPadding = 20.f;
     constexpr unsigned int kTextCharacterSize = 28;
     constexpr unsigned int kNameCharacterSize = kTextCharacterSize - 4;
-    constexpr float kNameVerticalNudge = -10.f;
-    constexpr float kPortraitPadding = 10.f;
-    constexpr float kPortraitRenderScale = 0.88f;
-    constexpr float kPortraitBackgroundScale = 0.92f;
+    constexpr float kSpeakerNameBottomOffset = 10.f;
+    constexpr float kPortraitRenderScale = 1.23f;
+    constexpr float kPortraitBackgroundScale = 1.29f;
+    constexpr float kPortraitSpriteOffset = 3.f;
     constexpr float kDialogueLineSpacingMultiplier = 1.2f;
 
     const sf::Texture* portraitForSpeaker(const Game& game, const std::string& speakerName) {
@@ -41,10 +41,14 @@ namespace {
                 return &game.resources.portraitMasterBates;
             case SpeakerId::NoahBates:
                 return &game.resources.portraitNoahBates;
-            case SpeakerId::Player:
-                if (game.playerGender == Game::DragonbornGender::Female)
-                    return &game.resources.portraitDragonbornFemale;
-                return &game.resources.portraitDragonbornMale;
+        case SpeakerId::Player:
+            if (game.playerGender == Game::DragonbornGender::Female)
+                return game.cloakEquipped
+                    ? &game.resources.portraitDragonbornFemaleCape
+                    : &game.resources.portraitDragonbornFemaleNoCape;
+            return game.cloakEquipped
+                ? &game.resources.portraitDragonbornMaleCape
+                : &game.resources.portraitDragonbornMaleNoCape;
             case SpeakerId::FireDragon:
                 return &game.resources.portraitFireDragon;
             case SpeakerId::WaterDragon:
@@ -81,52 +85,52 @@ namespace {
         sf::RenderTarget& target,
         const Game& game,
         const sf::RectangleShape& nameBox,
-        const sf::Text& nameText,
         const sf::Texture& texture,
+        TextStyles::SpeakerId speakerId,
         float uiAlphaFactor
     ) {
-        // Compute the area above the speaker name inside the name box.
         auto boxPos = nameBox.getPosition();
         auto boxSize = nameBox.getSize();
 
-        const auto textBounds = nameText.getLocalBounds();
-        float nameBaseline = nameText.getPosition().y;
-        float textOriginY = textBounds.position.y + textBounds.size.y;
-        float textTop = nameBaseline - textOriginY;
-
-        float portraitAreaTop = boxPos.y + kPortraitPadding;
-        float portraitAreaBottom = textTop - kPortraitPadding;
-
-        float portraitAreaHeight = portraitAreaBottom - portraitAreaTop;
-        float portraitAreaWidth = boxSize.x - (kPortraitPadding * 2.f);
-
-        if (portraitAreaWidth <= 0.f || portraitAreaHeight <= 0.f)
+        sf::Vector2f areaSize{ boxSize.x * 0.5f, boxSize.y * 0.5f };
+        if (areaSize.x <= 0.f || areaSize.y <= 0.f)
             return;
 
-        float centerX = boxPos.x + (boxSize.x / 2.f);
-        float centerY = portraitAreaTop + (portraitAreaHeight / 2.f);
+        sf::Vector2f areaCenter{
+            boxPos.x + (boxSize.x * 0.5f),
+            boxPos.y + (boxSize.y * 0.5f)
+        };
 
-        auto drawTextureInArea = [&](const sf::Texture& tex, float scaleFactor, bool fill, bool alignBottom) {
+        sf::FloatRect portraitArea(
+            sf::Vector2f{
+                areaCenter.x - (areaSize.x * 0.5f),
+                areaCenter.y - (areaSize.y * 0.5f)
+            },
+            areaSize
+        );
+
+        auto drawTextureInArea = [&](const sf::Texture& tex, float scaleFactor, bool fill, float verticalOffset) {
             auto texSize = tex.getSize();
             if (texSize.x == 0 || texSize.y == 0)
                 return;
 
             sf::Sprite sprite{ tex };
-            float areaWidth = portraitAreaWidth * scaleFactor;
-            float areaHeight = portraitAreaHeight * scaleFactor;
-            float scaleX = areaWidth / static_cast<float>(texSize.x);
-            float scaleY = areaHeight / static_cast<float>(texSize.y);
+            float targetWidth = portraitArea.size.x * scaleFactor;
+            float targetHeight = portraitArea.size.y * scaleFactor;
+            float scaleX = targetWidth / static_cast<float>(texSize.x);
+            float scaleY = targetHeight / static_cast<float>(texSize.y);
             float scale = fill ? std::max(scaleX, scaleY) : std::min(scaleX, scaleY);
             sprite.setScale({ scale, scale });
 
             auto localBounds = sprite.getLocalBounds();
-            float originY = localBounds.position.y + (localBounds.size.y * (alignBottom ? 1.f : 0.5f));
             sprite.setOrigin({
                 localBounds.position.x + (localBounds.size.x * 0.5f),
-                originY
+                localBounds.position.y + (localBounds.size.y * 0.5f)
             });
-            float positionY = alignBottom ? portraitAreaBottom : centerY;
-            sprite.setPosition({ centerX, positionY });
+
+            sf::Vector2f drawCenter = areaCenter;
+            drawCenter.y += verticalOffset;
+            sprite.setPosition(drawCenter);
 
             sf::Color color = sprite.getColor();
             color.a = static_cast<std::uint8_t>(std::clamp(uiAlphaFactor, 0.f, 1.f) * 255.f);
@@ -135,10 +139,13 @@ namespace {
             target.draw(sprite);
         };
 
-        if (const sf::Texture* background = portraitBackgroundForLocation(game)) {
-            drawTextureInArea(*background, kPortraitBackgroundScale, false, false);
+        const sf::Texture* background = (speakerId == TextStyles::SpeakerId::StoryTeller)
+            ? &game.resources.portraitBackgroundToryTailor
+            : portraitBackgroundForLocation(game);
+        if (background) {
+            drawTextureInArea(*background, kPortraitBackgroundScale, false, 0.f);
         }
-        drawTextureInArea(texture, kPortraitRenderScale, false, true);
+        drawTextureInArea(texture, kPortraitRenderScale, false, kPortraitSpriteOffset);
     }
 }
 
@@ -186,6 +193,7 @@ namespace dialogDraw {
         sf::RenderTarget& target
         , Game& game
         , const TextStyles::SpeakerStyle& info
+        , TextStyles::SpeakerId speakerId
         , float uiAlphaFactor
     )
     {
@@ -207,9 +215,8 @@ namespace dialogDraw {
 
             auto namePos = game.nameBox.getPosition();
             auto nameSize = game.nameBox.getSize();
-            float marginY = nameSize.y * 0.05f;
             float x = namePos.x + (nameSize.x / 2.f) - (totalWidth / 2.f);
-            float y = baseY + kNameVerticalNudge;
+            float y = baseY;
 
             for (auto& t : texts) {
                 auto b = t.getLocalBounds();
@@ -227,20 +234,14 @@ namespace dialogDraw {
         auto nameSize = game.nameBox.getSize();
         auto bounds = nameText.getLocalBounds();
 
-        // Bottom-center the name with a 5% vertical inset from the lower edge
-        float marginY = nameSize.y * 0.05f;
         nameText.setOrigin({ bounds.position.x + (bounds.size.x / 2.f), bounds.position.y + bounds.size.y });
         float x = namePos.x + (nameSize.x / 2.f);
-        float baseY = namePos.y + nameSize.y - marginY;
+        float baseY = namePos.y + nameSize.y - kSpeakerNameBottomOffset;
         nameText.setPosition({ x, baseY });
 
-        // Draw portrait using the un-nudged name position so its area stays stable.
         if (const sf::Texture* portraitTex = portraitForSpeaker(game, info.name)) {
-            drawSpeakerPortrait(target, game, game.nameBox, nameText, *portraitTex, uiAlphaFactor);
+            drawSpeakerPortrait(target, game, game.nameBox, *portraitTex, speakerId, uiAlphaFactor);
         }
-
-        // Apply visual nudge to bring the name closer to the portrait.
-        nameText.setPosition({ x, baseY + kNameVerticalNudge });
 
 
         if (info.name == "Noah Bates") {

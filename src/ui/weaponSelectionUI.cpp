@@ -21,6 +21,7 @@
 #include "ui/uiEffects.hpp"
 #include "ui/weaponSelectionUI.hpp"
 #include "ui/popupStyle.hpp"
+#include "ui/weaponPopupScale.hpp"
 
 namespace {
     constexpr std::array<const char*, 3> kPopupWeaponKeys{{
@@ -160,6 +161,8 @@ void drawWeaponSelectionUI(Game& game, sf::RenderTarget& target) {
     sf::Vector2f viewSize = target.getView().getSize();
     float popupWidth = std::clamp(viewSize.x * 0.78f, kPopupMinWidth, static_cast<float>(viewSize.x - 80.f));
     float popupHeight = std::clamp(viewSize.y * 0.4f, 240.f, viewSize.y * 0.6f);
+    popupWidth *= ui::kWeaponPopupScale;
+    popupHeight *= ui::kWeaponPopupScale;
     float bottomY = game.textBox.getPosition().y - 12.f;
     float popupX = viewSize.x * 0.5f - (popupWidth * 0.5f);
     float popupY = bottomY - popupHeight;
@@ -169,16 +172,19 @@ void drawWeaponSelectionUI(Game& game, sf::RenderTarget& target) {
     sf::FloatRect popupBounds{ { popupX, popupY }, { popupWidth, popupHeight } };
     ui::popup::drawPopupFrame(target, popupBounds, uiAlphaFactor);
 
-    float contentWidth = popupWidth - (kPopupMargin * 2.f);
-    float contentHeight = popupHeight - (kPopupMargin * 2.f);
+    float scaledMargin = kPopupMargin * ui::kWeaponPopupScale;
+    float scaledNameArea = kPopupNameArea * ui::kWeaponPopupScale;
+
+    float contentWidth = popupWidth - (scaledMargin * 2.f);
+    float contentHeight = popupHeight - (scaledMargin * 2.f);
     if (contentWidth <= 0.f || contentHeight <= 0.f)
         return;
 
-    float spriteAreaHeight = std::max(0.f, contentHeight - kPopupNameArea);
+    float spriteAreaHeight = std::max(0.f, contentHeight - scaledNameArea);
     float slotWidth = contentWidth / static_cast<float>(candidateIndexes.size());
     float spriteMaxWidth = slotWidth * 0.9f;
-    float spriteCenterY = popupY + kPopupMargin + (spriteAreaHeight * 0.5f);
-    float nameY = popupY + kPopupMargin + spriteAreaHeight + (kPopupNameArea * 0.55f);
+    float spriteCenterY = popupY + scaledMargin + (spriteAreaHeight * 0.5f);
+    float nameY = popupY + scaledMargin + spriteAreaHeight + (scaledNameArea * 0.55f);
 
     game.weaponSelectionPopupEntries.clear();
     game.weaponSelectionPopupEntries.reserve(candidateIndexes.size());
@@ -204,7 +210,7 @@ void drawWeaponSelectionUI(Game& game, sf::RenderTarget& target) {
             localBounds.position.y + (localBounds.size.y * 0.5f)
         });
 
-        float slotCenterX = popupX + kPopupMargin + (slotWidth * (static_cast<float>(index) + 0.5f));
+        float slotCenterX = popupX + scaledMargin + (slotWidth * (static_cast<float>(index) + 0.5f));
         sprite.setPosition({ slotCenterX, spriteCenterY });
 
         bool isHovered = false;

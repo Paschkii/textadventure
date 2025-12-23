@@ -1,7 +1,9 @@
 #pragma once
 #include <algorithm>  // Used for removing icons and clamping values.
+#include <cctype>
 // === Header Files ===
 #include "core/game.hpp"              // Accesses Game state manipulated while handling dialogue.
+#include "core/itemActivation.hpp"
 #include "dialogueLine.hpp"           // Uses DialogueLine metadata processed on Enter.
 #include "textStyles.hpp"             // Formats speaker names and checks speaker IDs.
 #include "ui/confirmationUI.hpp"      // Shows the name-confirmation modal.
@@ -33,6 +35,7 @@ inline constexpr std::size_t kMapAcquisitionLineIndex = 5;
 inline constexpr std::size_t kMapTutorialStartLineIndex = StoryIntro::MapTutorial::kStartIndex;
 inline constexpr std::size_t kMapTutorialEndLineIndex = StoryIntro::MapTutorial::kEndIndex;
 inline constexpr int kMenuMapTabIndex = 2;                     // Tab index used when opening the map through the menu.
+inline constexpr int kMenuUmbraTabIndex = 4;                   // Tab index dedicated to the Umbra Ossea chart.
 constexpr char kInventoryArrowLineText[] = "You can open your inventory through this menu button."; // StoryTeller line that introduces the menu button.
 
 inline void removeBrokenWeaponIcons(Game& game) {
@@ -80,14 +83,25 @@ inline void giveForgedWeapon(Game& game) {
     if (game.selectedWeaponIndex < 0 || static_cast<std::size_t>(game.selectedWeaponIndex) >= game.weaponOptions.size())
         return;
     const auto& tex = game.weaponOptions[game.selectedWeaponIndex].texture;
-    game.itemController.addIcon(tex);
+    auto makeItemKey = [](std::string value) {
+        std::string key;
+        for (char ch : value) {
+            if (std::isspace(static_cast<unsigned char>(ch)))
+                continue;
+            key.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
+        }
+        return key;
+    };
+    std::string key = makeItemKey(game.weaponOptions[game.selectedWeaponIndex].displayName);
+    game.itemController.addItem(tex, key);
     game.weaponItemAdded = true;
+    core::itemActivation::activateItem(game, key);
 }
 
 inline void giveMapItem(Game& game) {
     if (game.mapItemCollected)
         return;
-    game.itemController.addIcon(game.resources.mapGlandular);
+    game.itemController.addItem(game.resources.mapGlandular, "map_glandular");
     game.mapItemCollected = true;
 }
 
@@ -157,6 +171,23 @@ inline void openMenuMapFromDialogue(Game& game) {
     game.mapInteractionUnlocked = true;
 }
 
+inline void openMenuUmbraMapFromDialogue(Game& game) {
+    game.menuActive = true;
+    game.menuActiveTab = kMenuUmbraTabIndex;
+    game.menuHoveredTab = -1;
+    game.mouseMapHover.reset();
+    game.keyboardMapHover.reset();
+    game.menuButtonUnlocked = true;
+    game.menuButtonAlpha = 1.f;
+    game.menuButtonFadeActive = false;
+    game.menuButtonHovered = false;
+    game.menuMapPopup.reset();
+    game.mapInteractionUnlocked = false;
+    game.pendingReturnToMenuMap = true;
+    game.umbraMapGlowActive = true;
+    game.umbraMapGlowClock.restart();
+}
+
 inline void triggerQuestAction(Game& game, const std::optional<std::string>& questName, bool start) {
     if (!questName)
         return;
@@ -177,6 +208,13 @@ inline void handleDialogueLineActions(Game& game, const DialogueLine& line) {
     if (dialogueLineHasAction(line.actions, Action::OpensMapFromMenu)) {
         openMenuMapFromDialogue(game);
         game.pendingReturnToMenuMap = true;
+    }
+    if (dialogueLineHasAction(line.actions, Action::OpensUmbraMapFromMenu)) {
+        openMenuUmbraMapFromDialogue(game);
+    }
+    if (dialogueLineHasAction(line.actions, Action::StartsSeminiferousTeleport)) {
+        game.pendingTeleportToSeminiferous = true;
+        game.pendingTeleportToGonad = false;
     }
 }
 
@@ -217,6 +255,20 @@ inline bool isDragonDialogue(const std::vector<DialogueLine>* dlg) {
         || dlg == &waterdragon
         || dlg == &earthdragon
         || dlg == &airdragon;
+}
+
+inline std::optional<std::size_t> quizQuestionIndexFor(const std::vector<DialogueLine>* dlg) {
+    if (!dlg)
+        return std::nullopt;
+    for (std::size_t index = 0; index < dlg->size(); ++index) {
+        if (dialogueLineHasAction((*dlg)[index].actions, DialogueLineAction::StartsQuiz)) {
+            std::size_t questionIndex = index + 1;
+            if (questionIndex < dlg->size())
+                return questionIndex;
+            break;
+        }
+    }
+    return std::nullopt;
 }
 
 // Begins the timed quiz intro sequence triggered during dragon dialogue.
@@ -287,8 +339,13 @@ inline bool advanceDialogueLine(Game& game) {
         game.enterSound->play();
     }
     if (isDragonDialogue(game.currentDialogue)) {
-        if (game.dialogueIndex == kDragonQuizIntroLine)
-            startQuizIntroSequence(game, kDragonQuizQuestionLine);
+        if (game.currentDialogue && game.dialogueIndex < game.currentDialogue->size()) {
+            const auto& nextLine = (*game.currentDialogue)[game.dialogueIndex];
+            if (dialogueLineHasAction(nextLine.actions, DialogueLineAction::StartsQuiz)) {
+                if (auto questionIndex = quizQuestionIndexFor(game.currentDialogue))
+                    startQuizIntroSequence(game, *questionIndex);
+            }
+        }
         maybeTriggerFinalCheer(game);
     }
 
@@ -328,9 +385,9 @@ inline bool advanceDialogueLine(Game& game) {
             // Broken Weapon Popup
             ui::brokenweapon::showPreview(game);
             if (!game.brokenWeaponsStored) {
-                game.itemController.addIcon(game.resources.weaponHolmabirBroken);
-                game.itemController.addIcon(game.resources.weaponKattkavarBroken);
-                game.itemController.addIcon(game.resources.weaponStiggedinBroken);
+                game.itemController.addItem(game.resources.weaponHolmabirBroken, "weapon_holmabir_broken");
+                game.itemController.addItem(game.resources.weaponKattkavarBroken, "weapon_kattkavar_broken");
+                game.itemController.addItem(game.resources.weaponStiggedinBroken, "weapon_stiggedin_broken");
                 game.brokenWeaponsStored = true;
             }
         }
@@ -412,7 +469,9 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
     // Block advances that happen while the quiz intro is still animating.
     if (action.nextLine
         && isDragonDialogue(game.currentDialogue)
-        && game.dialogueIndex == kDragonQuizIntroLine
+        && game.currentDialogue
+        && game.dialogueIndex < game.currentDialogue->size()
+        && dialogueLineHasAction((*game.currentDialogue)[game.dialogueIndex].actions, DialogueLineAction::StartsQuiz)
         && game.quiz.intro.active)
         return true;
     if (game.inventoryTutorialPopupActive && game.menuActive)
@@ -582,11 +641,9 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
 
     // Returns the quiz question line index for dragon dialogue sequences.
     auto questionIndexForDialogue = [&](const std::vector<DialogueLine>* dlg) -> std::optional<std::size_t> {
-        if (!dlg)
+        if (!dlg || !isDragonDialogue(dlg))
             return std::nullopt;
-        if (isDragonDialogue(dlg))
-            return kDragonQuizQuestionLine;
-        return std::nullopt;
+        return quizQuestionIndexFor(dlg);
     };
 
     // During normal dialogue, pressing Enter at the quiz trigger line launches the quiz.
@@ -679,30 +736,6 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
         return true;
     }
 
-    if (game.state == GameState::Dialogue
-        && game.bookshelf.awaitingDragonstoneReward
-        && game.bookshelf.promptDialogueActive
-        && game.currentDialogue == &game.transientDialogue
-        && game.dialogueIndex + 1 >= game.currentDialogue->size())
-    {
-        game.bookshelf.promptDialogueActive = false;
-        game.startBookshelfQuest();
-        return true;
-    }
-
-    if (game.bookshelf.returnAfterBookDialogue
-        && game.currentDialogue == &game.transientDialogue
-        && game.dialogueIndex + 1 >= game.currentDialogue->size())
-    {
-        game.bookshelf.returnAfterBookDialogue = false;
-        game.stopTypingSound();
-        game.visibleText.clear();
-        game.charIndex = 0;
-        game.currentDialogue = nullptr;
-        game.state = GameState::Bookshelf;
-        return true;
-    }
-
     // Handle transitions between the fixed dialogue pools once a sequence completes.
     if (game.currentDialogue == &intro && !game.introDialogueFinished) {
         game.introDialogueFinished = true;
@@ -766,10 +799,27 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
         }
     }
     else if (isReturnToMapDialogue) {
+        if (game.pendingTeleportToSeminiferous) {
+            game.pendingTeleportToSeminiferous = false;
+            game.transientReturnToMap = false;
+            game.pendingReturnToMenuMap = false;
+            game.menuActive = false;
+            game.menuActiveTab = -1;
+            game.menuHoveredTab = -1;
+            game.mapInteractionUnlocked = false;
+            game.menuMapPopup.reset();
+            game.beginTeleport(LocationId::Seminiferous);
+            return true;
+        }
         if (game.pendingTeleportToGonad) {
             game.pendingTeleportToGonad = false;
             game.transientReturnToMap = false;
             game.pendingReturnToMenuMap = false;
+            game.menuActive = false;
+            game.menuActiveTab = -1;
+            game.menuHoveredTab = -1;
+            game.mapInteractionUnlocked = false;
+            game.menuMapPopup.reset();
             game.beginTeleport(LocationId::Gonad);
             return true;
         }

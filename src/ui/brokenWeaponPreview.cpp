@@ -3,6 +3,7 @@
 #include "core/game.hpp"
 #include "helper/colorHelper.hpp"
 #include "ui/popupStyle.hpp"
+#include "ui/weaponPopupScale.hpp"
 
 #include <array>
 #include <algorithm>
@@ -111,9 +112,11 @@ void drawPreview(Game& game, sf::RenderTarget& target) {
     float viewHeight = view.getSize().y;
 
     float maxPopupWidth = std::max(kMinPopupWidth, viewWidth - 80.f);
-    float popupWidth = std::clamp(viewWidth * 0.78f, kMinPopupWidth, maxPopupWidth);
-    float maxPopupHeight = std::max(220.f, viewHeight * kMaxPopupHeightRatio);
-    float popupHeight = std::clamp(viewHeight * 0.34f, 220.f, maxPopupHeight);
+        float popupWidth = std::clamp(viewWidth * 0.78f, kMinPopupWidth, maxPopupWidth);
+        float maxPopupHeight = std::max(220.f, viewHeight * kMaxPopupHeightRatio);
+        float popupHeight = std::clamp(viewHeight * 0.34f, 220.f, maxPopupHeight);
+    popupWidth *= ui::kWeaponPopupScale;
+    popupHeight *= ui::kWeaponPopupScale;
     float bottomY = game.textBox.getPosition().y - 12.f;
     float popupX = view.getCenter().x - (popupWidth / 2.f);
     float popupY = bottomY - popupHeight;
@@ -123,16 +126,18 @@ void drawPreview(Game& game, sf::RenderTarget& target) {
     sf::FloatRect popupBounds{ { popupX, popupY }, { popupWidth, popupHeight } };
     ui::popup::drawPopupFrame(target, popupBounds, popupAlpha);
 
-    float contentWidth = popupWidth - (kMargin * 2.f);
-    float contentHeight = popupHeight - (kMargin * 2.f);
+    float scaledMargin = kMargin * ui::kWeaponPopupScale;
+    float scaledNameArea = kNameAreaHeight * ui::kWeaponPopupScale;
+    float contentWidth = popupWidth - (scaledMargin * 2.f);
+    float contentHeight = popupHeight - (scaledMargin * 2.f);
     if (contentWidth <= 0.f || contentHeight <= 0.f)
         return;
 
-    float spriteAreaHeight = std::max(0.f, contentHeight - kNameAreaHeight);
+    float spriteAreaHeight = std::max(0.f, contentHeight - scaledNameArea);
     float slotWidth = contentWidth / static_cast<float>(kWeapons.size());
     float spriteMaxWidth = slotWidth * 0.9f;
-    float spriteCenterY = popupY + kMargin + (spriteAreaHeight * 0.5f);
-    float nameY = popupY + kMargin + spriteAreaHeight + (kNameAreaHeight * 0.5f);
+    float spriteCenterY = popupY + scaledMargin + (spriteAreaHeight * 0.5f);
+    float nameY = popupY + scaledMargin + spriteAreaHeight + (scaledNameArea * 0.5f);
 
     const std::array<const sf::Texture*, 3> textures = {
         &game.resources.weaponHolmabirBroken,
@@ -162,7 +167,7 @@ void drawPreview(Game& game, sf::RenderTarget& target) {
             localBounds.position.y + (localBounds.size.y / 2.f)
         });
 
-        float slotCenterX = popupX + kMargin + (slotWidth * (static_cast<float>(index) + 0.5f));
+        float slotCenterX = popupX + scaledMargin + (slotWidth * (static_cast<float>(index) + 0.5f));
         sprite.setPosition({ slotCenterX, spriteCenterY });
 
         sf::Color spriteColor = ColorHelper::Palette::Normal;

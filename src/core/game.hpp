@@ -29,6 +29,7 @@
 #include "ui/nineSliceBox.hpp"                  // Declares the NineSliceBox frame used for the UI.
 #include "ui/quizGenerator.hpp"                 // Defines quiz::Question for the quiz data structure.
 #include "ui/mapSelectionUI.hpp"                // Needed for caching map popup metadata.
+#include "items/itemRegistry.hpp"
 #include "core/ranking.hpp"                     // Tracks leaderboard entries persisted on disk.
 #include "ui/rankingUI.hpp"                     // Renders the ranking overlay once the ending completes.
 
@@ -214,37 +215,24 @@ struct Game {
         std::string message;
     };
 
-    // Tracks the bookshelf puzzle layout and interactive books.
-        struct BookshelfState {
-            struct BookSlot {
-                const sf::Texture* texture = nullptr;
-                sf::Vector2f position;
-                sf::FloatRect bounds;
-                bool clickable = false;
-                bool mapPiece = false;
-                std::size_t sillyIndex = std::numeric_limits<std::size_t>::max();
-                float scale = 1.f;
-            };
-
-            BookshelfState()
+        struct TreasureChestState {
+            TreasureChestState()
             : rng(std::random_device{}()) {}
 
-            std::vector<BookSlot> books;
-            std::array<sf::FloatRect, 4> shelfBounds{};
-            int hoveredBookIndex = -1;
-            bool mapPieceCollected = false;
-            std::string statusMessage;
-            GameState previousState = GameState::IntroScreen;
-            bool awaitingDragonstoneReward = false;
-            bool promptDialogueActive = false;
-            LocationId rewardLocation = LocationId::Gonad;
-            bool returnAfterBookDialogue = false;
-            sf::Vector2f shelfPosition{ 0.f, 0.f };
-            float shelfScale = 1.f;
+            LocationId targetLocation = LocationId::Gonad;
+            std::vector<std::string> rewardKeys;
+            std::size_t rewardIndex = 0;
+            float chestFade = 0.f;
+            bool chestVisible = false;
+            bool rewardPopupReady = false;
+            bool confirmationHovered = false;
+            sf::FloatRect confirmationBounds{};
+            std::string confirmationLabel;
+            bool sequenceComplete = false;
             std::mt19937 rng;
         };
 
-    // Holds the three final-choice buttons shown in the climactic scene.
+        // Holds the three final-choice buttons shown in the climactic scene.
     struct FinalChoiceData {
         bool active = false;
         std::array<std::string, 3> options;
@@ -275,10 +263,6 @@ struct Game {
     void startTitleScreenMusic();
     // Fades out the title screen music over the given time.
     void fadeOutTitleScreenMusic(float duration);
-    // Enters the optional bookshelf search scene.
-    void startBookshelfQuest();
-    // Exits the bookshelf scene and returns to the prior state.
-    void exitBookshelfQuest();
     // Grants the provided amount of XP, handling level progression if needed.
     void grantXp(int amount);
     void startQuest(const Story::QuestDefinition& quest);
@@ -329,20 +313,60 @@ struct Game {
         bool mapTutorialOkHovered = false;                // Mouse hover state for the Ok button.
         bool mapInteractionUnlocked = false;               // Gates menu map teleport selection.
         std::optional<MapPopupRenderData> menuMapPopup;    // Cached map popup data from the menu tab.
+        bool umbraMapGlowActive = false;                   // Controls the reveal glow shown on the Umbra tab.
+        sf::Clock umbraMapGlowClock;                       // Drives the glow cycle when the Umbra map unlocks.
         bool healingPotionActive = false;                 // Tracks whether a healing sequence is running.
         bool healingPotionReceived = false;               // Ensures the potion is only granted once.
         float healingPotionStartHp = 0.f;                 // HP recorded when the potion started healing.
         sf::Clock healingPotionClock;                     // Drives the healing interpolation timer.
+        bool emergencyHealingActive = false;               // Indicates Wanda is patching up the player.
+        int emergencyHealCount = 0;                       // Tracks how many emergency heals Wanda performed.
         float playerXp = 0.f;                            // Player XP value for the status bar.
         float playerXpMax = 100.f;                       // XP required for the next level.
         int playerLevel = 1;                             // Current player level used for XP scaling.
+        int pendingLevelUps = 0;                         // Levels earned but not yet shown in the UI.
+        struct XpGainSegment {
+            float startRatio = 0.f;
+            float endRatio = 0.f;
+            bool waitForLevelUp = false;
+        };
         struct XpGainDisplay {
             bool active = false;
             int amount = 0;
             sf::Clock clock;
+            std::vector<XpGainSegment> segments;
+            std::size_t currentSegment = 0;
+            bool waitingForLevelUp = false;
         };
         XpGainDisplay xpGainDisplay;                      // Controls the XP gain visual effect.
+        struct LevelUpDisplay {
+            bool active = false;
+            sf::Clock clock;
+        };
+        LevelUpDisplay levelUpDisplay;
         float xpBarDisplayRatio = 0.f;                     // Smoothly animates XP bar fill.
+        struct HpDamagePulse {
+            bool active = false;
+            float startHp = 0.f;
+            float endHp = 0.f;
+            sf::Clock clock;
+            bool pendingHealing = false;
+        };
+        HpDamagePulse hpDamagePulse;                       // Animates HP loss similar to healing.
+        struct HpLossDisplay {
+            bool active = false;
+            int amount = 0;
+            sf::Clock clock;
+            float duration = 1.f;
+        };
+        HpLossDisplay hpLossDisplay;                       // Draws the "-100" popup next to the HP bar.
+        struct CriticalHpNotice {
+            bool active = false;
+            float duration = 3.f;
+            sf::Clock clock;
+            std::string message;
+        };
+        CriticalHpNotice criticalHpNotice;                 // Shows Wanda's warning when HP hits the floor.
         std::vector<QuestLogEntry> questLog;              // Track quests the player has been awarded.
         QuestPopupState questPopup;                       // Controls the quest popups shown at the top.
         std::vector<sf::FloatRect> questFoldButtonBounds; // Active fold button hitboxes.
@@ -364,6 +388,38 @@ struct Game {
         float menuButtonAlpha = 0.f;                      // Fade progress used for button visibility.
         sf::Clock menuButtonFadeClock;                    // Drives the 1-second menu button fade.
         bool forcedDestinationSelection = false;          // Locks the menu on the map until a destination is chosen.
+
+        struct CharacterMenuState {
+            enum class Category {
+                Equipment = 0,
+                Artifacts
+            };
+            Category activeCategory = Category::Equipment;
+            std::array<sf::FloatRect, 2> categoryButtonBounds{};
+            int hoveredButton = -1;
+            sf::FloatRect cloakButtonBounds{};
+            bool cloakButtonHovered = false;
+        };
+        CharacterMenuState characterMenu;
+        struct EquipmentState {
+            const sf::Texture* leftHand = nullptr;
+            const sf::Texture* rightHand = nullptr;
+            std::optional<std::string> leftKey;
+            std::optional<std::string> rightKey;
+        };
+        EquipmentState equippedWeapons;
+        struct RingEquipment {
+            std::array<std::optional<std::string>, 4> slots{};
+            std::size_t nextSlotIndex = 0;
+        };
+        RingEquipment ringEquipment;
+        struct ArtifactSlots {
+            std::array<std::array<std::optional<std::string>, 4>, 4> slots{};
+        };
+        ArtifactSlots artifactSlots;
+        std::array<int, 4> artifactCounts{};
+        int umbraFragmentsCollectedCount = 0;
+        bool umbraMapComplete = false;
 
         std::optional<sf::Sprite> background;             // Background art for the current scene.
         std::optional<sf::Sprite> returnSprite;           // Icon drawn when returning to map.
@@ -435,6 +491,7 @@ struct Game {
         int genderSelectionHovered = -1;
         std::array<sf::FloatRect, 2> genderSelectionBounds{};
         DragonbornGender playerGender = DragonbornGender::Male;
+        bool cloakEquipped = false;
         struct GenderSelectionAnimation {
             enum class Phase {
                 Idle,
@@ -493,21 +550,29 @@ struct Game {
             sf::Vector2f labelPosition;
         };
         std::vector<WeaponSelectionPopupEntry> weaponSelectionPopupEntries; // Layout used while picking a forged weapon.
-
+        struct InventoryItemSlot {
+            sf::FloatRect bounds;
+            std::optional<std::size_t> iconIndex;
+            std::optional<std::string> key;
+        };
         std::vector<DragonPortrait> dragonPortraits;    // Portraits used in the dragon showcase UI.
         DragonShowcaseState dragonShowcase;             // State machine for the showcase animation.
         BrokenWeaponPopup brokenWeaponPopup;             // Handles the broken weapon preview popup.
         WeaponForgingState weaponForging;                // Tracks the 5-second forge rest animation.
         bool forgedWeaponPopupActive = false;             // Controls the new weapon reveal popup.
         core::ItemController itemController;            // Controls collected items.
+        std::vector<InventoryItemSlot> inventoryItemSlots;
+        int hoveredInventoryItem = -1;
         QuizData quiz;                                  // Manages quiz mode state and lines.
-        BookshelfState bookshelf;                       // Interactive bookshelf quest state.
+        TreasureChestState treasureChest;
+        std::array<bool, 4> umbraPiecesCollected{};     // Tracks which Umbra Ossea map pieces have been awarded.
         FinalChoiceData finalChoice;                    // Final choice UI state.
         std::vector<DialogueLine> transientDialogue;    // Temporary dialogue content.
         bool transientReturnToMap = false;              // Return map triggered when transient dialogue ends.
         bool pendingReturnToMenuMap = false;             // Signals a menu map should open instead of the old layout.
         bool holdMapDialogue = false;                   // Prevents map dialogue updates.
         bool pendingTeleportToGonad = false;            // Teleport to Gonad next frame.
+        bool pendingTeleportToSeminiferous = false;     // Teleport to Seminiferous once the Umbra sequence ends.
         bool finalEncounterPending = false;             // Indicates final encounter is queued.
         bool finalEncounterActive = false;              // Final encounter currently running.
         bool finalEndingPending = false;                // Ending sequence is next.

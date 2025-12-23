@@ -8,6 +8,7 @@
 #include <chrono>     // Tracks session start/finish times for the leaderboard.
 // === SFML Libraries ===
 #include <SFML/Graphics.hpp>  // Provides sf::Color for palette logic applied to UI boxes.
+#include <SFML/System/Clock.hpp>
 #include <SFML/Window.hpp>    // Supplies sf::Event, sf::Keyboard, and sf::Style used in the event loop.
 // === Header Files ===
 #include "game.hpp"                   // Declares the Game class whose body is defined here.
@@ -29,7 +30,7 @@
 #include "ui/quizUI.hpp"              // Declares handleQuizEvent triggered while in quiz mode.
 #include "ui/weaponSelectionUI.hpp"   // Declares handleWeaponSelectionEvent and related callbacks.
 #include "ui/menuUI.hpp"              // Handles the in-game menu button + overlay.
-#include "ui/bookshelfUI.hpp"         // Draws the optional bookshelf puzzle.
+#include "ui/treasureChestUI.hpp"     // Draws the treasure chest reward overlay.
 #include "story/quests.hpp"           // Provides shared quest definitions and lookup helpers.
 
 constexpr unsigned int windowWidth = 1280;
@@ -191,8 +192,14 @@ void Game::beginTeleport(LocationId id) {
         return;
 
     stopTypingSound();
-    transientReturnToMap = false;
+    menuActive = false;
+    menuActiveTab = -1;
+    menuHoveredTab = -1;
+    menuMapPopup.reset();
+    mouseMapHover.reset();
+    keyboardMapHover.reset();
     mapInteractionUnlocked = false;
+    transientReturnToMap = false;
     teleportController.begin(id, audioManager);
 }
 
@@ -290,7 +297,9 @@ int Game::recordSessionRanking() {
 
 // Drives the main event/render loop until the window closes.
 void Game::run() {
+    sf::Clock frameClock;
     while (window.isOpen()) {
+        sf::Time frameTime = frameClock.restart();
         while (auto event = window.pollEvent()) {
             bool eventConsumed = false;
 
@@ -393,8 +402,8 @@ void Game::run() {
                 handleMapSelectionEvent(*this, *event);
             else if (state == GameState::Quiz && !confirmationPrompt.active)
                 handleQuizEvent(*this, *event);
-            else if (state == GameState::Bookshelf && !confirmationPrompt.active) {
-                if (ui::bookshelf::handleEvent(*this, *event))
+            else if (state == GameState::TreasureChest && !confirmationPrompt.active) {
+                if (ui::treasureChest::handleEvent(*this, *event))
                     continue;
             }
             else if (state == GameState::FinalChoice && !confirmationPrompt.active)
@@ -412,6 +421,7 @@ void Game::run() {
         updateQuizIntro(*this);
         updateWeaponForging(*this);
         helper::healingPotion::update(*this);
+        ui::treasureChest::update(*this, frameTime.asSeconds());
         updateLayout();
 
         window.clear(ColorHelper::Palette::BlueNearBlack);
@@ -430,27 +440,48 @@ void Game::stopTypingSound() {
     audioManager.stopTypingSound();
 }
 
-void Game::startBookshelfQuest() {
-    if (state == GameState::Bookshelf)
-        return;
-    bookshelf.previousState = state;
-    state = GameState::Bookshelf;
-    ui::bookshelf::enter(*this);
-}
-
-void Game::exitBookshelfQuest() {
-    if (state != GameState::Bookshelf)
-        return;
-    state = bookshelf.previousState;
-}
-
 void Game::grantXp(int amount) {
     if (amount <= 0)
         return;
 
-    xpGainDisplay.amount = amount;
-    xpGainDisplay.active = true;
-    xpGainDisplay.clock.restart();
+    float tempXp = playerXp;
+    float tempXpMax = playerXpMax;
+    int tempLevel = playerLevel;
+    float xpRemaining = static_cast<float>(amount);
+    std::vector<XpGainSegment> segments;
+    segments.reserve(4);
+    int levelUpsAwarded = 0;
+    while (xpRemaining > 0.f) {
+        float xpNeeded = tempXpMax - tempXp;
+        if (xpNeeded <= 0.f)
+            xpNeeded = tempXpMax;
+        float startRatio = (tempXpMax > 0.f) ? (tempXp / tempXpMax) : 0.f;
+
+        if (xpRemaining >= xpNeeded) {
+            segments.push_back({ startRatio, 1.f, true });
+            xpRemaining -= xpNeeded;
+            tempXp = 0.f;
+            tempLevel++;
+            tempXpMax = static_cast<float>(xpForLevel(tempLevel));
+            levelUpsAwarded++;
+        }
+        else {
+            float endRatio = (tempXpMax > 0.f) ? (tempXp + xpRemaining) / tempXpMax : 0.f;
+            segments.push_back({ startRatio, endRatio, false });
+            tempXp += xpRemaining;
+            xpRemaining = 0.f;
+        }
+    }
+
+    if (levelUpsAwarded > 0)
+        pendingLevelUps += levelUpsAwarded;
+    auto& xpGain = xpGainDisplay;
+    xpGain.amount = amount;
+    xpGain.segments = std::move(segments);
+    xpGain.currentSegment = 0;
+    xpGain.active = !xpGain.segments.empty();
+    xpGain.waitingForLevelUp = false;
+    xpGain.clock.restart();
 
     playerXp += static_cast<float>(amount);
     while (playerXpMax > 0.f && playerXp >= playerXpMax) {

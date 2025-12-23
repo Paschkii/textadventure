@@ -137,15 +137,27 @@ void handleTravel(Game& game, LocationId id) {
 
     bool allStonesCollected = game.dragonStoneCount >= 4;
     if (id == LocationId::Gonad && allStonesCollected && game.finalEncounterPending) {
+        game.setCurrentLocation(locPtr);
+        game.transientDialogue.clear();
+        game.transientDialogue.insert(game.transientDialogue.end(), gonad_part_three.begin(), gonad_part_three.end());
+        game.currentDialogue = &game.transientDialogue;
+        game.dialogueIndex = 0;
+        game.visibleText.clear();
+        game.charIndex = 0;
+        game.typewriterClock.restart();
+        game.transientReturnToMap = true;
+        game.pendingReturnToMenuMap = false;
+        game.state = GameState::Dialogue;
+        return;
+    }
+
+    if (id == LocationId::Seminiferous && game.finalEncounterPending) {
         game.finalEncounterPending = false;
         game.finalEncounterActive = true;
-        if (auto stronghold = Locations::findById(game.locations, LocationId::Seminiferous))
-            game.setCurrentLocation(stronghold);
-        else
-            game.setCurrentLocation(locPtr);
+        game.setCurrentLocation(locPtr);
 
         game.transientDialogue.clear();
-        game.transientDialogue.insert(game.transientDialogue.end(), finalEncounter.begin(), finalEncounter.end());
+        game.transientDialogue.insert(game.transientDialogue.end(), seminiferous.begin(), seminiferous.end());
         game.currentDialogue = &game.transientDialogue;
         game.dialogueIndex = 0;
         game.visibleText.clear();

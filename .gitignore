@@ -3,8 +3,5 @@ build/
 build-*/
 cmake-build-*/
 
-# Release outputs
-dist/
-
 # macOS junk
 .DS_Store

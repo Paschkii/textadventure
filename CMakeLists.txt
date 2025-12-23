@@ -14,11 +14,11 @@ add_executable(Glandular
     src/core/endSequenceController.cpp
     src/core/ranking.cpp
     src/core/itemController.cpp
+    src/core/itemActivation.cpp
 
     src/ui/introScreen.cpp
     src/ui/introTitle.cpp
     src/ui/menuUI.cpp
-    src/ui/bookshelfUI.cpp
     src/ui/confirmationUI.cpp
     src/ui/dialogDrawElements.cpp
     src/ui/dialogUI.cpp
@@ -36,6 +36,7 @@ add_executable(Glandular
     src/ui/quizGenerator.cpp
     src/ui/sillyRiddles.cpp
     src/ui/quizUI.cpp
+    src/ui/treasureChestUI.cpp
     src/ui/rankingUI.cpp
     src/ui/weaponSelectionUI.cpp
 
@@ -45,6 +46,7 @@ add_executable(Glandular
 
     src/story/textStyles.cpp
     src/story/locationDialogues.cpp
+    src/items/itemRegistry.cpp
 
     src/resources/resources.cpp
 )

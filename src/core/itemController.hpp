@@ -14,13 +14,15 @@ namespace core {
 
 // Represents one collected icon sprite shown in the inventory panel.
 struct ItemIcon {
-    explicit ItemIcon(const sf::Texture& tex) : sprite(tex) {}
+    ItemIcon(const sf::Texture& tex, std::string key)
+        : sprite(tex), key(std::move(key)) {}
     ItemIcon(ItemIcon&&) noexcept = default;
     ItemIcon& operator=(ItemIcon&&) noexcept = default;
     ItemIcon(const ItemIcon&) = delete;
     ItemIcon& operator=(const ItemIcon&) = delete;
 
     sf::Sprite sprite;
+    std::string key;
 };
 
 // Tracks collected items, renders their icons, and plays acquisition sounds.
@@ -30,8 +32,10 @@ public:
 
     // Hooks the item controller up to shared textures and sounds.
     void init(Resources& resources);
-    // Adds a generic icon and plays the pickup jingle.
-    void addIcon(const sf::Texture& texture);
+    // Adds a specific item so it can be looked up by key later.
+    void addItem(const sf::Texture& texture, std::string key);
+    // Removes the first icon that matches the provided key.
+    bool removeItem(const std::string& key);
     // Adds the dragonstone icon matching the given location once.
     void collectDragonstone(LocationId id);
 

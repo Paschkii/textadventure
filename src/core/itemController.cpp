@@ -28,8 +28,8 @@ void ItemController::init(Resources& resources) {
 }
 
 // Adds a new icon sprite and plays the pickup sound.
-void ItemController::addIcon(const sf::Texture& texture) {
-    icons_.emplace_back(texture);
+void ItemController::addItem(const sf::Texture& texture, std::string key) {
+    icons_.emplace_back(texture, std::move(key));
     playAcquireSound();
 }
 
@@ -50,7 +50,24 @@ void ItemController::collectDragonstone(LocationId id) {
         return;
 
     dragonstoneIconAdded_[*index] = true;
-    addIcon(*texture);
+    static constexpr std::array<const char*, 4> kKeys{
+        "dragonstone_fire",
+        "dragonstone_air",
+        "dragonstone_water",
+        "dragonstone_earth"
+    };
+    auto key = kKeys[*index];
+    addItem(*texture, key);
+}
+
+bool ItemController::removeItem(const std::string& key) {
+    auto it = std::find_if(icons_.begin(), icons_.end(), [&](const ItemIcon& icon) {
+        return icon.key == key;
+    });
+    if (it == icons_.end())
+        return false;
+    icons_.erase(it);
+    return true;
 }
 
 // Plays (and restarts) the acquire sound effect when items are collected.

@@ -47,22 +47,28 @@ bool Resources::loadAll()
     if (!dragonstoneWater.loadFromFile("assets/dragonstones/dragonstoneWater.png")) { // Item: Water Dragonstone
         std::cout << "Failed to load Water Dragonstone Texture\n"; return false;
     }
-    if (!weaponHolmabir.loadFromFile("assets/gfx/weapons/Weapon Holmabir.png")) { // Weapon: Holmabir
-        std::cout << "Failed to load Holmabir Texture\n"; return false;
+    if (!weaponHolmabir.loadFromFile("assets/gfx/weapons/equipment/holmabir.png")) {
+        std::cout << "Failed to load Holmabir Equipment Texture\n"; return false;
     }
-    if (!weaponHolmabirBroken.loadFromFile("assets/gfx/weapons/Weapon Holmabir Broken.png")) { // Weapon: Holmabir Broken
+    if (!weaponHolmabirBroken.loadFromFile("assets/gfx/weapons/broken/holmabir_broken.png")) {
         std::cout << "Failed to load Holmabir Broken Texture\n"; return false;
     }
-    if (!weaponKattkavar.loadFromFile("assets/gfx/weapons/Weapon Kattkavar.png")) { // Weapon: Kattkavar
-        std::cout << "Failed to load Kattkavar Texture\n"; return false;
+    if (!weaponKattkavar.loadFromFile("assets/gfx/weapons/equipment/kattkavar_righthand.png")) {
+        std::cout << "Failed to load Kattkavar Equipment Texture (righthand)\n"; return false;
     }
-    if (!weaponKattkavarBroken.loadFromFile("assets/gfx/weapons/Weapon Kattkavar Broken.png")) { // Weapon: Kattkavar Broken
+    if (!weaponKattkavarLeft.loadFromFile("assets/gfx/weapons/equipment/kattkavar_lefthand.png")) {
+        std::cout << "Failed to load Kattkavar Equipment Texture (lefthand)\n"; return false;
+    }
+    if (!weaponKattkavarBroken.loadFromFile("assets/gfx/weapons/broken/kattkavar_broken.png")) {
         std::cout << "Failed to load Kattkavar Broken Texture\n"; return false;
     }
-    if (!weaponStiggedin.loadFromFile("assets/gfx/weapons/Weapon Stiggedin.png")) { // Weapon: Stiggedin
-        std::cout << "Failed to load Stiggedin Texture\n"; return false;
+    if (!weaponStiggedin.loadFromFile("assets/gfx/weapons/equipment/stiggedin_righthand.png")) {
+        std::cout << "Failed to load Stiggedin Equipment Texture (righthand)\n"; return false;
     }
-    if (!weaponStiggedinBroken.loadFromFile("assets/gfx/weapons/Weapon Stiggedin Broken.png")) { // Weapon: Stiggedin Broken
+    if (!weaponStiggedinLeft.loadFromFile("assets/gfx/weapons/equipment/stiggedin_lefthand.png")) {
+        std::cout << "Failed to load Stiggedin Equipment Texture (lefthand)\n"; return false;
+    }
+    if (!weaponStiggedinBroken.loadFromFile("assets/gfx/weapons/broken/stiggedin_broken.png")) {
         std::cout << "Failed to load Stiggedin Broken Texture\n"; return false;
     }
     if (!healPotion.loadFromFile(ResourceFiles::Items::kHealPotionTexture)) { // Item: Healing Potion
@@ -135,11 +141,17 @@ bool Resources::loadAll()
     if (!portraitMasterBatesDragon.loadFromFile("assets/gfx/chars/portraits/portrait_master_bates_dragon.png")) { // Portrait: Master Bates (dragon form)
         std::cout << "Failed to load Master Bates Dragon Portrait\n"; return false;
     }
-    if (!portraitDragonbornMale.loadFromFile("assets/gfx/chars/portraits/portrait_dragonborn_male.png")) { // Portrait: Dragonborn Male
-        std::cout << "Failed to load Dragonborn Male Portrait\n"; return false;
+    if (!portraitDragonbornMaleCape.loadFromFile("assets/gfx/chars/portraits/portrait_dragonborn_male_cape.png")) {
+        std::cout << "Failed to load Dragonborn Male Portrait (Cape)\n"; return false;
     }
-    if (!portraitDragonbornFemale.loadFromFile("assets/gfx/chars/portraits/portrait_dragonborn_female.png")) { // Portrait: Dragonborn Female
-        std::cout << "Failed to load Dragonborn Female Portrait\n"; return false;
+    if (!portraitDragonbornMaleNoCape.loadFromFile("assets/gfx/chars/portraits/portrait_dragonborn_male_nocape.png")) {
+        std::cout << "Failed to load Dragonborn Male Portrait (No Cape)\n"; return false;
+    }
+    if (!portraitDragonbornFemaleCape.loadFromFile("assets/gfx/chars/portraits/portrait_dragonborn_female_cape.png")) {
+        std::cout << "Failed to load Dragonborn Female Portrait (Cape)\n"; return false;
+    }
+    if (!portraitDragonbornFemaleNoCape.loadFromFile("assets/gfx/chars/portraits/portrait_dragonborn_female_nocape.png")) {
+        std::cout << "Failed to load Dragonborn Female Portrait (No Cape)\n"; return false;
     }
 
     // ----------------------------
@@ -179,22 +191,28 @@ bool Resources::loadAll()
     if (!spriteDragonbornBack.loadFromFile("assets/gfx/chars/sprites/dragonborn_backsprite.png")) {
         std::cout << "Failed to load Dragonborn Back Sprite\n"; return false;
     }
-    if (!spriteDragonbornFemale.loadFromFile("assets/gfx/chars/sprites/dragonborn_female_sprite.png")) {
+    if (!spriteDragonbornFemale.loadFromFile("assets/gfx/chars/sprites/dragonborn_female_sprite_cape.png")) {
         std::cout << "Failed to load Dragonborn Female Sprite\n"; return false;
+    }
+    if (!spriteDragonbornMale.loadFromFile("assets/gfx/chars/sprites/dragonborn_male_sprite_cape.png")) {
+        std::cout << "Failed to load Dragonborn Male Sprite\n"; return false;
     }
     if (!spriteDragonbornFemaleNoCape.loadFromFile("assets/gfx/chars/sprites/dragonborn_female_sprite_nocape.png")) {
         std::cout << "Failed to load Dragonborn Female No Cape Sprite\n"; return false;
     }
-    if (!spriteDragonbornMale.loadFromFile("assets/gfx/chars/sprites/dragonborn_male_sprite.png")) {
-        std::cout << "Failed to load Dragonborn Male Sprite\n"; return false;
-    }
     if (!spriteDragonbornMaleNoCape.loadFromFile("assets/gfx/chars/sprites/dragonborn_male_sprite_nocape.png")) {
         std::cout << "Failed to load Dragonborn Male No Cape Sprite\n"; return false;
+    }
+    if (!spriteDragonbornFemaleHovered.loadFromFile("assets/gfx/chars/sprites/dragonborn_female_sprite_cape_hovered.png")) {
+        std::cout << "Failed to load Dragonborn Female Hovered Sprite\n"; return false;
+    }
+    if (!spriteDragonbornMaleHovered.loadFromFile("assets/gfx/chars/sprites/dragonborn_male_sprite_cape_hovered.png")) {
+        std::cout << "Failed to load Dragonborn Male Hovered Sprite\n"; return false;
     }
     if (!spriteFlawtinSeamen.loadFromFile("assets/gfx/chars/sprites/flawtin_seamen_sprite.png")) {
         std::cout << "Failed to load Flawtin Seamen Sprite\n"; return false;
     }
-    if (!spriteGlandularCape.loadFromFile("assets/gfx/chars/sprites/glandular_cape.png")) {
+    if (!spriteGlandularCape.loadFromFile("assets/gfx/menu/character/glandular_cape.png")) {
         std::cout << "Failed to load Glandular Cape Sprite\n"; return false;
     }
     if (!spriteGroundedClaymore.loadFromFile("assets/gfx/chars/sprites/grounded_claymore_sprite.png")) {
@@ -273,44 +291,32 @@ bool Resources::loadAll()
     if (!backgroundToryTailor.loadFromFile("assets/gfx/background/background_torytailor.png")) {
         std::cout << "Failed to load Background ToryTailor\n"; return false;
     }
-    if (!bookshelf.loadFromFile("assets/gfx/books/bookshelf.png")) { // Bookshelf Background
-        std::cout << "Failed to load Bookshelf Texture\n"; return false;
+    if (!treasureChestAir.loadFromFile("assets/gfx/trophies/treasure_chest_air.png")) {
+        std::cout << "Failed to load treasure_chest_air.png\n"; return false;
     }
-    if (!bookSingle01.loadFromFile("assets/gfx/books/book_single01.png")) {
-        std::cout << "Failed to load book_single01.png\n"; return false;
+    if (!treasureChestEarth.loadFromFile("assets/gfx/trophies/treasure_chest_earth.png")) {
+        std::cout << "Failed to load treasure_chest_earth.png\n"; return false;
     }
-    if (!bookSingle02.loadFromFile("assets/gfx/books/book_single02.png")) {
-        std::cout << "Failed to load book_single02.png\n"; return false;
+    if (!treasureChestFire.loadFromFile("assets/gfx/trophies/treasure_chest_fire.png")) {
+        std::cout << "Failed to load treasure_chest_fire.png\n"; return false;
     }
-    if (!bookSingle03.loadFromFile("assets/gfx/books/book_single03.png")) {
-        std::cout << "Failed to load book_single03.png\n"; return false;
+    if (!treasureChestWater.loadFromFile("assets/gfx/trophies/treasure_chest_water.png")) {
+        std::cout << "Failed to load treasure_chest_water.png\n"; return false;
     }
-    if (!bookSingle04.loadFromFile("assets/gfx/books/book_single04.png")) {
-        std::cout << "Failed to load book_single04.png\n"; return false;
+    if (!umbraUsseaOne.loadFromFile("assets/gfx/menu/map/Umbra_Ussea_one.png")) {
+        std::cout << "Failed to load Umbra_Ussea_one.png\n"; return false;
     }
-    if (!bookSingle05.loadFromFile("assets/gfx/books/book_single05.png")) {
-        std::cout << "Failed to load book_single05.png\n"; return false;
+    if (!umbraUsseaTwo.loadFromFile("assets/gfx/menu/map/Umbra_Ussea_two.png")) {
+        std::cout << "Failed to load Umbra_Ussea_two.png\n"; return false;
     }
-    if (!bookStapled01.loadFromFile("assets/gfx/books/book_stapled01.png")) {
-        std::cout << "Failed to load book_stapled01.png\n"; return false;
+    if (!umbraUsseaThree.loadFromFile("assets/gfx/menu/map/Umbra_Ussea_three.png")) {
+        std::cout << "Failed to load Umbra_Ussea_three.png\n"; return false;
     }
-    if (!bookStapled02.loadFromFile("assets/gfx/books/book_stapled02.png")) {
-        std::cout << "Failed to load book_stapled02.png\n"; return false;
+    if (!umbraUsseaFour.loadFromFile("assets/gfx/menu/map/Umbra_Ussea_four.png")) {
+        std::cout << "Failed to load Umbra_Ussea_four.png\n"; return false;
     }
-    if (!booksRowed01.loadFromFile("assets/gfx/books/books_rowed01.png")) {
-        std::cout << "Failed to load books_rowed01.png\n"; return false;
-    }
-    if (!booksRowed02.loadFromFile("assets/gfx/books/books_rowed02.png")) {
-        std::cout << "Failed to load books_rowed02.png\n"; return false;
-    }
-    if (!booksRowed03.loadFromFile("assets/gfx/books/books_rowed03.png")) {
-        std::cout << "Failed to load books_rowed03.png\n"; return false;
-    }
-    if (!booksTipped01.loadFromFile("assets/gfx/books/books_tipped01.png")) {
-        std::cout << "Failed to load books_tipped01.png\n"; return false;
-    }
-    if (!booksTipped02.loadFromFile("assets/gfx/books/books_tipped02.png")) {
-        std::cout << "Failed to load books_tipped02.png\n"; return false;
+    if (!umbraUsseaComplete.loadFromFile("assets/gfx/menu/map/Umbra_Ussea.png")) {
+        std::cout << "Failed to load Umbra_Ussea.png\n"; return false;
     }
     if (!returnSymbol.loadFromFile("assets/textures/returnSymbol.png")) { // Return Symbol
         std::cout << "Failed to load Return Symbol Texture\n"; return false;
@@ -348,6 +354,30 @@ bool Resources::loadAll()
     if (!buttonRankings.loadFromFile("assets/gfx/buttons/button_rankings.png")) {
         std::cout << "Failed to load Rankings Button Texture\n"; return false;
     }
+    if (!elementAirButton.loadFromFile("assets/gfx/buttons/element_air.png")) {
+        std::cout << "Failed to load Element Air Button\n"; return false;
+    }
+    if (!elementEarthButton.loadFromFile("assets/gfx/buttons/element_earth.png")) {
+        std::cout << "Failed to load Element Earth Button\n"; return false;
+    }
+    if (!elementFireButton.loadFromFile("assets/gfx/buttons/element_fire.png")) {
+        std::cout << "Failed to load Element Fire Button\n"; return false;
+    }
+    if (!elementWaterButton.loadFromFile("assets/gfx/buttons/element_water.png")) {
+        std::cout << "Failed to load Element Water Button\n"; return false;
+    }
+    if (!equipmentRingAir.loadFromFile("assets/gfx/menu/equipment/ring_air.png")) {
+        std::cout << "Failed to load Equipment Ring Air icon\n"; return false;
+    }
+    if (!equipmentRingEarth.loadFromFile("assets/gfx/menu/equipment/ring_earth.png")) {
+        std::cout << "Failed to load Equipment Ring Earth icon\n"; return false;
+    }
+    if (!equipmentRingFire.loadFromFile("assets/gfx/menu/equipment/ring_fire.png")) {
+        std::cout << "Failed to load Equipment Ring Fire icon\n"; return false;
+    }
+    if (!equipmentRingWater.loadFromFile("assets/gfx/menu/equipment/ring_water.png")) {
+        std::cout << "Failed to load Equipment Ring Water icon\n"; return false;
+    }
     if (!questbookBackground.loadFromFile("assets/gfx/menu/quests/questbook.png")) {
         std::cout << "Failed to load Questbook Background\n"; return false;
     }
@@ -359,6 +389,98 @@ bool Resources::loadAll()
     }
     if (!buttonHelp.loadFromFile("assets/gfx/buttons/button_help.png")) {
         std::cout << "Failed to load Help Button Texture\n"; return false;
+    }
+
+    // ----------------------------
+    //   Character menu assets
+    // ----------------------------
+    if (!charMenuLeftHand.loadFromFile("assets/gfx/menu/character/charMenu_lefthand.png")) {
+        std::cout << "Failed to load Character menu left hand slot\n"; return false;
+    }
+    if (!charMenuRightHand.loadFromFile("assets/gfx/menu/character/charMenu_righthand.png")) {
+        std::cout << "Failed to load Character menu right hand slot\n"; return false;
+    }
+    if (!charMenuRing.loadFromFile("assets/gfx/menu/character/charMenu_ring.png")) {
+        std::cout << "Failed to load Character menu ring slot\n"; return false;
+    }
+    if (!charMenuDragonstoneSlot.loadFromFile("assets/gfx/menu/character/charMenu_dragonstone.png")) {
+        std::cout << "Failed to load Character menu dragonstone slot\n"; return false;
+    }
+    if (!charMenuDragonclawSlot.loadFromFile("assets/gfx/menu/character/charMenu_dragonclaw.png")) {
+        std::cout << "Failed to load Character menu dragonclaw slot\n"; return false;
+    }
+    if (!charMenuDragonscaleSlot.loadFromFile("assets/gfx/menu/character/charMenu_dragonscale.png")) {
+        std::cout << "Failed to load Character menu dragonscale slot\n"; return false;
+    }
+    if (!charMenuLuckyCharmSlot.loadFromFile("assets/gfx/menu/character/charMenu_luckycharm.png")) {
+        std::cout << "Failed to load Character menu lucky charm slot\n"; return false;
+    }
+    if (!charMenuFemaleNoCape.loadFromFile("assets/gfx/menu/character/charMenu_female_nocape.png")) {
+        std::cout << "Failed to load Character menu female base portrait\n"; return false;
+    }
+    if (!charMenuMaleNoCape.loadFromFile("assets/gfx/menu/character/charMenu_male_nocape.png")) {
+        std::cout << "Failed to load Character menu male base portrait\n"; return false;
+    }
+    if (!charMenuFemaleCape.loadFromFile("assets/gfx/menu/character/charMenu_female_cape.png")) {
+        std::cout << "Failed to load Character menu female cloak portrait\n"; return false;
+    }
+    if (!charMenuMaleCape.loadFromFile("assets/gfx/menu/character/charMenu_male_cape.png")) {
+        std::cout << "Failed to load Character menu male cloak portrait\n"; return false;
+    }
+    if (!charMenuCloak.loadFromFile("assets/gfx/menu/character/glandular_cape.png")) {
+        std::cout << "Failed to load Character menu cloak icon\n"; return false;
+    }
+
+    // ----------------------------
+    //      Artifact icons
+    // ----------------------------
+    if (!artifactDragonscaleAir.loadFromFile("assets/gfx/menu/artifacts/dragonscale/dragonscale_air.png")) {
+        std::cout << "Failed to load Dragonscale Air icon\n"; return false;
+    }
+    if (!artifactDragonscaleEarth.loadFromFile("assets/gfx/menu/artifacts/dragonscale/dragonscale_earth.png")) {
+        std::cout << "Failed to load Dragonscale Earth icon\n"; return false;
+    }
+    if (!artifactDragonscaleFire.loadFromFile("assets/gfx/menu/artifacts/dragonscale/dragonscale_fire.png")) {
+        std::cout << "Failed to load Dragonscale Fire icon\n"; return false;
+    }
+    if (!artifactDragonscaleWater.loadFromFile("assets/gfx/menu/artifacts/dragonscale/dragonscale_water.png")) {
+        std::cout << "Failed to load Dragonscale Water icon\n"; return false;
+    }
+    if (!artifactDragonstoneAir.loadFromFile("assets/gfx/menu/artifacts/dragonstone/dragonstone_air.png")) {
+        std::cout << "Failed to load Dragonstone Air icon\n"; return false;
+    }
+    if (!artifactDragonstoneEarth.loadFromFile("assets/gfx/menu/artifacts/dragonstone/dragonstone_earth.png")) {
+        std::cout << "Failed to load Dragonstone Earth icon\n"; return false;
+    }
+    if (!artifactDragonstoneFire.loadFromFile("assets/gfx/menu/artifacts/dragonstone/dragonstone_fire.png")) {
+        std::cout << "Failed to load Dragonstone Fire icon\n"; return false;
+    }
+    if (!artifactDragonstoneWater.loadFromFile("assets/gfx/menu/artifacts/dragonstone/dragonstone_water.png")) {
+        std::cout << "Failed to load Dragonstone Water icon\n"; return false;
+    }
+    if (!artifactDragonclawAir.loadFromFile("assets/gfx/menu/artifacts/dragonclaw/dragonclaw_air.png")) {
+        std::cout << "Failed to load Dragonclaw Air icon\n"; return false;
+    }
+    if (!artifactDragonclawEarth.loadFromFile("assets/gfx/menu/artifacts/dragonclaw/dragonclaw_earth.png")) {
+        std::cout << "Failed to load Dragonclaw Earth icon\n"; return false;
+    }
+    if (!artifactDragonclawFire.loadFromFile("assets/gfx/menu/artifacts/dragonclaw/dragonclaw_fire.png")) {
+        std::cout << "Failed to load Dragonclaw Fire icon\n"; return false;
+    }
+    if (!artifactDragonclawWater.loadFromFile("assets/gfx/menu/artifacts/dragonclaw/dragonclaw_water.png")) {
+        std::cout << "Failed to load Dragonclaw Water icon\n"; return false;
+    }
+    if (!artifactLuckyCharmAir.loadFromFile("assets/gfx/menu/artifacts/luckycharm/luckyCharm_air.png")) {
+        std::cout << "Failed to load Lucky Charm Air icon\n"; return false;
+    }
+    if (!artifactLuckyCharmEarth.loadFromFile("assets/gfx/menu/artifacts/luckycharm/luckyCharm_earth.png")) {
+        std::cout << "Failed to load Lucky Charm Earth icon\n"; return false;
+    }
+    if (!artifactLuckyCharmFire.loadFromFile("assets/gfx/menu/artifacts/luckycharm/luckyCharm_fire.png")) {
+        std::cout << "Failed to load Lucky Charm Fire icon\n"; return false;
+    }
+    if (!artifactLuckyCharmWater.loadFromFile("assets/gfx/menu/artifacts/luckycharm/luckyCharm_water.png")) {
+        std::cout << "Failed to load Lucky Charm Water icon\n"; return false;
     }
 
     // ---------------------------
@@ -438,6 +560,18 @@ bool Resources::loadAll()
     }
     if (!buttonHovered.loadFromFile("assets/audio/hoverButtons.mp3")) { // Button Hover Sound
         std::cout << "Failed to load Button Hover Sound\n"; return false;
+    }
+    if (!openMenu.loadFromFile("assets/audio/open_menu.mp3")) {
+        std::cout << "Failed to load Open Menu Sound\n"; return false;
+    }
+    if (!closeMenu.loadFromFile("assets/audio/close_menu.mp3")) {
+        std::cout << "Failed to load Close Menu Sound\n"; return false;
+    }
+    if (!popup.loadFromFile("assets/audio/popup.mp3")) {
+        std::cout << "Failed to load Popup Sound\n"; return false;
+    }
+    if (!xpGain.loadFromFile("assets/audio/xp_gain.mp3")) {
+        std::cout << "Failed to load XP Gain Sound\n"; return false;
     }
     if (!titleButtons.loadFromFile("assets/audio/titleButtons.mp3")) { // Intro Title Button Hover
         std::cout << "Failed to load Title Button Hover Sound\n"; return false;

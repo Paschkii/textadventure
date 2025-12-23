@@ -13,6 +13,9 @@ enum class DialogueLineAction : std::uint32_t {
     OpensMapFromMenu = 1u << 0,
     StartsQuest = 1u << 1,
     CompletesQuest = 1u << 2,
+    StartsQuiz = 1u << 3,
+    OpensUmbraMapFromMenu = 1u << 4,
+    StartsSeminiferousTeleport = 1u << 5,
 };
 
 // Provides bitwise helpers so flag combinations can be stored in a single field.

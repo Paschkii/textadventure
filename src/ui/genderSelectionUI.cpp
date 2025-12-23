@@ -14,6 +14,7 @@
 #include "helper/colorHelper.hpp"
 #include "story/dialogInput.hpp"
 #include "story/textStyles.hpp"
+#include "ui/popupStyle.hpp"
 
 namespace {
     void restoreGenderSelectionLine(Game& game, const std::string& text) {
@@ -176,15 +177,15 @@ void draw(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
         return std::min(scaleX, scaleY);
     };
 
-    float femaleScale = scaleForTexture(game.resources.dragonbornFemaleSprite);
-    float maleScale = scaleForTexture(game.resources.dragonbornMaleSprite);
+    float femaleScale = scaleForTexture(game.resources.spriteDragonbornFemale);
+    float maleScale = scaleForTexture(game.resources.spriteDragonbornMale);
 
     const sf::Texture& femaleTexture = (game.genderSelectionHovered == 0)
-        ? game.resources.dragonbornFemaleHoveredSprite
-        : game.resources.dragonbornFemaleSprite;
+        ? game.resources.spriteDragonbornFemaleHovered
+        : game.resources.spriteDragonbornFemale;
     const sf::Texture& maleTexture = (game.genderSelectionHovered == 1)
-        ? game.resources.dragonbornMaleHoveredSprite
-        : game.resources.dragonbornMaleSprite;
+        ? game.resources.spriteDragonbornMaleHovered
+        : game.resources.spriteDragonbornMale;
 
     sf::Sprite femaleSprite(femaleTexture);
     sf::Sprite maleSprite(maleTexture);
@@ -340,14 +341,15 @@ void draw(Game& game, sf::RenderTarget& target, float uiAlphaFactor) {
         femaleBounds.position.y + femaleBounds.size.y,
         maleBounds.position.y + maleBounds.size.y
     ) + kLabelSpacing * 0.5f + 20.f;
-    float tintedBottom = labelBottom + 40.f;
+    float tintedBottom = labelBottom + 40.f - 50.f;
     constexpr float kSelectionPad = 28.f;
-    sf::RectangleShape selectionBackdrop;
-    selectionBackdrop.setPosition({ tintedLeft - kSelectionPad, tintedTop });
-    selectionBackdrop.setSize({
+    constexpr float kSelectionCornerRadius = 24.f;
+    sf::Vector2f backdropSize{
         (tintedRight - tintedLeft) + kSelectionPad * 2.f,
         (tintedBottom - tintedTop) + kSelectionPad * 0.5f
-    });
+    };
+    RoundedRectangleShape selectionBackdrop(backdropSize, kSelectionCornerRadius, 24);
+    selectionBackdrop.setPosition({ tintedLeft - kSelectionPad, tintedTop });
     selectionBackdrop.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::DialogBackdrop, uiAlphaFactor));
     target.draw(selectionBackdrop);
 

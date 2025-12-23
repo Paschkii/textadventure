@@ -42,8 +42,10 @@ struct Resources {
     sf::Texture weaponHolmabir;
     sf::Texture weaponHolmabirBroken;
     sf::Texture weaponKattkavar;
+    sf::Texture weaponKattkavarLeft;
     sf::Texture weaponKattkavarBroken;
     sf::Texture weaponStiggedin;
+    sf::Texture weaponStiggedinLeft;
     sf::Texture weaponStiggedinBroken;
     sf::Texture healPotion;
     sf::Texture mapGlandular; // Map item texture
@@ -68,8 +70,10 @@ struct Resources {
     sf::Texture portraitEarthDragon; // Grounded Claymore Portrait
     sf::Texture portraitMasterBates; // Master Bates Portrait
     sf::Texture portraitMasterBatesDragon; // Dragon form of Master Bates
-    sf::Texture portraitDragonbornMale; // Dragonborn Male Portrait
-    sf::Texture portraitDragonbornFemale; // Dragonborn Female Portrait
+    sf::Texture portraitDragonbornMaleCape; // Dragonborn Male Portrait with cape
+    sf::Texture portraitDragonbornMaleNoCape; // Dragonborn Male Portrait without cape
+    sf::Texture portraitDragonbornFemaleCape; // Dragonborn Female Portrait with cape
+    sf::Texture portraitDragonbornFemaleNoCape; // Dragonborn Female Portrait without cape
     // Portrait Backgrounds
     sf::Texture portraitBackgroundAerobronchi;
     sf::Texture portraitBackgroundBlacksmith;
@@ -86,6 +90,8 @@ struct Resources {
     sf::Texture spriteDragonbornFemaleNoCape;
     sf::Texture spriteDragonbornMale;
     sf::Texture spriteDragonbornMaleNoCape;
+    sf::Texture spriteDragonbornFemaleHovered;
+    sf::Texture spriteDragonbornMaleHovered;
     sf::Texture spriteFlawtinSeamen;
     sf::Texture spriteGlandularCape;
     sf::Texture spriteGroundedClaymore;
@@ -96,6 +102,45 @@ struct Resources {
     sf::Texture spriteRowstedSheacane;
     sf::Texture spriteWandaRinn;
     sf::Texture spriteWillFigsid;
+    // Character menu helpers
+    sf::Texture charMenuLeftHand;
+    sf::Texture charMenuRightHand;
+    sf::Texture charMenuRing;
+    sf::Texture charMenuDragonstoneSlot;
+    sf::Texture charMenuDragonclawSlot;
+    sf::Texture charMenuDragonscaleSlot;
+    sf::Texture charMenuLuckyCharmSlot;
+    sf::Texture charMenuFemaleNoCape;
+    sf::Texture charMenuMaleNoCape;
+    sf::Texture charMenuFemaleCape;
+    sf::Texture charMenuMaleCape;
+    sf::Texture charMenuCloak;
+    sf::Texture elementAirButton;
+    sf::Texture elementEarthButton;
+    sf::Texture elementFireButton;
+    sf::Texture elementWaterButton;
+    sf::Texture equipmentRingAir;
+    sf::Texture equipmentRingEarth;
+    sf::Texture equipmentRingFire;
+    sf::Texture equipmentRingWater;
+
+    // Artifact menu icons
+    sf::Texture artifactDragonscaleAir;
+    sf::Texture artifactDragonscaleEarth;
+    sf::Texture artifactDragonscaleFire;
+    sf::Texture artifactDragonscaleWater;
+    sf::Texture artifactDragonstoneAir;
+    sf::Texture artifactDragonstoneEarth;
+    sf::Texture artifactDragonstoneFire;
+    sf::Texture artifactDragonstoneWater;
+    sf::Texture artifactDragonclawAir;
+    sf::Texture artifactDragonclawEarth;
+    sf::Texture artifactDragonclawFire;
+    sf::Texture artifactDragonclawWater;
+    sf::Texture artifactLuckyCharmAir;
+    sf::Texture artifactLuckyCharmEarth;
+    sf::Texture artifactLuckyCharmFire;
+    sf::Texture artifactLuckyCharmWater;
     // Map Textures
     sf::Texture menuMapBackground; // Menu map base art
     sf::Texture menuMapGonad; // Gonad overlay
@@ -113,19 +158,15 @@ struct Resources {
     sf::Texture backgroundPetrigonal; // Perigonal area background
     sf::Texture backgroundSeminiferous; // Seminiferous background
     sf::Texture backgroundToryTailor; // Tory Tailor narration background
-    sf::Texture bookshelf; // Bookshelf scene
-    sf::Texture bookSingle01;
-    sf::Texture bookSingle02;
-    sf::Texture bookSingle03;
-    sf::Texture bookSingle04;
-    sf::Texture bookSingle05;
-    sf::Texture bookStapled01;
-    sf::Texture bookStapled02;
-    sf::Texture booksRowed01;
-    sf::Texture booksRowed02;
-    sf::Texture booksRowed03;
-    sf::Texture booksTipped01;
-    sf::Texture booksTipped02;
+    sf::Texture treasureChestAir;
+    sf::Texture treasureChestEarth;
+    sf::Texture treasureChestFire;
+    sf::Texture treasureChestWater;
+    sf::Texture umbraUsseaOne;
+    sf::Texture umbraUsseaTwo;
+    sf::Texture umbraUsseaThree;
+    sf::Texture umbraUsseaFour;
+    sf::Texture umbraUsseaComplete;
 
     // Sound Buffers
     sf::SoundBuffer acquire; // Sound played, when aquiring items
@@ -140,6 +181,10 @@ struct Resources {
     sf::SoundBuffer healSound; // Sound played when using the healing potion
     sf::SoundBuffer forgeSound; // Sound played during forging sleep timer
     sf::SoundBuffer levelUp; // Sound played when levelling up
+    sf::SoundBuffer openMenu; // Sound when the menu opens
+    sf::SoundBuffer closeMenu; // Sound when the menu closes
+    sf::SoundBuffer popup; // Sound for modal popups
+    sf::SoundBuffer xpGain; // Sound played when XP bar fills
     sf::SoundBuffer locationMusicPerigonal; // Sound played during the Perigonal dialogue
     sf::SoundBuffer locationMusicGonad; // Sound played while in Gonad
     sf::SoundBuffer locationMusicBlyathyroid; // Sound played while in Blyathyroid

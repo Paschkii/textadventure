@@ -20,7 +20,7 @@ namespace {
 void loadWeaponOptions(Game& game) {
     namespace fs = std::filesystem;
 
-    const fs::path weaponDir{"assets/gfx/weapons"};
+    const fs::path weaponDir{"assets/gfx/weapons/fixed"};
     game.weaponOptions.clear();
 
     if (!fs::exists(weaponDir))
@@ -58,8 +58,19 @@ void loadWeaponOptions(Game& game) {
         if (prefixPos != std::string::npos)
             stem = stem.substr(prefixPos + prefix.size());
 
-        while (!stem.empty() && stem.front() == ' ')
+        if (auto underscorePos = stem.find('_'); underscorePos != std::string::npos)
+            stem.erase(underscorePos);
+
+        while (!stem.empty() && std::isspace(static_cast<unsigned char>(stem.front())))
             stem.erase(stem.begin());
+        while (!stem.empty() && std::isspace(static_cast<unsigned char>(stem.back())))
+            stem.pop_back();
+
+        std::transform(stem.begin(), stem.end(), stem.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c));
+        });
+        if (!stem.empty())
+            stem[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(stem[0])));
 
         option.displayName = stem;
 

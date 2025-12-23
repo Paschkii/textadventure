@@ -9,6 +9,7 @@
 class Game;
 
 namespace TextStyles {
+    enum class SpeakerId;
     struct SpeakerStyle;
 }
 
@@ -23,6 +24,7 @@ namespace dialogDraw {
         sf::RenderTarget& target
         , Game& game
         , const TextStyles::SpeakerStyle& info
+        , TextStyles::SpeakerId speakerId
         , float uiAlphaFactor
     );
     void drawDialogueText(

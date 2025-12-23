@@ -109,6 +109,12 @@ namespace ColorHelper {
         inline const sf::Color Pink = sf::Color(0xFF, 0xAD, 0xC6);             // Decorative pink used in overlays.
         inline const sf::Color DarkBrown = sf::Color(0x5A, 0x3E, 0x36);        // Deep brown for wood/stony sprites.
         inline const sf::Color LightBrown = sf::Color(0x9C, 0x6B, 0x4E);       // Lighter brown for frames.
+        inline const sf::Color BlackBrown = sf::Color(18, 10, 6, 230);         // Black Brown for Slots
+        inline const sf::Color Creme = sf::Color(255, 255, 255, 120);
+        inline const sf::Color InventoryDivider = sf::Color(34, 22, 12, 220);  // Divider color used in inventory grids
+        inline const sf::Color MenuSectionBeige = sf::Color(205, 193, 160, 210); // Beige for inventory panels
+        inline const sf::Color EquipmentPanelFill = sf::Color(233, 225, 202, 230); // Equipment panel fill
+        inline const sf::Color EquipmentPanelOutline = sf::Color(60, 36, 18, 220); // Outline for equipment panel
         inline const sf::Color SoftYellow = sf::Color(0xF2, 0xD3, 0x64);       // Muted yellow used for info callouts.
         inline const sf::Color SkyBlue = sf::Color(0x7C, 0xC6, 0xF9);          // Sky tone used in dragon/art accents.
         inline const sf::Color FrameGoldLight = sf::Color(0xF7, 0xE5, 0x7A);   // Bright gold for UI frame highlights.
