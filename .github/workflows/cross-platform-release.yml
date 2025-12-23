@@ -23,8 +23,13 @@ jobs:
 
       - name: Install SFML
         run: |
-          brew update
-          brew install sfml
+          if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
+            arch -x86_64 /usr/local/bin/brew update
+            arch -x86_64 /usr/local/bin/brew install sfml
+          else
+            brew update
+            brew install sfml
+          fi
 
       - name: Build macOS release
         env:
@@ -32,7 +37,11 @@ jobs:
           DIST_DIR_OVERRIDE: dist-${{ matrix.arch }}
         run: |
           chmod +x scripts/cmrelease_glandular_arm64.zsh
-          ./scripts/cmrelease_glandular_arm64.zsh "${{ env.VERSION }}"
+          if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
+            arch -x86_64 ./scripts/cmrelease_glandular_arm64.zsh "${{ env.VERSION }}"
+          else
+            ./scripts/cmrelease_glandular_arm64.zsh "${{ env.VERSION }}"
+          fi
 
       - name: Upload macOS artifacts
         uses: softprops/action-gh-release@v1
@@ -48,18 +57,31 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       VERSION: ${{ github.event.release && github.event.release.tag_name || github.event.inputs.version || '0.1.0' }}
+      VCPKG_ROOT: ${{ runner.temp }}/vcpkg
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install base dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsfml-dev zip
+          sudo apt-get install -y zip git
+
+      - name: Bootstrap vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg ${VCPKG_ROOT}
+          ${VCPKG_ROOT}/bootstrap-vcpkg.sh
+
+      - name: Install SFML via vcpkg
+        run: |
+          ${VCPKG_ROOT}/vcpkg install sfml[graphics,window,audio,network]:x64-linux
 
       - name: Configure and build
         run: |
-          cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
-          cmake --build build-release --config Release -- -j
+          cmake -S . -B build-release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake \
+            -DVCPKG_TARGET_TRIPLET=x64-linux
+          cmake --build build-release --config Release --target Glandular -- -j
 
       - name: Package Linux build
         run: |
@@ -88,17 +110,17 @@ jobs:
     runs-on: windows-2022
     env:
       VERSION: ${{ github.event.release && github.event.release.tag_name || github.event.inputs.version || '0.1.0' }}
+      VCPKG_ROOT: C:/vcpkg
     steps:
       - uses: actions/checkout@v4
 
       - name: Bootstrap vcpkg and install SFML
         shell: pwsh
         run: |
+          if (Test-Path C:/vcpkg) { Remove-Item -Recurse -Force C:/vcpkg }
           git clone https://github.com/microsoft/vcpkg C:/vcpkg
           C:/vcpkg/bootstrap-vcpkg.bat
-          C:/vcpkg/vcpkg install sfml[graphics,window,audio,system]:x64-windows
-        env:
-          VCPKG_ROOT: C:/vcpkg
+          C:/vcpkg/vcpkg install sfml[graphics,window,audio,network]:x64-windows
 
       - name: Configure and build
         run: cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
