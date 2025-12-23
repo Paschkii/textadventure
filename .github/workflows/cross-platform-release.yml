@@ -1,0 +1,130 @@
+name: Cross-platform Release Builds
+
+on:
+  release:
+    types: [created, published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional version label used inside the artifacts (falls back to release tag)'
+        required: false
+
+jobs:
+  macos:
+    name: macOS build (${{ matrix.arch }})
+    runs-on: macos-14
+    strategy:
+      matrix:
+        arch: [arm64, x86_64]
+    env:
+      VERSION: ${{ github.event.release && github.event.release.tag_name || github.event.inputs.version || '0.1.0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SFML
+        run: |
+          brew update
+          brew install sfml
+
+      - name: Build macOS release
+        env:
+          ARCH_BUILD: ${{ matrix.arch }}
+          DIST_DIR_OVERRIDE: dist-${{ matrix.arch }}
+        run: |
+          chmod +x scripts/cmrelease_glandular_arm64.zsh
+          ./scripts/cmrelease_glandular_arm64.zsh "${{ env.VERSION }}"
+
+      - name: Upload macOS artifacts
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist-${{ matrix.arch }}/Glandular-macOS-${{ matrix.arch }}-${{ env.VERSION }}.zip
+            dist-${{ matrix.arch }}/Glandular-macOS-${{ matrix.arch }}-${{ env.VERSION }}.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  linux:
+    name: Linux build
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ github.event.release && github.event.release.tag_name || github.event.inputs.version || '0.1.0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsfml-dev zip
+
+      - name: Configure and build
+        run: |
+          cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-release --config Release -- -j
+
+      - name: Package Linux build
+        run: |
+          set -euo pipefail
+          DIST_DIR="dist-linux"
+          ZIP_NAME="Glandular-linux-${VERSION}.zip"
+          rm -rf "$DIST_DIR"
+          mkdir -p "$DIST_DIR/assets"
+          cp "build-release/Glandular" "$DIST_DIR/Glandular"
+          cp -R "assets" "$DIST_DIR/assets"
+          chmod +x "$DIST_DIR/Glandular"
+          pushd "$DIST_DIR" >/dev/null
+          zip -r "../${ZIP_NAME}" .
+          popd >/dev/null
+          mv "${ZIP_NAME}" "${DIST_DIR}/${ZIP_NAME}"
+
+      - name: Upload Linux artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist-linux/Glandular-linux-${{ env.VERSION }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  windows:
+    name: Windows build
+    runs-on: windows-2022
+    env:
+      VERSION: ${{ github.event.release && github.event.release.tag_name || github.event.inputs.version || '0.1.0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bootstrap vcpkg and install SFML
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg C:/vcpkg
+          C:/vcpkg/bootstrap-vcpkg.bat
+          C:/vcpkg/vcpkg install sfml[graphics,window,audio,system]:x64-windows
+        env:
+          VCPKG_ROOT: C:/vcpkg
+
+      - name: Configure and build
+        run: cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Build with CMake
+        run: cmake --build build-release --config Release --target Glandular -- -j
+
+      - name: Package Windows build
+        shell: pwsh
+        run: |
+          $dist = "dist-windows"
+          if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
+          New-Item -ItemType Directory -Path "$dist/assets" | Out-Null
+          Copy-Item -Path "build-release/Release/Glandular.exe" -Destination "$dist/Glandular.exe"
+          Copy-Item -Recurse -Force -Path "assets" -Destination "$dist/assets"
+          Copy-Item -Force -Path "C:/vcpkg/installed/x64-windows/bin/*.dll" -Destination "$dist"
+          $zip = "Glandular-windows-${Env:VERSION}.zip"
+          if (Test-Path $zip) { Remove-Item $zip }
+          Compress-Archive -Path "$dist/*" -DestinationPath $zip
+          Move-Item -Force -Path $zip -Destination "$dist/$zip"
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      - name: Upload Windows artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist-windows/Glandular-windows-${{ env.VERSION }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -3,9 +3,9 @@ set -euo pipefail
 
 APP_NAME="Glandular"
 TARGET="Glandular"
-ARCH="arm64"
+ARCH="${ARCH_BUILD:-arm64}"
 BUILD_DIR="build-release-${ARCH}"
-DIST_DIR="dist"
+DIST_DIR="${DIST_DIR_OVERRIDE:-dist}"
 VERSION="${1:-0.1.0}"
 
 BREW_PREFIX="$(brew --prefix)"
