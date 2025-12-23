@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       VERSION: ${{ github.event.release && github.event.release.tag_name || github.event.inputs.version || '0.1.0' }}
-      VCPKG_ROOT: ${{ runner.temp }}/vcpkg
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
     steps:
       - uses: actions/checkout@v4
 
