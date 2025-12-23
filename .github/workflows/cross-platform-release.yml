@@ -12,10 +12,14 @@ on:
 jobs:
   macos:
     name: macOS build (${{ matrix.arch }})
-    runs-on: macos-14
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        arch: [arm64, x86_64]
+        include:
+          - arch: arm64
+            runner: macos-14
+          - arch: x86_64
+            runner: macos-13
     env:
       VERSION: ${{ github.event.release && github.event.release.tag_name || github.event.inputs.version || '0.1.0' }}
     steps:
@@ -23,18 +27,15 @@ jobs:
 
       - name: Install SFML
         run: |
-          if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
-            arch -x86_64 /usr/local/bin/brew update
-            arch -x86_64 /usr/local/bin/brew install sfml
-          else
-            brew update
-            brew install sfml
-          fi
+          brew update
+          brew install sfml
+          echo "CMAKE_PREFIX_PATH=$(brew --prefix sfml)" >> $GITHUB_ENV
 
       - name: Build macOS release
         env:
           ARCH_BUILD: ${{ matrix.arch }}
           DIST_DIR_OVERRIDE: dist-${{ matrix.arch }}
+          CMAKE_PREFIX_PATH: ${{ env.CMAKE_PREFIX_PATH }}
         run: |
           chmod +x scripts/cmrelease_glandular_arm64.zsh
           if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
@@ -64,7 +65,9 @@ jobs:
       - name: Install base dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y zip git
+          sudo apt-get install -y zip git cmake ninja-build g++ pkg-config \
+            libx11-dev libxrandr-dev libxcursor-dev libxi-dev libudev-dev \
+            libgl1-mesa-dev libfreetype6-dev libopenal-dev
 
       - name: Bootstrap vcpkg
         run: |
@@ -73,7 +76,7 @@ jobs:
 
       - name: Install SFML via vcpkg
         run: |
-          ${VCPKG_ROOT}/vcpkg install sfml[graphics,window,audio,network]:x64-linux
+          ${VCPKG_ROOT}/vcpkg install sfml[graphics,audio,network]:x64-linux
 
       - name: Configure and build
         run: |
@@ -120,7 +123,7 @@ jobs:
           if (Test-Path C:/vcpkg) { Remove-Item -Recurse -Force C:/vcpkg }
           git clone https://github.com/microsoft/vcpkg C:/vcpkg
           C:/vcpkg/bootstrap-vcpkg.bat
-          C:/vcpkg/vcpkg install sfml[graphics,window,audio,network]:x64-windows
+          C:/vcpkg/vcpkg install sfml[graphics,audio,network]:x64-windows
 
       - name: Configure and build
         run: cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
