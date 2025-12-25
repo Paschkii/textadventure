@@ -6,7 +6,7 @@ TARGET="Glandular"
 ARCH="x86_64"
 BUILD_DIR="build-release-${ARCH}"
 ICLOUD_ROOT="$HOME/Library/Mobile Documents/com~apple~CloudDocs/GlandularBuilds"
-DIST_DIR_ROOT="${DIST_DIR_OVERRIDE:-dist}"
+DIST_DIR_ROOT="${DIST_DIR_OVERRIDE:-$ICLOUD_ROOT}"
 DIST_DIR="${DIST_DIR_ROOT}/mac/intel"
 VERSION="${1:-0.1.0}"
 
