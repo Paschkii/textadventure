@@ -1,0 +1,21 @@
+# CMake build dirs
+build/
+build-*/
+cmake-build-*/
+
+# Build & Release Artifacts
+dist/
+*.dmg
+*.zip
+*.app
+*.exe
+
+# Compiler/Objektkram
+*.o
+*.a
+
+# Crash / Logs
+*.log
+
+# macOS junk
+.DS_Store

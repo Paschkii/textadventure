@@ -1,0 +1,59 @@
+#pragma once
+// === C++ Libraries ===
+#include <string>  // Passes label/text strings such as box headers and dialogue names.
+// === SFML Libraries ===
+#include <SFML/Graphics/Color.hpp>  // Colors used for the glow effects.
+#include <SFML/Graphics/RenderTarget.hpp>  // Draws portraits, text, and boxes into the UI area.
+#include <SFML/Graphics/RectangleShape.hpp>  // Describes box boundaries used when drawing UI frames.
+
+class Game;
+
+namespace TextStyles {
+    enum class SpeakerId;
+    struct SpeakerStyle;
+}
+
+namespace dialogDraw {
+    void drawDialogueFrames(
+        Game& game
+        , sf::RenderTarget& target
+        , float uiAlphaFactor
+        , const sf::Color& glowColor
+    );
+    void drawSpeakerName(
+        sf::RenderTarget& target
+        , Game& game
+        , const TextStyles::SpeakerStyle& info
+        , TextStyles::SpeakerId speakerId
+        , float uiAlphaFactor
+    );
+    void drawDialogueText(
+        sf::RenderTarget& target
+        , Game& game
+        , const std::string& textToDraw
+        , float uiAlphaFactor
+    );
+    void drawNameInput(
+        sf::RenderTarget& target
+        , Game& game
+        , float uiAlphaFactor
+    );
+    void drawReturnPrompt(
+        sf::RenderTarget& target
+        , Game & game
+        , float uiAlphaFactor
+        , bool isTyping
+    );
+    void drawBoxHeader(
+        Game& game
+        , sf::RenderTarget& target
+        , const sf::RectangleShape& box
+        , const std::string& label
+        , float uiAlphaFactor
+    );
+    void drawItemIcons(
+        Game& game
+        , sf::RenderTarget& target
+        , float uiAlphaFactor
+    );
+}
