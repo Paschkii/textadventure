@@ -9,14 +9,14 @@
 #include <algorithm>
 
 namespace {
-    constexpr float kPopupFadeInDuration = 0.45f;
+    constexpr float kPopupFadeInDuration = 0.225f;
     constexpr float kPopupFadeOutDuration = 1.f;
-    constexpr float kWeaponFadeInDuration = 0.45f;
+    constexpr float kWeaponFadeInDuration = 0.225f;
     constexpr float kNameAreaHeight = 32.f;
     constexpr float kMargin = 28.f;
-    constexpr float kMinPopupWidth = 640.f;
+    constexpr float kMinPopupWidth = 520.f;
     constexpr float kMaxPopupHeightRatio = 0.6f;
-    constexpr float kNameFontSize = 22.f;
+    constexpr float kNameFontSize = 28.f;
 
     struct WeaponInfo {
         const char* name;

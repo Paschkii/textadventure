@@ -17,6 +17,7 @@ add_executable(Glandular
     src/core/itemActivation.cpp
 
     src/ui/introScreen.cpp
+    src/ui/battleUI.cpp
     src/ui/introTitle.cpp
     src/ui/menuUI.cpp
     src/ui/confirmationUI.cpp

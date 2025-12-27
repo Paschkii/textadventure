@@ -33,6 +33,39 @@
 #include "core/ranking.hpp"                     // Tracks leaderboard entries persisted on disk.
 #include "ui/rankingUI.hpp"                     // Renders the ranking overlay once the ending completes.
 
+struct BattleDemoState {
+    enum class Phase {
+        PlayerChoice,
+        PlayerAction,
+        EnemyAction,
+        Victory,
+        Complete
+    };
+
+    struct Combatant {
+        std::string name;
+        int level = 0;
+        float hp = 0.f;
+        float maxHp = 0.f;
+    };
+
+        Combatant player{ "Dragonborn", 100, 140.f, 140.f };
+        Combatant enemy{ "Master Bates", 100, 160.f, 160.f };
+    Phase phase = Phase::PlayerChoice;
+    int selectedAction = 0;
+    float actionTimer = 0.f;
+    float playerActionDelay = 0.75f;
+    float enemyActionDelay = 0.65f;
+    float victoryHoldTime = 1.4f;
+    bool victoryTransitioned = false;
+    int enemyMoveIndex = 0;
+    sf::Clock completionClock;
+    std::vector<std::string> logHistory{
+        "A wild Master Bates appeared!",
+        "Dragonborn, get ready!"
+    };
+};
+
 struct Game {
     friend void core::handleTravel(Game& game, LocationId id);
 
@@ -274,7 +307,8 @@ struct Game {
         AudioManager audioManager;                          // Music and sound effect manager.
         core::TeleportController teleportController;        // Handles teleport animations.
         core::EndSequenceController endSequenceController;  // Final-overlay sequence control.
-        GameState state = GameState::IntroScreen;           // Current UI/game mode.
+        BattleDemoState battleDemo;
+        GameState state = GameState::BattleDemo;             // Current UI/game mode.
 
         // === Dialogues ===
         size_t dialogueIndex = 0;                                   // Current line index inside the active dialogue.
@@ -298,10 +332,15 @@ struct Game {
         bool inventoryArrowVisible = true;                // Tracks the arrow's visible/blink state.
         sf::FloatRect inventoryTutorialButtonBounds;      // Hitbox for the Understood button inside the popup.
         bool inventoryTutorialButtonHovered = false;      // Hover state used for the tutorial button highlight.
-        bool inventoryTutorialClosing = false;            // Signals that the tutorial is fading out.
-        bool inventoryTutorialAdvancePending = false;     // Auto-advance dialogue when the tutorial closes.
-        float inventoryTutorialCloseProgress = 0.f;       // Tracks fade progress when closing the tutorial.
-        sf::Clock inventoryTutorialCloseClock;            // Drives the tutorial fade-out timer.
+        bool questTutorialPending = false;                // Waiting for the quest tab tutorial to open.
+        bool questTutorialPopupActive = false;            // Shows the quest tutorial overlay.
+        bool questTutorialCompleted = false;              // Prevents repeating the quest tutorial.
+        bool questTutorialButtonHovered = false;          // Hover state for the quest tutorial button.
+        bool questTutorialClosing = false;                // Signals that the quest tutorial is fading out.
+        float questTutorialCloseProgress = 0.f;           // Tracks fade progress while closing.
+        sf::Clock questTutorialCloseClock;                // Drives the quest tutorial fade-out timer.
+        sf::FloatRect questTutorialButtonBounds;          // Hitbox for the quest tutorial button.
+        bool questTutorialAdvancePending = false;          // Signals to advance dialogue after the tutorial closes.
         bool mapItemPopupActive = false;                  // Shows the map-acquisition popup during Gonad part two.
         bool mapItemCollected = false;                    // Ensures the map icon is only added once.
         bool mapTutorialActive = false;                   // Controls the Tory Tailor map tutorial.
@@ -371,6 +410,12 @@ struct Game {
         QuestPopupState questPopup;                       // Controls the quest popups shown at the top.
         std::vector<sf::FloatRect> questFoldButtonBounds; // Active fold button hitboxes.
         int questFoldHoveredIndex = -1;                   // Hovered fold button index.
+        float questActiveScrollOffset = 0.f;              // Vertical offset used when scrolling active quests.
+        float questFinishedScrollOffset = 0.f;            // Vertical offset used when scrolling finished quests.
+        float questActiveMaxScroll = 0.f;                 // Max scroll range available for active quests.
+        float questFinishedMaxScroll = 0.f;               // Max scroll range available for finished quests.
+        sf::FloatRect questActiveColumnBounds{};           // Cached bounds for the active quest column.
+        sf::FloatRect questFinishedColumnBounds{};         // Cached bounds for the finished quest column.
         sf::RectangleShape textBox;                      // Outline around dialogue text.
         sf::RectangleShape locationBox;                  // Box showing the current location.
         sf::RectangleShape itemBox;                      // Outline for the item list.
@@ -490,7 +535,7 @@ struct Game {
         bool genderSelectionActive = false;
         int genderSelectionHovered = -1;
         std::array<sf::FloatRect, 2> genderSelectionBounds{};
-        DragonbornGender playerGender = DragonbornGender::Male;
+        DragonbornGender playerGender = DragonbornGender::Female;
         bool cloakEquipped = false;
         struct GenderSelectionAnimation {
             enum class Phase {

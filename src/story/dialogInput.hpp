@@ -300,13 +300,15 @@ inline void startQuizIntroSequence(Game& game, std::size_t questionIndex) {
 }
 
 // Starts the final cheer sequence once a dragon quiz concludes.
-inline void maybeTriggerFinalCheer(Game& game) {
+inline void maybeTriggerFinalCheer(Game& game, const DialogueLine* activeLine) {
     auto& quiz = game.quiz;
     if (quiz.finalCheerTriggered)
         return;
+    if (!activeLine)
+        return;
     if (!isDragonDialogue(game.currentDialogue))
         return;
-    if (game.dialogueIndex != kDragonFinalCheerLine)
+    if (!dialogueLineHasAction(activeLine->actions, DialogueLineAction::FinalCheer))
         return;
 
     quiz.finalCheerTriggered = true;
@@ -324,6 +326,18 @@ inline void maybeTriggerFinalCheer(Game& game) {
     game.audioManager.cancelLocationMusicFade();
 }
 
+inline const DialogueLine* activeDialogueLine(Game& game) {
+    if (!game.currentDialogue)
+        return nullptr;
+    if (game.dialogueIndex >= game.currentDialogue->size())
+        return nullptr;
+    return &(*game.currentDialogue)[game.dialogueIndex];
+}
+
+inline void maybeTriggerFinalCheerOnActiveLine(Game& game) {
+    maybeTriggerFinalCheer(game, activeDialogueLine(game));
+}
+
 // Advances the dialogue index and handles dragon quiz transitions as if Enter was pressed.
 inline bool advanceDialogueLine(Game& game) {
     game.stopTypingSound();
@@ -339,14 +353,14 @@ inline bool advanceDialogueLine(Game& game) {
         game.enterSound->play();
     }
     if (isDragonDialogue(game.currentDialogue)) {
-        if (game.currentDialogue && game.dialogueIndex < game.currentDialogue->size()) {
-            const auto& nextLine = (*game.currentDialogue)[game.dialogueIndex];
-            if (dialogueLineHasAction(nextLine.actions, DialogueLineAction::StartsQuiz)) {
-                if (auto questionIndex = quizQuestionIndexFor(game.currentDialogue))
-                    startQuizIntroSequence(game, *questionIndex);
-            }
+        const DialogueLine* nextLine = nullptr;
+        if (game.currentDialogue && game.dialogueIndex < game.currentDialogue->size())
+            nextLine = &(*game.currentDialogue)[game.dialogueIndex];
+        if (nextLine && dialogueLineHasAction(nextLine->actions, DialogueLineAction::StartsQuiz)) {
+            if (auto questionIndex = quizQuestionIndexFor(game.currentDialogue))
+                startQuizIntroSequence(game, *questionIndex);
         }
-        maybeTriggerFinalCheer(game);
+        maybeTriggerFinalCheerOnActiveLine(game);
     }
 
     if (game.currentDialogue == &blacksmith) {
@@ -627,9 +641,10 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
             game.charIndex = 0;
             game.typewriterClock.restart();
             game.quiz.pendingSuccess = true;
-            maybeTriggerFinalCheer(game);
+            maybeTriggerFinalCheerOnActiveLine(game);
             return true;
         }
+
     }
 
     // Activate name-entry mode when the dialogue line requests it.

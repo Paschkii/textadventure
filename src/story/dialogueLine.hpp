@@ -16,6 +16,7 @@ enum class DialogueLineAction : std::uint32_t {
     StartsQuiz = 1u << 3,
     OpensUmbraMapFromMenu = 1u << 4,
     StartsSeminiferousTeleport = 1u << 5,
+    FinalCheer = 1u << 6,
 };
 
 // Provides bitwise helpers so flag combinations can be stored in a single field.

@@ -7,6 +7,7 @@
 #include "helper/colorHelper.hpp"          // Supplies ColorHelper::Palette colors used while drawing text.
 #include "ui/dialogUI.hpp"                 // Draws the dialogue UI during most GameState modes.
 #include "ui/confirmationUI.hpp"           // Renders the confirmation popup when weapon selection is active.
+#include "ui/battleUI.hpp"                 // Renders the temporary battle screen used before the intro.
 #include "ui/introScreen.hpp"              // Renders the intro screen when GameState is IntroScreen.
 #include "ui/introTitle.hpp"               // Handles the intro title overlay used before dialogue.
 #include "ui/mapSelectionUI.hpp"           // Displays the map UI and popup when in map selection.
@@ -86,6 +87,9 @@ inline void drawTeleportOverlay(Game& game) {
 // Chooses the correct UI screens based on the current GameState and adds overlays.
 inline void renderGame(Game& game) {
     switch (game.state) {
+        case GameState::BattleDemo:
+            ui::battle::draw(game, game.window);
+            break;
         case GameState::IntroScreen:
             renderIntroScreen(game);
             break;

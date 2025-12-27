@@ -14,6 +14,8 @@ struct Resources {
     sf::Font introFont; // Font for the Important Message
     sf::Font titleFont; // FrontLayer for introBackground
     sf::Font titleFontExtrude; // BackLayer for introBackground
+    sf::Font battleFont; // Font used inside the battle overlay
+    sf::Font battleFontBold; // Font used inside the battle overlay
 
     // Textures
     sf::Texture introBackground; // Background
@@ -158,6 +160,16 @@ struct Resources {
     sf::Texture backgroundPetrigonal; // Perigonal area background
     sf::Texture backgroundSeminiferous; // Seminiferous background
     sf::Texture backgroundToryTailor; // Tory Tailor narration background
+    sf::Texture battleBackgroundLayer; // Battle background layer
+    sf::Texture battlePlayerPlatform; // Battle player platform layer
+    sf::Texture battleEnemyPlatform; // Battle enemy platform layer
+    sf::Texture battleTextBox; // Battle dialogue text box
+    sf::Texture battleActionBox; // Battle action list box
+    sf::Texture battlePlayerBox; // Battle player info box
+    sf::Texture battleEnemyBox; // Battle enemy info box
+    sf::Texture battleIconMale; // Icon for male combatants
+    sf::Texture battleIconFemale; // Icon for female combatants
+    sf::Shader   hpBadgeShader; // Shader applied to health badge fills
     sf::Texture treasureChestAir;
     sf::Texture treasureChestEarth;
     sf::Texture treasureChestFire;

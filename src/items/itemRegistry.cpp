@@ -19,9 +19,9 @@ namespace {
     const std::array<std::pair<const char*, ItemDefinition>, 33> kDefinitions = {{
         { "heal_potion", ItemDefinition{
             "Healing Potion",
-            "Restores a chunk of health over a short span.",
+            "Restores health over a short span.",
             Category::Consumable,
-            { "30 HP recovered over 4 seconds" },
+            { "Fully recovers HP when player would die." },
             "Use",
             "Consumables"
         } },
@@ -29,7 +29,7 @@ namespace {
             "Map of Glandular",
             "Shows the waterways and dragon territories around this region.",
             Category::Tool,
-            { "Unlocks travel hints", "Triggers Jorge's questline" },
+            { "Unlocks travel hints", "Triggers dragons questlines" },
             "Use",
             "Tools"
         } },

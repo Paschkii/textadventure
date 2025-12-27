@@ -18,6 +18,7 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Graphics/Shape.hpp>
 #include <SFML/Graphics/ConvexShape.hpp>
+#include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 
@@ -66,9 +67,16 @@ namespace {
         return out.str();
     }
 
-    constexpr std::array<const char*, 2> kInventoryTutorialMessages = {
+    constexpr std::array<const char*, 3> kInventoryTutorialMessages = {
         "This is your inventory. Wanda will store all your belongings in here.",
-        "If you ever need to see what items you possess or what they do, you can simply open the Menu by pressing ESC or clicking on the Menu Symbol."
+        "If you ever need to see what items you possess or what they do, you can simply open the Menu",
+        "by pressing ESC or clicking on the Menu Symbol."
+    };
+    constexpr std::array<const char*, 4> kQuestTutorialMessages = {
+        "The Quest tab tracks both active and finished missions so you always know",
+        "what you did and what you are working on.",
+        "Use the fold buttons to expand entries and scroll through the columns to review goals,",
+        "XP and loot."
     };
     constexpr std::array<const char*, 2> kCharacterCategoryLabels = {
         "Equipment",
@@ -83,7 +91,7 @@ namespace {
     constexpr float kMenuButtonFadeDuration = 1.f;
     constexpr float kInventoryTutorialButtonWidth = 140.f;
     constexpr float kInventoryTutorialButtonHeight = 36.f;
-    constexpr float kInventoryTutorialCloseDuration = 1.f;
+    constexpr float kQuestTutorialCloseDuration = 1.f;
     constexpr float kMapTutorialButtonWidth = 140.f;
     constexpr float kMapTutorialButtonHeight = 44.f;
     constexpr float kMapTutorialButtonPadding = 12.f;
@@ -98,7 +106,15 @@ namespace {
         game.inventoryTutorialPending = false;
         game.inventoryTutorialPopupActive = true;
         game.inventoryTutorialButtonHovered = false;
-        game.inventoryTutorialAdvancePending = false;
+    }
+
+    void beginQuestTutorial(Game& game) {
+        if (!game.questTutorialPending)
+            return;
+        game.questTutorialPending = false;
+        game.questTutorialPopupActive = true;
+        game.questTutorialButtonHovered = false;
+        game.questTutorialClosing = false;
     }
 
     void drawTutorialButton(
@@ -332,7 +348,7 @@ namespace {
         constexpr unsigned int kTooltipBodySize = 14;
         constexpr unsigned int kTooltipCategorySize = 12;
         constexpr float kTooltipDescriptionSpacing = 2.f;
-        auto measureSegmentsHeight = [&](const std::vector<ColoredTextSegment>& segments, unsigned int size, float width, float lineSpacing = kTooltipLineSpacing) -> float {
+        auto measureSegmentsHeight = [&](const std::vector<ColoredTextSegment>& segments, unsigned int size, float width, float lineSpacing) -> float {
             if (segments.empty())
                 return 0.f;
             sf::Vector2f cursor = drawColoredSegments(
@@ -368,7 +384,7 @@ namespace {
             float categoryHeight = categoryText.getLocalBounds().size.y;
             std::vector<ColoredTextSegment> descriptionSegments;
             descriptionSegments.push_back({ description, ColorHelper::Palette::DarkBrown });
-            float descriptionHeight = measureSegmentsHeight(descriptionSegments, kTooltipBodySize, textWidth);
+            float descriptionHeight = measureSegmentsHeight(descriptionSegments, kTooltipBodySize, textWidth, kTooltipLineSpacing);
             float tooltipHeight = kTooltipPadding * 2.f
                 + titleHeight
                 + kTooltipSpacing
@@ -468,8 +484,9 @@ namespace {
                 float iconY = textCenterY - (iconHeight * 0.5f);
                 headerSprite->setPosition({ baseX, iconY });
                 headerSprite->setColor(applyAlpha(sf::Color::White));
-                target.draw(*headerSprite);
             }
+            if (headerSprite)
+                target.draw(*headerSprite);
             target.draw(header);
             return headerHeight;
         };
@@ -603,7 +620,7 @@ namespace {
             target.draw(sprite);
         }
 
-        float characterHeaderY = columnTop - 12.f;
+        float characterHeaderY = columnTop + 8.f;
         float characterHeaderHeight = drawSectionHeader(
             &game.resources.buttonCharacter,
             "Character",
@@ -611,9 +628,9 @@ namespace {
             characterHeaderY,
             true
         );
-        constexpr float charBoxSpacing = 12.f;
-        const float charBoxY = characterHeaderY + characterHeaderHeight + charBoxSpacing;
+        constexpr float charBoxSpacing = 30.f;
         constexpr float charBoxBottomPadding = 12.f;
+        float charBoxY = characterHeaderY + characterHeaderHeight + charBoxSpacing;
         float charBoxHeight = columnBottom - charBoxY - charBoxBottomPadding;
         if (charBoxHeight < 0.f)
             charBoxHeight = 0.f;
@@ -695,11 +712,10 @@ namespace {
 
         float contentTop = buttonY + buttonHeight + 12.f;
         float bottomPadding = 12.f;
-        constexpr float kCharContentHeightReduction = 30.f;
-        float contentHeight = boxSize.y - (contentTop - boxPosition.y) - bottomPadding - kCharContentHeightReduction;
-        float contentWidth = std::max(0.f, boxSize.x - 24.f);
+        float contentHeight = (boxPosition.y + boxSize.y - bottomPadding) - contentTop;
         if (contentHeight < 0.f)
             contentHeight = 0.f;
+        float contentWidth = std::max(0.f, boxSize.x - 24.f);
         sf::FloatRect charContentArea{
             { boxPosition.x + 12.f, contentTop },
             { contentWidth, contentHeight }
@@ -1112,9 +1128,7 @@ namespace {
             textY += kTutorialMessageSpacing;
         }
 
-        if (game.inventoryTutorialClosing)
-            game.inventoryTutorialButtonHovered = false;
-        bool hovered = game.inventoryTutorialButtonHovered && !game.inventoryTutorialClosing;
+        bool hovered = game.inventoryTutorialButtonHovered;
         sf::Vector2f buttonPos{
             position.x + width - kInventoryTutorialButtonWidth - 16.f,
             position.y + height - kInventoryTutorialButtonHeight - 12.f
@@ -1124,6 +1138,114 @@ namespace {
             game,
             target,
             game.inventoryTutorialButtonBounds,
+            hovered,
+            alphaFactor,
+            "Understood"
+        );
+    }
+
+    void drawQuestTutorialPopup(
+        Game& game,
+        sf::RenderTarget& target,
+        const sf::FloatRect& panelBounds,
+        float alphaFactor
+    ) {
+        game.questTutorialButtonBounds = {};
+        if (!game.questTutorialPopupActive
+            || game.menuActiveTab != static_cast<int>(MenuTab::Quests)) {
+            game.questTutorialButtonHovered = false;
+            return;
+        }
+
+        float width = panelBounds.size.x * 0.85f;
+        float height = 220.f;
+        float popupY = panelBounds.position.y + 32.f;
+        float maxPopupY = panelBounds.position.y + panelBounds.size.y - height - 12.f;
+        if (popupY > maxPopupY)
+            popupY = maxPopupY;
+        popupY = std::max(popupY, panelBounds.position.y + 12.f);
+        sf::Vector2f position{
+            panelBounds.position.x + (panelBounds.size.x - width) * 0.5f,
+            popupY
+        };
+
+        sf::FloatRect popupBounds{ { position.x, position.y }, { width, height } };
+        ui::popup::drawPopupFrame(target, popupBounds, alphaFactor);
+
+        const float textLeft = position.x + 16.f;
+        float textY = position.y + 10.f;
+        float maxTextWidth = width - 32.f;
+        const auto storytellerStyle = TextStyles::speakerStyle(TextStyles::SpeakerId::StoryTeller);
+        constexpr float kTitleFontSize = 30.f;
+        constexpr float kTitleIconSize = 36.f;
+        constexpr float kTitleIconSpacing = 8.f;
+        constexpr float kTitleIconScaleFactor = 0.4f;
+        constexpr float kQuestTutorialMessageSpacing = 36.f;
+
+        std::optional<sf::Sprite> titleIcon;
+        float titleIconWidth = 0.f;
+        float titleIconHeight = 0.f;
+        if (game.resources.buttonHelp.getSize().x > 0 && game.resources.buttonHelp.getSize().y > 0) {
+            titleIcon.emplace(game.resources.buttonHelp);
+            auto iconBounds = titleIcon->getLocalBounds();
+            float scale = iconBounds.size.y > 0.f ? (kTitleIconSize / iconBounds.size.y) : 1.f;
+            scale *= kTitleIconScaleFactor;
+            titleIcon->setScale({ scale, scale });
+            titleIconWidth = iconBounds.size.x * scale;
+            titleIconHeight = iconBounds.size.y * scale;
+        }
+
+        sf::Text titleText{ game.resources.uiFont, "Quest Tab Guide", static_cast<unsigned int>(kTitleFontSize) };
+        titleText.setFillColor(ColorHelper::Palette::TitleAccent);
+        float iconInset = titleIcon ? titleIconWidth + kTitleIconSpacing : 0.f;
+        float titleX = textLeft + iconInset;
+        titleText.setPosition({ titleX, textY });
+        auto titleLocalBounds = titleText.getLocalBounds();
+        float titleHeight = titleLocalBounds.size.y;
+        float titleCenterY = textY + (titleHeight * 0.5f);
+        if (titleIcon) {
+            float iconY = titleCenterY - (titleIconHeight * 0.5f) + titleIconHeight;
+            titleIcon->setPosition({ textLeft, iconY });
+            titleIcon->setColor(ColorHelper::applyAlphaFactor(sf::Color::White, alphaFactor));
+            target.draw(*titleIcon);
+        }
+        target.draw(titleText);
+
+        if (titleIconHeight > titleHeight)
+            titleHeight = titleIconHeight;
+        textY += titleHeight + 12.f;
+
+        for (std::size_t idx = 0; idx < kQuestTutorialMessages.size(); ++idx) {
+            std::vector<ColoredTextSegment> segments;
+            if (idx == 0)
+                segments.push_back({ storytellerStyle.name + ": ", storytellerStyle.color });
+            segments.push_back({ kQuestTutorialMessages[idx], ColorHelper::Palette::Normal });
+
+            drawColoredSegments(
+                target,
+                game.resources.uiFont,
+                segments,
+                { textLeft, textY },
+                22,
+                maxTextWidth,
+                alphaFactor,
+                ui::popup::kLineSpacingMultiplier
+            );
+            textY += kQuestTutorialMessageSpacing;
+        }
+
+        if (game.questTutorialClosing)
+            game.questTutorialButtonHovered = false;
+        bool hovered = game.questTutorialButtonHovered && !game.questTutorialClosing;
+        sf::Vector2f buttonPos{
+            position.x + width - kInventoryTutorialButtonWidth - 16.f,
+            position.y + height - kInventoryTutorialButtonHeight - 12.f
+        };
+        game.questTutorialButtonBounds = { { buttonPos.x, buttonPos.y }, { kInventoryTutorialButtonWidth, kInventoryTutorialButtonHeight } };
+        drawTutorialButton(
+            game,
+            target,
+            game.questTutorialButtonBounds,
             hovered,
             alphaFactor,
             "Understood"
@@ -1177,6 +1299,8 @@ namespace {
         auto applyAlpha = [&](const sf::Color& color) {
             return ColorHelper::applyAlphaFactor(color, alphaFactor);
         };
+        if (game.questTutorialPending)
+            beginQuestTutorial(game);
 
         sf::RectangleShape contentBox;
         contentBox.setPosition({ bounds.position.x + 12.f, bounds.position.y + 12.f });
@@ -1246,6 +1370,27 @@ namespace {
         rightColumn.setFillColor(applyAlpha(sectionColor));
         target.draw(rightColumn);
 
+        const sf::Vector2u windowSize = game.window.getSize();
+        auto makeColumnView = [&](const sf::FloatRect& area) -> std::optional<sf::View> {
+            if (area.size.x <= 0.f || area.size.y <= 0.f)
+                return std::nullopt;
+            if (windowSize.x == 0 || windowSize.y == 0)
+                return std::nullopt;
+            sf::View view(area);
+            view.setViewport(sf::FloatRect(
+                sf::Vector2f{
+                    area.position.x / static_cast<float>(windowSize.x),
+                    area.position.y / static_cast<float>(windowSize.y)
+                },
+                sf::Vector2f{
+                    area.size.x / static_cast<float>(windowSize.x),
+                    area.size.y / static_cast<float>(windowSize.y)
+                }
+            ));
+            return view;
+        };
+        sf::View defaultView = target.getView();
+
         const sf::Color columnTextColor(0, 0, 0);
 
         auto sanitizeQuestName = [](const std::string& source) {
@@ -1273,7 +1418,6 @@ namespace {
         float cardWidth = columnWidth - (kEntryPadding * 2.f);
         float cardX = leftColumnX + kEntryPadding;
 
-        float cursorY = entryStartY;
         constexpr float kCardHorizontalPadding = 14.f;
         constexpr float kCardVerticalPadding = 12.f;
         constexpr float kTextSpacing = 6.f;
@@ -1281,6 +1425,32 @@ namespace {
         constexpr float kFoldAnimationStep = 0.08f;
         constexpr sf::Vector2f kFoldButtonSize{ 36.f, 18.f };
         constexpr float kFoldButtonVerticalMargin = 10.f;
+        float columnBottomLimit = columnTop + columnHeight - 12.f;
+        float activeContentTop = entryStartY - 8.f;
+        float activeContentHeight = columnHeight - (activeContentTop - columnTop) - 12.f;
+        activeContentHeight = std::max(0.f, activeContentHeight);
+        sf::FloatRect activeContentBounds(
+            sf::Vector2f{ leftColumnX, activeContentTop },
+            sf::Vector2f{ columnWidth, activeContentHeight }
+        );
+        game.questActiveColumnBounds = activeContentBounds;
+        RoundedRectangleShape activeContentBox(
+            { activeContentBounds.size.x, activeContentBounds.size.y },
+            16.f,
+            20
+        );
+        activeContentBox.setPosition(activeContentBounds.position);
+        activeContentBox.setFillColor(sf::Color::Transparent);
+        target.draw(activeContentBox);
+
+        float prevActiveMaxScroll = game.questActiveMaxScroll;
+        float activeScroll = std::clamp(game.questActiveScrollOffset, 0.f, prevActiveMaxScroll);
+        float runningHeight = 0.f;
+        float activeAvailableHeight = activeContentBounds.size.y;
+
+        auto activeColumnView = makeColumnView(activeContentBounds);
+        if (activeColumnView)
+            target.setView(*activeColumnView);
         for (std::size_t idx = 0; idx < game.questLog.size(); ++idx) {
             auto& entry = game.questLog[idx];
             if (entry.completed)
@@ -1293,6 +1463,7 @@ namespace {
             else
                 entry.foldProgress += (diff > 0.f ? kFoldAnimationStep : -kFoldAnimationStep);
 
+            float cursorY = entryStartY + runningHeight - activeScroll;
             float textX = cardX + kCardHorizontalPadding;
             float measurementBaseY = cursorY + kCardVerticalPadding;
 
@@ -1329,8 +1500,12 @@ namespace {
             float collapsedHeight = std::max(titleOnlyHeight, buttonAreaHeight);
             collapsedHeight = std::min(collapsedHeight, expandedHeight);
             float cardHeight = collapsedHeight + (expandedHeight - collapsedHeight) * entry.foldProgress;
-            if (cursorY + cardHeight > columnTop + columnHeight - 12.f)
-                break;
+
+            bool cardAbove = cursorY + cardHeight < columnTop;
+            bool cardBelow = cursorY > columnBottomLimit;
+            runningHeight += cardHeight + kEntrySpacing;
+            if (cardAbove || cardBelow)
+                continue;
 
             float detailAlpha = entry.foldProgress;
 
@@ -1418,9 +1593,16 @@ namespace {
             target.draw(foldLabel);
 
             game.questFoldButtonBounds[idx] = { buttonPos, kFoldButtonSize };
-
-            cursorY += cardHeight + kEntrySpacing;
         }
+
+        float activeTotalHeight = runningHeight > 0.f ? runningHeight - kEntrySpacing : 0.f;
+        float activeMaxScroll = std::max(0.f, activeTotalHeight - activeAvailableHeight);
+        game.questActiveMaxScroll = activeMaxScroll;
+        if (game.questActiveScrollOffset > activeMaxScroll)
+            game.questActiveScrollOffset = activeMaxScroll;
+        activeScroll = std::clamp(game.questActiveScrollOffset, 0.f, activeMaxScroll);
+        if (activeColumnView)
+            target.setView(defaultView);
 
         sf::Text finishedHeader{ game.resources.titleFont, "Finished Quests", 30 };
         finishedHeader.setFillColor(applyAlpha(ColorHelper::Palette::SoftYellow));
@@ -1428,12 +1610,44 @@ namespace {
         target.draw(finishedHeader);
 
         float finishedStartY = columnTop + 56.f;
-        float finishedCursorY = finishedStartY;
+        float finishedContentTop = finishedStartY - 8.f;
+        float finishedContentHeight = columnHeight - (finishedContentTop - columnTop) - 12.f;
+        finishedContentHeight = std::max(0.f, finishedContentHeight);
+        sf::FloatRect finishedContentBounds(
+            sf::Vector2f{ rightColumnX, finishedContentTop },
+            sf::Vector2f{ columnWidth, finishedContentHeight }
+        );
+        game.questFinishedColumnBounds = finishedContentBounds;
+        RoundedRectangleShape finishedContentBox(
+            { finishedContentBounds.size.x, finishedContentBounds.size.y },
+            16.f,
+            20
+        );
+        finishedContentBox.setPosition(finishedContentBounds.position);
+        finishedContentBox.setFillColor(sf::Color::Transparent);
+        target.draw(finishedContentBox);
+
+        float prevFinishedMaxScroll = game.questFinishedMaxScroll;
+        float finishedScroll = std::clamp(game.questFinishedScrollOffset, 0.f, prevFinishedMaxScroll);
         const float kFinishedCardHeight = 46.f;
         const float kFinishedNameSize = 20.f;
         constexpr float kFinishedSpacing = 12.f;
+        float runningFinishedHeight = 0.f;
+        float finishedAvailableHeight = finishedContentBounds.size.y;
+
+        auto finishedColumnView = makeColumnView(finishedContentBounds);
+        if (finishedColumnView)
+            target.setView(*finishedColumnView);
         for (const auto& entry : game.questLog) {
             if (!entry.completed)
+                continue;
+
+            float finishedCursorY = finishedStartY + runningFinishedHeight - finishedScroll;
+            runningFinishedHeight += kFinishedCardHeight + kFinishedSpacing;
+
+            bool cardAbove = finishedCursorY + kFinishedCardHeight < columnTop;
+            bool cardBelow = finishedCursorY > columnTop + columnHeight - 12.f;
+            if (cardAbove || cardBelow)
                 continue;
 
             RoundedRectangleShape card({ cardWidth, kFinishedCardHeight }, 12.f, 12);
@@ -1460,11 +1674,56 @@ namespace {
                 nameBounds.position.y + (nameBounds.size.y * 0.5f)
             });
             target.draw(strike);
-
-            finishedCursorY += kFinishedCardHeight + kFinishedSpacing;
-            if (finishedCursorY > columnTop + columnHeight - 12.f)
-                break;
         }
+
+        float finishedTotalHeight = runningFinishedHeight > 0.f ? runningFinishedHeight - kFinishedSpacing : 0.f;
+        float finishedMaxScroll = std::max(0.f, finishedTotalHeight - finishedAvailableHeight);
+        game.questFinishedMaxScroll = finishedMaxScroll;
+        if (game.questFinishedScrollOffset > finishedMaxScroll)
+            game.questFinishedScrollOffset = finishedMaxScroll;
+        finishedScroll = std::clamp(game.questFinishedScrollOffset, 0.f, finishedMaxScroll);
+        if (finishedColumnView)
+            target.setView(defaultView);
+
+        auto drawQuestScrollbar = [&](const sf::FloatRect& area, float scrollOffset, float maxScroll, float visibleHeight) {
+            constexpr float kScrollbarWidth = 6.f;
+            constexpr float kScrollbarPadding = 8.f;
+            if (maxScroll <= 0.f || visibleHeight <= 0.f)
+                return;
+            float areaHeight = area.size.y;
+            float areaWidth = area.size.x;
+            float areaLeft = area.position.x;
+            float areaTop = area.position.y;
+            float trackHeight = std::max(0.f, areaHeight - kScrollbarPadding * 2.f);
+            if (trackHeight <= 0.f)
+                return;
+            sf::RectangleShape track({ kScrollbarWidth, trackHeight });
+            track.setPosition({
+                areaLeft + areaWidth - kScrollbarWidth - kScrollbarPadding,
+                areaTop + kScrollbarPadding
+            });
+            track.setFillColor(ColorHelper::applyAlphaFactor(sf::Color(255, 255, 255, 110), alphaFactor));
+            target.draw(track);
+
+            float totalHeight = visibleHeight + maxScroll;
+            if (totalHeight <= 0.f)
+                return;
+            float visibleFraction = std::clamp(visibleHeight / totalHeight, 0.f, 1.f);
+            float sliderHeight = std::max(24.f, trackHeight * visibleFraction);
+            sliderHeight = std::min(sliderHeight, trackHeight);
+            float trackRange = std::max(0.f, trackHeight - sliderHeight);
+            float scrollRatio = (maxScroll > 0.f) ? (scrollOffset / maxScroll) : 0.f;
+            sf::RectangleShape thumb({ kScrollbarWidth, sliderHeight });
+            thumb.setPosition({
+                track.getPosition().x,
+                track.getPosition().y + scrollRatio * trackRange
+            });
+            thumb.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, alphaFactor));
+            target.draw(thumb);
+        };
+
+        drawQuestScrollbar(game.questActiveColumnBounds, activeScroll, activeMaxScroll, activeAvailableHeight);
+        drawQuestScrollbar(game.questFinishedColumnBounds, finishedScroll, finishedMaxScroll, finishedAvailableHeight);
 
     }
 
@@ -1752,6 +2011,15 @@ bool handleEvent(Game& game, const sf::Event& event) {
         }
         return true;
     };
+    auto inventoryTutorialBlocking = [&]() {
+        return game.inventoryTutorialPopupActive;
+    };
+    auto questTutorialBlocking = [&]() {
+        return game.questTutorialPopupActive && !game.questTutorialClosing;
+    };
+    auto anyTutorialBlocking = [&]() {
+        return inventoryTutorialBlocking() || questTutorialBlocking();
+    };
     if (game.forcedDestinationSelection && game.menuActive)
         game.menuActiveTab = static_cast<int>(MenuTab::Map);
     if (!game.mapTutorialActive && dispatchMenuMapEvent())
@@ -1765,12 +2033,12 @@ bool handleEvent(Game& game, const sf::Event& event) {
             game.menuButtonHovered = false;
         }
         else if (game.menuActive) {
-            if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing))
+            if (!anyTutorialBlocking())
                 updateHovered(point);
             else
                 game.menuHoveredTab = -1;
             game.mapTutorialOkHovered = false;
-            if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing)
+            if (!anyTutorialBlocking()
                 && game.menuActiveTab == static_cast<int>(MenuTab::Quests))
             {
                 game.questFoldHoveredIndex = -1;
@@ -1784,7 +2052,7 @@ bool handleEvent(Game& game, const sf::Event& event) {
             else {
                 game.questFoldHoveredIndex = -1;
             }
-            if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing)
+            if (!anyTutorialBlocking()
                 && game.menuActiveTab == static_cast<int>(MenuTab::Inventory))
             {
                 game.characterMenu.hoveredButton = -1;
@@ -1810,21 +2078,57 @@ bool handleEvent(Game& game, const sf::Event& event) {
             game.mapTutorialOkHovered = false;
         }
         if (!game.mapTutorialActive) {
-            if (game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing) {
+            if (inventoryTutorialBlocking()) {
                 game.inventoryTutorialButtonHovered = game.inventoryTutorialButtonBounds.contains(point);
             }
             else {
                 game.inventoryTutorialButtonHovered = false;
             }
+            if (questTutorialBlocking()) {
+                game.questTutorialButtonHovered = game.questTutorialButtonBounds.contains(point);
+            }
+            else {
+                game.questTutorialButtonHovered = false;
+            }
         }
         else {
             game.inventoryTutorialButtonHovered = false;
+            game.questTutorialButtonHovered = false;
         }
         if (!game.menuActive)
             game.questFoldHoveredIndex = -1;
         if (!game.menuActive) {
             game.characterMenu.hoveredButton = -1;
             game.characterMenu.cloakButtonHovered = false;
+        }
+    }
+
+    if (auto wheel = event.getIf<sf::Event::MouseWheelScrolled>()) {
+        if (!anyTutorialBlocking() && game.menuActive && game.menuActiveTab == static_cast<int>(MenuTab::Quests)) {
+            sf::Vector2f point = game.window.mapPixelToCoords(wheel->position);
+            constexpr float kQuestScrollStep = 48.f;
+            float delta = -wheel->delta * kQuestScrollStep;
+            bool handled = false;
+            if (game.questActiveColumnBounds.contains(point) && game.questActiveMaxScroll > 0.f) {
+                game.questActiveScrollOffset = std::clamp(
+                    game.questActiveScrollOffset + delta,
+                    0.f,
+                    game.questActiveMaxScroll
+                );
+                handled = true;
+            }
+            else if (game.questFinishedColumnBounds.contains(point) && game.questFinishedMaxScroll > 0.f) {
+                game.questFinishedScrollOffset = std::clamp(
+                    game.questFinishedScrollOffset + delta,
+                    0.f,
+                    game.questFinishedMaxScroll
+                );
+                handled = true;
+            }
+            if (handled) {
+                consumed = true;
+                return true;
+            }
         }
     }
 
@@ -1849,21 +2153,21 @@ bool handleEvent(Game& game, const sf::Event& event) {
             }
             else if (game.menuActive) {
                 bool clickedTab = false;
-                if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing)) {
-                for (std::size_t idx = 0; idx < game.menuTabBounds.size(); ++idx) {
-                    if (game.menuTabBounds[idx].contains(point)) {
-                        game.menuActiveTab = static_cast<int>(idx);
-                        clickedTab = true;
-                        break;
+                if (!anyTutorialBlocking()) {
+                    for (std::size_t idx = 0; idx < game.menuTabBounds.size(); ++idx) {
+                        if (game.menuTabBounds[idx].contains(point)) {
+                            game.menuActiveTab = static_cast<int>(idx);
+                            clickedTab = true;
+                            break;
+                        }
                     }
                 }
-            }
 
             if (clickedTab && !game.forcedDestinationSelection) {
                 consumed = true;
             }
             else {
-                    if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing)
+                    if (!anyTutorialBlocking()
                         && game.menuActiveTab == static_cast<int>(MenuTab::Inventory))
                     {
                         for (std::size_t idx = 0; idx < game.characterMenu.categoryButtonBounds.size(); ++idx) {
@@ -1874,7 +2178,7 @@ bool handleEvent(Game& game, const sf::Event& event) {
                             }
                         }
                     }
-                    if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing)
+                    if (!anyTutorialBlocking()
                         && game.menuActiveTab == static_cast<int>(MenuTab::Inventory)
                         && game.characterMenu.cloakButtonBounds.contains(point))
                     {
@@ -1886,7 +2190,7 @@ bool handleEvent(Game& game, const sf::Event& event) {
 
                     auto panelBounds = game.menuPanel.getGlobalBounds();
                     bool insidePanel = panelBounds.contains(point);
-                    if (!(game.inventoryTutorialPopupActive && !game.inventoryTutorialClosing)
+                    if (!anyTutorialBlocking()
                         && game.menuActiveTab == static_cast<int>(MenuTab::Quests))
                     {
                         for (std::size_t idx = 0; idx < game.questFoldButtonBounds.size(); ++idx) {
@@ -1900,15 +2204,30 @@ bool handleEvent(Game& game, const sf::Event& event) {
                             }
                         }
                     }
-                    if (game.inventoryTutorialPopupActive) {
-                        if (!game.inventoryTutorialClosing
-                            && game.inventoryTutorialButtonBounds.contains(point))
+                    if (inventoryTutorialBlocking()) {
+                        if (game.inventoryTutorialButtonBounds.contains(point)) {
+                            game.inventoryTutorialPopupActive = false;
+                            game.inventoryTutorialCompleted = true;
+                            game.inventoryArrowActive = false;
+                            game.menuActiveTab = static_cast<int>(MenuTab::Quests);
+                            game.menuHoveredTab = -1;
+                            game.inventoryTutorialButtonHovered = false;
+                            game.inventoryTutorialButtonBounds = {};
+                            if (!game.questTutorialCompleted)
+                                game.questTutorialPending = true;
+                            consumed = true;
+                            return true;
+                        }
+                    }
+                    else if (questTutorialBlocking()) {
+                        if (!game.questTutorialClosing
+                            && game.questTutorialButtonBounds.contains(point))
                             {
-                                game.inventoryTutorialClosing = true;
-                                game.inventoryTutorialCloseClock.restart();
-                                game.inventoryTutorialCloseProgress = 0.f;
-                                game.inventoryTutorialButtonHovered = false;
-                                game.inventoryTutorialAdvancePending = true;
+                                game.questTutorialClosing = true;
+                                game.questTutorialCloseClock.restart();
+                                game.questTutorialCloseProgress = 0.f;
+                                game.questTutorialButtonHovered = false;
+                                game.questTutorialAdvancePending = true;
                             }
                     }
                     else if (!insidePanel) {
@@ -1924,7 +2243,7 @@ bool handleEvent(Game& game, const sf::Event& event) {
     if (auto key = event.getIf<sf::Event::KeyReleased>()) {
         if (key->code == sf::Keyboard::Key::Escape) {
             if (game.menuActive) {
-                if (!game.inventoryTutorialPopupActive && !game.mapTutorialActive && !game.forcedDestinationSelection)
+                if (!anyTutorialBlocking() && !game.mapTutorialActive && !game.forcedDestinationSelection)
                     game.menuActive = false;
             }
             else if (menuButtonInteractable) {
@@ -1965,11 +2284,12 @@ bool handleEvent(Game& game, const sf::Event& event) {
 
 void draw(Game& game, sf::RenderTarget& target) {
     updateMenuButtonFade(game);
-    float tutorialCloseProgress = game.inventoryTutorialClosing
-        ? std::min(1.f, game.inventoryTutorialCloseClock.getElapsedTime().asSeconds() / kInventoryTutorialCloseDuration)
+    float questTutorialCloseProgress = game.questTutorialClosing
+        ? std::min(1.f, game.questTutorialCloseClock.getElapsedTime().asSeconds() / kQuestTutorialCloseDuration)
         : 0.f;
-    game.inventoryTutorialCloseProgress = tutorialCloseProgress;
-    float tutorialAlpha = game.inventoryTutorialClosing ? (1.f - tutorialCloseProgress) : 1.f;
+    game.questTutorialCloseProgress = questTutorialCloseProgress;
+    bool tutorialClosing = game.questTutorialClosing;
+    float tutorialAlpha = tutorialClosing ? (1.f - questTutorialCloseProgress) : 1.f;
 
     if (game.menuButton.getSize().x <= 0.f || game.menuButton.getSize().y <= 0.f)
         return;
@@ -2011,7 +2331,7 @@ void draw(Game& game, sf::RenderTarget& target) {
     if (!game.menuActive)
         return;
 
-    float menuFadeFactor = (game.inventoryTutorialClosing) ? tutorialAlpha : 1.f;
+    float menuFadeFactor = tutorialClosing ? tutorialAlpha : 1.f;
     sf::Vector2u windowSize = target.getSize();
     sf::RectangleShape overlay({ static_cast<float>(windowSize.x), static_cast<float>(windowSize.y) });
     overlay.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Overlay, menuFadeFactor));
@@ -2147,25 +2467,22 @@ void draw(Game& game, sf::RenderTarget& target) {
 
     drawMapTutorialPopup(game, target, panelBounds, menuFadeFactor);
     drawInventoryTutorialPopup(game, target, panelBounds, contentBottom, menuFadeFactor);
+    drawQuestTutorialPopup(game, target, panelBounds, menuFadeFactor);
 
-    if (game.inventoryTutorialClosing && tutorialCloseProgress >= 1.f) {
-        game.inventoryTutorialClosing = false;
-        game.inventoryTutorialPopupActive = false;
-        game.inventoryArrowActive = false;
-        game.inventoryTutorialCompleted = true;
-        game.menuActive = false;
-        if (game.inventoryTutorialAdvancePending) {
-            if (game.currentDialogue == &perigonal
-                && game.dialogueIndex < game.currentDialogue->size()
-                && (*game.currentDialogue)[game.dialogueIndex].text == kInventoryArrowLineText)
-            {
-                advanceDialogueLine(game);
-            }
-            game.inventoryTutorialAdvancePending = false;
+    if (game.questTutorialClosing && questTutorialCloseProgress >= 1.f) {
+        game.questTutorialClosing = false;
+        game.questTutorialPopupActive = false;
+        game.questTutorialCompleted = true;
+        game.questTutorialButtonBounds = {};
+        game.questTutorialButtonHovered = false;
+        game.questTutorialCloseProgress = 0.f;
+        bool shouldAdvance = game.questTutorialAdvancePending;
+        game.questTutorialAdvancePending = false;
+        if (shouldAdvance) {
+            game.menuActive = false;
+            game.menuHoveredTab = -1;
+            advanceDialogueLine(game);
         }
-        game.inventoryTutorialButtonBounds = {};
-        game.inventoryTutorialButtonHovered = false;
-        game.inventoryTutorialCloseProgress = 0.f;
     }
 }
 

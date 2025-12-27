@@ -290,7 +290,7 @@ inline const std::vector<DialogueLine> blacksmith = {
 };
 // Secon part of the Gonad Dialogue. This is where the player receives a map
 inline const std::vector<DialogueLine> gonad_part_two = {
-    { Speaker::VillageElder, "You're back. I see Will kept his word." },
+    { Speaker::VillageElder, "You're back. I see Will kept his word.", false, false, true, DialogueLineAction::StartsQuest, std::optional<std::string>{"Map of Many Lands"}, std::nullopt },
     { Speaker::Player, "He did. This weapon is... something else." },
     { Speaker::VillageElder, "Good. Then listen carefully." },
     { Speaker::VillageElder, "Glandular holds many lands - but four regions stand apart, shaped by the Elemental Dragons." },
@@ -299,19 +299,19 @@ inline const std::vector<DialogueLine> gonad_part_two = {
     { Speaker::VillageElder, "Not all roads wish to be found. This map shows the ones that do." }, // Open Map at the end of this line
     { Speaker::StoryTeller, "And just like that, the world opens." },
     { Speaker::StoryTeller, "But before you rush off - let's make sure you know what you're carrying." },
-    { Speaker::StoryTeller, "To the south lies Aerobronchi." }, // Highlight Aerobronchi
+    { Speaker::StoryTeller, "To the south lies Aerobronchi.", false, false, true, DialogueLineAction::StartsQuest, std::optional<std::string>{"Trial of Soul"} },
     { Speaker::StoryTeller, "Land of wind and open skies." },
     { Speaker::StoryTeller, "Its dragon is Gustavo Windimaess." }, // Fade in Air Dragon Asset
     { Speaker::StoryTeller, "Quick-tongued. Proud. He enjoys watching people lose their breath." }, // Unhighlight Aerobronchi, Fade Out Air Dragon Asset
-    { Speaker::StoryTeller, "To the east stands Blyathyroid." }, // Highlight Blyathyroid
+    { Speaker::StoryTeller, "To the east stands Blyathyroid.", false, false, true, DialogueLineAction::StartsQuest, std::optional<std::string>{"Trial of Resolve"} }, // Highlight Blyathyroid
     { Speaker::StoryTeller, "Fire, stone, and pressure." }, 
     { Speaker::StoryTeller, "Rowsted Sheacane rules there." }, // Fade in Fire Dragon Asset
     { Speaker::StoryTeller, "He respects strength - and nothing else." }, // Unhighlight Blyathyroid, fade out Fire Dragon Asset
-    { Speaker::StoryTeller, "To the west lies Cladrenal." }, // Highlight Cladrenal
+    { Speaker::StoryTeller, "To the west lies Cladrenal.", false, false, true, DialogueLineAction::StartsQuest, std::optional<std::string>{"Trial of Body"} }, // Highlight Cladrenal
     { Speaker::StoryTeller, "Solid ground. Heavy silence." },
     { Speaker::StoryTeller, "Grounded Claymore watches over it." }, // Fade in Earth Dragon Asset
     { Speaker::StoryTeller, "Straightforward. Fair. But unmoving once decided." }, // Unhighlight Cladrenal, Fade out Earth Dragon Asset
-    { Speaker::StoryTeller, "And to the north... Lacrimere." }, // Highlight Lacrimere
+    { Speaker::StoryTeller, "And to the north... Lacrimere.", false, false, true, DialogueLineAction::StartsQuest, std::optional<std::string>{"Trial of Mind"} }, // Highlight Lacrimere
     { Speaker::StoryTeller, "Cold waters and deeper emotions." },
     { Speaker::StoryTeller, "Flawtin Seamen dwells there." }, // Fade in Water Dragon Asset
     { Speaker::StoryTeller, "He listens closely - sometimes too closely." }, // Unhighlight Lacrimere, Fade out Water Dragon Asset
@@ -324,7 +324,7 @@ inline const std::vector<DialogueLine> gonad_part_two = {
     { Speaker::VillageElder, "Your weapon is ready. The paths are open. It's up to you to decide your fate." },
     { Speaker::VillageElder, "And remember - the dragons do not change you. They only reveal what has yet to awaken." },
     { Speaker::Player, "A map... and a chance to save {dragonbornSiblingName}." },
-    { Speaker::VillageWanderer, "We are all set now. Let's open the map and choose our first destination." },
+    { Speaker::VillageWanderer, "We are all set now. Let's open the map and choose our first destination.", false, false, true, DialogueLineAction::OpensMapFromMenu | DialogueLineAction::CompletesQuest, std::nullopt, std::optional<std::string>{"Map of Many Lands"} },
 };
 
 // Third Gonad dialogue that bridges the Dragon Stones with the final confrontation.
@@ -372,7 +372,7 @@ inline const std::vector<DialogueLine> gonadWelcomeBack = {
 
 // Dialogue triggered once you survive the teleport to Seminiferous.
 inline const std::vector<DialogueLine> seminiferous = {
-    { Speaker::StoryTeller, "Upon reaching ground, you freeze for a minute." },
+    { Speaker::StoryTeller, "Upon reaching ground, you freeze for a minute.", false, false, true, DialogueLineAction::StartsQuest, std::optional<std::string>{"Face of the Master"}, std::nullopt },
     { Speaker::StoryTeller, "Gonad is gone. And right where it used to be stands a dark, ominous Castle." },
     { Speaker::StoryTeller, "A shady figure steps out of the castle greeting you with an evil smirk." },
     { Speaker::MasterBates, "So you have finally come, {playerName}! I see you have retrieved all the Dragon Stones!" },
@@ -383,7 +383,7 @@ inline const std::vector<DialogueLine> seminiferous = {
     { Speaker::Player, "Dragon Stones, lend me your power!" },
     { Speaker::StoryTeller, "The Dragon Stones glow and the power of the Fire Dragon, Air Dragon, Water Dragon and Earth Dragon is absorbed into your weapon!" },
     { Speaker::Player, "Eat this, Master Bates! This is for my siblings!" },
-    { Speaker::StoryTeller, "You attack Master Bates with the power of the Dragon Stones. Master Bates is defeated!" },
+    { Speaker::StoryTeller, "You attack Master Bates with the power of the Dragon Stones. Master Bates is defeated!", false, false, true, DialogueLineAction::CompletesQuest, std::nullopt, std::optional<std::string>{"Face of the Master"} },
     { Speaker::NoahBates, "Noooooo! How can this be?! I came so far!" },
     { Speaker::Player, "Noah Lott?! You are Master Bates?! You are the one who kidnapped my siblings?!" },
     { Speaker::NoahBates, "Please, {playerName}, don't kill me! We can reign this world together!" },
@@ -422,82 +422,155 @@ inline const std::vector<DialogueLine> finalChoiceAbsorb = {
 inline const std::vector<DialogueLine> firedragon = {
     { Speaker::StoryTeller, "You step back from a wall of flames as you reach your destination." },
     { Speaker::StoryTeller, "This must be Blyathyroid, where the Fire Dragon resides." },
-    { Speaker::FireDragon, "Who dares to step into my cayyve vithout perMEEESHON?!" },
-    { Speaker::Player, "I am {playerName}, the Dragonborn. I have come to seek your help." },
-    { Speaker::FireDragon, "I know vho you ahre. I vas just yoking! You ahre probably looking for my DRRAGON STONE." },
-    { Speaker::FireDragon, "I can give you my DRRAGON STONE, but you must prooof your VORTH first." },
-    { Speaker::FireDragon, "You must defeat me in glorious duel!" },
-    { Speaker::Player, "A duel? But I am not ready for a duel!" },
-    { Speaker::FireDragon, "I vas just yoking again! Is so booooring in here. Heh heh heh!" },
-    { Speaker::FireDragon, "I will give you my DRRAGON STONE if you can win in this Riddle Game." },
-    { Speaker::FireDragon, "Wyelcome byeck to dis shyow: Who wants tyo be Dragonborn? Dis is contestant {playerName}, he searches for DRRAGON STONES!", false, false, true, DialogueLineAction::StartsQuiz },
+    { Speaker::FireDragon, "Hmh. I smell fear. And soft rresolve. Dragonborn... still very soft, da." },
+    { Speaker::Player, "You... know who I am?" },
+    { Speaker::FireDragon, "Da. I know vho you ahre, little Drragonborn. I smell your fear and your doubt." },
+    { Speaker::Player, "I wanted to protect my {dragonbornSibling} and my home. But I failed..." },
+    { Speaker::Player, "In the end, I lost everything... What do I lack?" },
+    { Speaker::FireDragon, "You think you lost everything, but you still carry anger, fear, and hope. You ahre unfinished, da." },
+    { Speaker::Player, "It feels like the fire inside me eats me from within." },
+    { Speaker::FireDragon, "Da. Because it has nowhere to go. Your scales too thin, your claws not sharp. Heat leaks everywhere." },
+    { Speaker::FireDragon, "Vhen pain comes, you pull back. Vhen guilt comes, you scratch once... and then stop." },
+    { Speaker::Player, "So what should I do... fight harder?" },
+    { Speaker::FireDragon, "Not just harrrder. Longer. Cleaner." },
+    { Speaker::FireDragon, "Rresolve is not vild flame. Rresolve is controlled fire that refuses to go out." },
+    { Speaker::FireDragon, "It stays vhen body shakes, vhen mind screams to run, vhen heart says 'enough'." },
+    { Speaker::Player, "And if I fail again?" },
+    { Speaker::FireDragon, "You vill. Many times, da." },
+    { Speaker::FireDragon, "But each time you stand again, you hammerrr your rresolve." },
+    { Speaker::FireDragon, "Each time you stay in heat, your scales grow thicker and your claws more sure." },
+    { Speaker::Player, "Do you really think I can reach them?" },
+    { Speaker::FireDragon, "Da. I vould not vaste breath on dead emberrr." },
+    { Speaker::FireDragon, "I see spark that refuses to die. If you learn to hold, that spark vill become blaze." },
+    { Speaker::FireDragon, "Now enough vords. Fire does not promise. Fire tests. So........" },
+    { Speaker::FireDragon, "Wyelcome byeck to dis shyow: Who vants tyo be Drragonborn? Dis is contestant {playerName}, he searches for strong rresolve!", false, false, true, DialogueLineAction::StartsQuiz },
     { Speaker::FireDragon, "Vhat is my name?" }, // starts the question input
     { Speaker::FireDragon, "VRRONG! Try again." }, // Only if wrong
-    { Speaker::FireDragon, "Da! You solved it! My name is Rowsted Sheacane!" },
-    { Speaker::FireDragon, "Aaaannd we have a winnnneeeer!" },
-    { Speaker::FireDragon, "You ahre smart! Now take my DRRAGON STONE and leave my cayyve!" },
-    { Speaker::Player, "Thank you, {fireDragon}! I will not forget this!" },
+    { Speaker::FireDragon, "Da! You solved it! My name is Rrowsted Sheacane!" },
+    { Speaker::FireDragon, "Aaaannd we have a winnnneeeer!", false, false, true, DialogueLineAction::FinalCheer }, // End of Quiz
+    { Speaker::FireDragon, "Remember dis heat vhen your rresolve tries to crack again, da." },
+    { Speaker::FireDragon, "Even ze finest steel must pass thrrrough ze hottest fire." },
+    { Speaker::Player, "Thank you, {fireDragon}! I will keep going." },
 };
+
 
 inline const std::vector<DialogueLine> waterdragon = {
-    { Speaker::StoryTeller, "You fall into a riverbed as you reach your destination." },
+    { Speaker::StoryTeller, "Cold water splashes up as you slip on wet stone." },
     { Speaker::StoryTeller, "This must be Lacrimere, where the Water Dragon resides." },
-    { Speaker::WaterDragon, "Hu dares to step into mein hole vizout permission?!" },
-    { Speaker::Player, "I am {playerName}, the Dragonborn. I have come to seek your help." },
-    { Speaker::WaterDragon, "I know hu you are. I vas only joking! You are probably looking for mein DRAGON STONE." },
-    { Speaker::WaterDragon, "I can give you mein DRAGON STONE, but first you must proove your VORTH." },
-    { Speaker::WaterDragon, "You must defeat me in a duel. Din-Norm regulated, ja!" },
-    { Speaker::Player, "A duel? But I am not ready for a duel!" },
-    { Speaker::WaterDragon, "Sis was nur Fun, ja! It is sehr langweilig hier. Heh heh heh!" },
-    { Speaker::WaterDragon, "I vill give you mein Dragon Stone if you can win in zis Riddle Game." },
-    { Speaker::WaterDragon, "And hier, ja, Willkommen back to: Hu vants to be a Dragonborn? Auer todays Teilnehmer ist {playerName}, ja, hu is searching for ze Dragon Stones!", false, false, true, DialogueLineAction::StartsQuiz },
-    { Speaker::WaterDragon, "Vhat is mein name?" }, // starts the question input
-    { Speaker::WaterDragon, "VRONG! Nochmal." }, // Only if wrong
-    { Speaker::WaterDragon, "Jawoll! You are korrekt! Mein name ist Flawtin Seamen!" },
-    { Speaker::WaterDragon, "Aaaannd ve have a vinnnneeeer!" },
-    { Speaker::WaterDragon, "You are very smart! Now take mein DRAGON STONE and leave mein hole!" },
-    { Speaker::Player, "Thank you, {waterDragon}! I will not forget this!" },
+    { Speaker::WaterDragon, "Hm. Your head is loud. Zoughts everywhere. Dragonborn, ja. But mind... very unfocused." },
+    { Speaker::Player, "You... know who I am?" },
+    { Speaker::WaterDragon, "Ja. I know vho you are, little Dragonborn. Your fear is not ze problem. Your zinking is." },
+    { Speaker::Player, "I wanted to protect my {dragonbornSibling} and my home." },
+    { Speaker::Player, "I keep seeing that moment. Over and over. What is wrong with me...?" },
+    { Speaker::WaterDragon, "You are not broken. And you are not wrong. You are drowning in your own mind, ja." },
+    { Speaker::Player, "Drowning...?" },
+    { Speaker::WaterDragon, "You replay every choice until ze vater turns to fog." },
+    { Speaker::WaterDragon, "You blame yourself for every vave you could not stop." },
+    { Speaker::Player, "Then what do I need?" },
+    { Speaker::WaterDragon, "You need clear mind. Not less feeling. Less noise." },
+    { Speaker::WaterDragon, "Mind is like vater. It reflects ze trus vhen it is still." },
+    { Speaker::WaterDragon, "But you stir it all day... and zen believe ze ripples." },
+    { Speaker::Player, "Can that change?" },
+    { Speaker::WaterDragon, "Ja. You learn to let zoughts pass, instead of chasing each one." },
+    { Speaker::WaterDragon, "You choose vhat to hold, and vhat to let flow avay." },
+    { Speaker::Player, "And if I start to drown in it again?" },
+    { Speaker::WaterDragon, "Zen you stop. You breathe. You focus on one thing zat matters." },
+    { Speaker::WaterDragon, "You do not have to think of all losses at once. Just ze next step to reach zem." },
+    { Speaker::Player, "Do you think I can reach them?" },
+    { Speaker::WaterDragon, "Ja. If you learn to see clearly." },
+    { Speaker::WaterDragon, "Vith clear mind, you vill see paths zat panic hides from you." },
+    { Speaker::WaterDragon, "So. Enough theory, ja? Zoughts are easy. Focus is not." },
+    { Speaker::WaterDragon, "Velcome back to zis show: Who vants to be Dragonborn? Zis is contestant {playerName}, searching for clear mind!", false, false, true, DialogueLineAction::StartsQuiz },
+    { Speaker::WaterDragon, "Vhat is my name?" }, // starts the question input
+    { Speaker::WaterDragon, "Vrond. Focus. Try again." }, // Only if wrong
+    { Speaker::WaterDragon, "Jawoll. You are correct. My name is Flawtin Seamen." },
+    { Speaker::WaterDragon, "Aaand ve have a vinnner!", false, false, true, DialogueLineAction::FinalCheer }, // End of Quiz
+    { Speaker::WaterDragon, "Remember zis vater vhen your mind turns to fog again, ja." },
+    { Speaker::WaterDragon, "Don't push ze river - it flows by itself." },
+    { Speaker::Player, "Thank you, {waterDragon}. I will try to see clearly." },
 };
+
 
 inline const std::vector<DialogueLine> earthdragon = {
-    { Speaker::StoryTeller, "You step into a puddle of mud as you reach your destination." },
+    { Speaker::StoryTeller, "You step into cold mud. It holds your boots for a second before letting go." },
     { Speaker::StoryTeller, "This must be Cladrenal, where the Earth Dragon resides." },
-    { Speaker::EarthDragon, "Whooo the heck steps into MAH CAVE without even askin'?!" },
-    { Speaker::Player, "I am {playerName}, the Dragonborn. I have come to seek your help." },
-    { Speaker::EarthDragon, "Aw yeah, I know who ya are! I'm just messin' with ya! Yer probably lookin' for my DRAGON STONE." },
-    { Speaker::EarthDragon, "I can hand it over, sure - but ya gotta prooove yer WORTH first." },
-    { Speaker::EarthDragon, "Yer gonna hafta defeat me in a duel, partner." },
-    { Speaker::Player, "A duel? But I am not ready for a duel!" },
-    { Speaker::EarthDragon, "Ha! I'm just foolin' with ya again! It gets real dang borin' in here. Heh heh heh!" },
-    { Speaker::EarthDragon, "I will give you my Dragon Stone if you can win in this Riddle Game." },
-    { Speaker::EarthDragon, "And hereby I warmly welcome you back to: Who wants to be a Dragonborn? Our todays contestant is {playerName}, who is searching for the Dragon Stones!", false, false, true, DialogueLineAction::StartsQuiz },
-    { Speaker::EarthDragon, "What's mah name?" }, // starts the question input
-    { Speaker::EarthDragon, "Nope! That's wronger than a snake wearin' socks! Try again!" }, // Only if wrong
-    { Speaker::EarthDragon, "YEEHAW! That's right! Mah name is Grounded Claymore!" },
-    { Speaker::EarthDragon, "Aaaannd we have a winnnneeeer!" },
-    { Speaker::EarthDragon, "Yer a smart lil' tumbleweed! Now grab the DRAGON STONE and git outta mah cave!" },
-    { Speaker::Player, "Thank you, {earthDragon}! I will not forget this!" },
+    { Speaker::EarthDragon, "Heh. Careful there. Ground bites back if you don't respect it." },
+    { Speaker::Player, "You know who I am...?" },
+    { Speaker::EarthDragon, "Sure do. Dragonborn." },
+    { Speaker::EarthDragon, "You walk light. Too light. Like you ain't sure you belong here." },
+    { Speaker::Player, "I wanted to protect my {dragonbornSibling} and my home." },
+    { Speaker::Player, "But I could not hold. Everything slipped away." },
+    { Speaker::EarthDragon, "Yeah. I can see that." },
+    { Speaker::EarthDragon, "Your body moved. But nothin' in you set itself down." },
+    { Speaker::Player, "What do I lack?" },
+    { Speaker::EarthDragon, "Weight." },
+    { Speaker::EarthDragon, "Not size. Not muscle. The kind that says: I stay." },
+    { Speaker::Player, "Stay... even when it hurts?" },
+    { Speaker::EarthDragon, "Especially then." },
+    { Speaker::EarthDragon, "A tree don't pull up roots just 'cause wind gets loud." },
+    { Speaker::Player, "Sometimes I feel like I just fall apart." },
+    { Speaker::EarthDragon, "Then you learn to fall like stone. Down. Still. Then stand." },
+    { Speaker::EarthDragon, "Body first. Breath. Ground. Then everythin' else follows." },
+    { Speaker::Player, "Can that change for me?" },
+    { Speaker::EarthDragon, "Sure can. But not by runnin'." },
+    { Speaker::EarthDragon, "You slow down 'n you plant your feet. You finish what your hands start." },
+    { Speaker::Player, "And if I lose again?" },
+    { Speaker::EarthDragon, "Then you get back up slower... but steadier." },
+    { Speaker::EarthDragon, "Every time you rise, the ground beneath you remembers." },
+    { Speaker::Player, "Do you think I can stand strong enough to protect them?" },
+    { Speaker::EarthDragon, "Yeah. If you learn to stay put." },
+    { Speaker::EarthDragon, "I see a frame that ain't filled yet. But it can hold plenty." },
+    { Speaker::EarthDragon, "Alright. Enough talk." },
+    { Speaker::EarthDragon, "Earth don't brag. Earth tests." },
+    { Speaker::EarthDragon, "Welcome back to the show: Who wants to be a Dragonborn? Today's contestant is {playerName}, lookin' for solid ground!", false, false, true, DialogueLineAction::StartsQuiz },
+    { Speaker::EarthDragon, "What's my name?" }, // starts the question input
+    { Speaker::EarthDragon, "Nope. Try again. Put some weight in that answer." }, // Only if wrong
+    { Speaker::EarthDragon, "Yeehaw. That's right. My name is Grounded Claymore." },
+    { Speaker::EarthDragon, "Aaaannd we got ourselves a winner!", false, false, true, DialogueLineAction::FinalCheer }, // End of Quiz
+    { Speaker::EarthDragon, "Remember this ground when your knees want to quit." },
+    { Speaker::EarthDragon, "Walk as if you are kissin' the earth with your feet." },
+    { Speaker::Player, "Thank you, {earthDragon}. I will try to stand firm." },
 };
 
+
 inline const std::vector<DialogueLine> airdragon = {
-    { Speaker::StoryTeller, "A heavy breeze hits your face as you reach your destination." },
+    { Speaker::StoryTeller, "A warm current lifts dust from the ground as you arrive." },
     { Speaker::StoryTeller, "This must be Aerobronchi, where the Air Dragon resides." },
-    { Speaker::AirDragon, "Who-a dares to step into-a MY CAVE without-a PERMISSIONE?!" },
-    { Speaker::Player, "I am {playerName}, the Dragonborn. I have come to seek your help." },
-    { Speaker::AirDragon, "Aaaah, I know-a who you are! I was-a just joking! You come for my DRAGON STONE, si si!" },
-    { Speaker::AirDragon, "I can-a give you my DRAGON STONE, but first you must-a prooove your Valore!" },
-    { Speaker::AirDragon, "You must defeat-a me in a duel - molto dramatico!" },
-    { Speaker::Player, "A duel? But I am not ready for a duel!" },
-    { Speaker::AirDragon, "I was-a only joking again! It is SO BORING in here! Heh heh heh-a!" },
-    { Speaker::AirDragon, "I will give you my Dragon Stone if you can win in this Riddle Game." },
-    { Speaker::AirDragon, "And molto welcome-a you back-a to: Who wants-a to be a Dragonborn? Our contestant-a today is-a {playerName}, who is searching-a for-a the Dragon Stones!", false, false, true, DialogueLineAction::StartsQuiz },
-    { Speaker::AirDragon, "What-a is my name?" }, // starts the question input
-    { Speaker::AirDragon, "NOOO! Sbagliata! Try-a again!" }, // Only if wrong
-    { Speaker::AirDragon, "BRAVISSIMO! You are correct-a! My name is Gustavo Windimaess!" },
-    { Speaker::AirDragon, "Aaaannd we have a winnnneeeer!" },
-    { Speaker::AirDragon, "You are molto smart-a! Now take-a my DRAGON STONE and leave-a my cave!" },
-    { Speaker::Player, "Thank you, {airDragon}! I will not forget this!" },
+    { Speaker::AirDragon, "Ah... a traveler carried by many winds." },
+    { Speaker::AirDragon, "And yet, you do not know which one is yours, si?" },
+    { Speaker::Player, "You know who I am?" },
+    { Speaker::AirDragon, "Si. Dragonborn." },
+    { Speaker::AirDragon, "But your soul... it drifts. It wants ten directions at once." },
+    { Speaker::Player, "I wanted to protect my {dragonbornSibling} and my home." },
+    { Speaker::Player, "Now I just feel lost. Pulled everywhere at the same time." },
+    { Speaker::AirDragon, "Dis happens when heart and path do not speak together." },
+    { Speaker::AirDragon, "You run where fear blows you, not where you choose to go." },
+    { Speaker::Player, "Then what do I lack?" },
+    { Speaker::AirDragon, "Anchor. Not chains. A center." },
+    { Speaker::AirDragon, "Soul is not about floating higher. It is about knowing where you return." },
+    { Speaker::Player, "Sometimes I do not even know who I am anymore." },
+    { Speaker::AirDragon, "Good. Question is doorway." },
+    { Speaker::AirDragon, "When you forget, you listen. To breath. To memory. To what still matters." },
+    { Speaker::Player, "Will I ever feel whole again?" },
+    { Speaker::AirDragon, "Si. When your choices line up with your truth." },
+    { Speaker::AirDragon, "Not with fear. Not with guilt. With truth." },
+    { Speaker::Player, "And if I lose myself again?" },
+    { Speaker::AirDragon, "Then you stop. You turn. You find de wind that is yours... and you follow only dat one." },
+    { Speaker::Player, "Do you think I can save them?" },
+    { Speaker::AirDragon, "I think your soul already knows de way." },
+    { Speaker::AirDragon, "You only need to stop chasing every other path." },
+    { Speaker::AirDragon, "Bene. Enough talk." },
+    { Speaker::AirDragon, "Air does not argue. Air reveals." },
+    { Speaker::AirDragon, "Welcome back to de show: Who wants to be a Dragonborn? Our contestant today is {playerName}, searching for true soul!", false, false, true, DialogueLineAction::StartsQuiz },
+    { Speaker::AirDragon, "What is my name?" }, // starts the question input
+    { Speaker::AirDragon, "No no. Wrong wind. Try again." }, // Only if wrong
+    { Speaker::AirDragon, "Bravissimo. You are correct. My name is Gustavo Windimaess." },
+    { Speaker::AirDragon, "Aaand we have a winner!", false, false, true, DialogueLineAction::FinalCheer }, // End of Quiz
+    { Speaker::AirDragon, "Your soul is calm now. Like a feather in de air." },
+    { Speaker::AirDragon, "Only de wind knows where it will carry our dandelion souls." },
+    { Speaker::Player, "Thank you, {airDragon}. I will try to listen to it." },
 };
+
 
 inline const std::vector<DialogueLine> dragonstone = {
     { Speaker::StoryTeller, "You have received many useful things. Noah Lott really spoke the truth!" },

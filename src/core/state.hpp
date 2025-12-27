@@ -4,6 +4,7 @@
 
 // Represents the high-level screens or modes that drive game logic.
 enum class GameState {
+    BattleDemo,
     IntroScreen,
     IntroTitle,
     Dialogue,

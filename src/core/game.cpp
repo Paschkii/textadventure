@@ -25,6 +25,7 @@
 #include "story/textStyles.hpp"       // Gives TextStyles used for speaker colors and UI states.
 #include "ui/confirmationUI.hpp"      // Declares confirmationPrompt handling invoked while running the loop.
 #include "ui/introTitle.hpp"          // Declares intro title helpers used during the intro screen.
+#include "ui/battleUI.hpp"            // Draws the temporary Pokemon battle demo overlay.
 #include "ui/genderSelectionUI.hpp"   // Handles the dragonborn selection overlay.
 #include "ui/mapSelectionUI.hpp"      // Declares handleMapSelectionEvent invoked for map choices.
 #include "ui/quizUI.hpp"              // Declares handleQuizEvent triggered while in quiz mode.
@@ -39,11 +40,13 @@ constexpr unsigned int fpsLimit = 60;
 constexpr std::size_t playerNameMaxLength = 18;
 
 constexpr float kXpCurveExponent = 1.2f;
+constexpr float kXpCurveScale = 0.25f;
 constexpr int kBaseXpRequirement = 100;
+constexpr float kHpGainPerLevel = 20.f;
 
 inline int xpForLevel(int level) {
     int clampedLevel = std::max(1, level);
-    float xp = kBaseXpRequirement * std::pow(static_cast<float>(clampedLevel), kXpCurveExponent);
+    float xp = kBaseXpRequirement * std::pow(static_cast<float>(clampedLevel), kXpCurveExponent) * kXpCurveScale;
     int rounded = static_cast<int>(std::round(xp / 5.f) * 5.f);
     return std::max(5, rounded);
 }
@@ -318,6 +321,11 @@ void Game::run() {
                 || endSequenceController.isScreenVisible())
                 continue;
 
+            if (state == GameState::BattleDemo) {
+                ui::battle::handleEvent(*this, *event);
+                continue;
+            }
+
             bool confirmationHandled = confirmationPrompt.active && handleConfirmationEvent(*this, *event);
             if (confirmationHandled)
                 continue;
@@ -422,6 +430,7 @@ void Game::run() {
         updateWeaponForging(*this);
         helper::healingPotion::update(*this);
         ui::treasureChest::update(*this, frameTime.asSeconds());
+        ui::battle::update(*this, frameTime);
         updateLayout();
 
         window.clear(ColorHelper::Palette::BlueNearBlack);
@@ -484,10 +493,16 @@ void Game::grantXp(int amount) {
     xpGain.clock.restart();
 
     playerXp += static_cast<float>(amount);
+    auto applyLevelBonus = [&]() {
+        playerLevel++;
+        playerHpMax += kHpGainPerLevel;
+        playerHp = std::min(playerHp + kHpGainPerLevel, playerHpMax);
+        playerXpMax = static_cast<float>(xpForLevel(playerLevel));
+    };
+
     while (playerXpMax > 0.f && playerXp >= playerXpMax) {
         playerXp -= playerXpMax;
-        playerLevel++;
-        playerXpMax = static_cast<float>(xpForLevel(playerLevel));
+        applyLevelBonus();
     }
 
     if (playerXp < 0.f)

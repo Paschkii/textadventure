@@ -1,5 +1,7 @@
 // === C++ Libraries ===
 #include <iostream>  // Logs asset-loading failures during Resources::loadAll.
+// === SFML Libraries ===
+#include <SFML/Graphics/Shader.hpp>
 // === Header Files ===
 #include "resources.hpp"  // Declares Resources::loadAll and the stored asset handles.
 #include "resources/itemFiles.hpp"
@@ -21,6 +23,12 @@ bool Resources::loadAll()
     }
     if (!titleFontExtrude.openFromFile("assets/fonts/titleFontExtrude.otf")) { // Font: Back Layer
         std::cout << "Failed to load titleFontExtrude.otf\n"; return false;
+    }
+    if (!battleFont.openFromFile("assets/fonts/font.ttf")) { // Font: Battle UI
+        std::cout << "Failed to load font.ttf\n"; return false;
+    }
+    if (!battleFontBold.openFromFile("assets/fonts/fontBold.ttf")) { // Font: Battle UI
+        std::cout << "Failed to load font.ttf\n"; return false;
     }
     if (!introFont.openFromFile("assets/fonts/introFont.ttf")) { // Font: Important Message
         std::cout << "Failed to load introFont.ttf\n"; return false;
@@ -291,6 +299,38 @@ bool Resources::loadAll()
     if (!backgroundToryTailor.loadFromFile("assets/gfx/background/background_torytailor.png")) {
         std::cout << "Failed to load Background ToryTailor\n"; return false;
     }
+    if (!battleBackgroundLayer.loadFromFile("assets/gfx/battleUI/battlebackground.png")) {
+        std::cout << "Failed to load battle background layer\n"; return false;
+    }
+    if (!battlePlayerPlatform.loadFromFile("assets/gfx/battleUI/playerPlatform.png")) {
+        std::cout << "Failed to load battle player platform\n"; return false;
+    }
+    if (!battleEnemyPlatform.loadFromFile("assets/gfx/battleUI/enemyPlatform.png")) {
+        std::cout << "Failed to load battle enemy platform\n"; return false;
+    }
+    if (!battleTextBox.loadFromFile("assets/gfx/battleUI/textBox.png")) {
+        std::cout << "Failed to load battle text box\n"; return false;
+    }
+    if (!battleActionBox.loadFromFile("assets/gfx/battleUI/actionBox.png")) {
+        std::cout << "Failed to load battle action box\n"; return false;
+    }
+    if (!battlePlayerBox.loadFromFile("assets/gfx/battleUI/playerBox.png")) {
+        std::cout << "Failed to load battle player box\n"; return false;
+    }
+    if (!battleEnemyBox.loadFromFile("assets/gfx/battleUI/enemyBox.png")) {
+        std::cout << "Failed to load battle enemy box\n"; return false;
+    }
+    if (!battleIconMale.loadFromFile("assets/gfx/battleUI/icon_male.png")) {
+        std::cout << "Failed to load battle male icon\n"; return false;
+    }
+    if (!battleIconFemale.loadFromFile("assets/gfx/battleUI/icon_female.png")) {
+        std::cout << "Failed to load battle female icon\n"; return false;
+    }
+    if (!hpBadgeShader.loadFromFile("assets/shaders/hp_badge.frag", sf::Shader::Type::Fragment)) {
+        std::cout << "Failed to load hp badge shader\n"; return false;
+    }
+    hpBadgeShader.setUniform("texture", sf::Shader::CurrentTexture);
+    hpBadgeShader.setUniform("diagonal", 0.25f);
     if (!treasureChestAir.loadFromFile("assets/gfx/trophies/treasure_chest_air.png")) {
         std::cout << "Failed to load treasure_chest_air.png\n"; return false;
     }

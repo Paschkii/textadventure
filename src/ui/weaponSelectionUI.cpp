@@ -233,7 +233,7 @@ void drawWeaponSelectionUI(Game& game, sf::RenderTarget& target) {
             { slotCenterX, nameY }
         });
 
-        sf::Text nameText{ game.resources.titleFont, option.displayName, 28 };
+        sf::Text nameText{ game.resources.uiFont, option.displayName, 28 };
         nameText.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, uiAlphaFactor));
         auto nameBounds = nameText.getLocalBounds();
         nameText.setOrigin({

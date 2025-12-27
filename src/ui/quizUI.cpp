@@ -167,6 +167,43 @@ namespace {
         return text;
     }
 
+    bool questStarted(const Game& game, const std::string& name) {
+        return std::any_of(game.questLog.begin(), game.questLog.end(), [&](const Game::QuestLogEntry& entry) {
+            return entry.name == name;
+        });
+    }
+
+    bool questCompleted(const Game& game, const std::string& name) {
+        return std::any_of(game.questLog.begin(), game.questLog.end(), [&](const Game::QuestLogEntry& entry) {
+            return entry.name == name && entry.rewardGranted;
+        });
+    }
+
+    std::optional<std::string> trialQuestNameForLocation(LocationId location) {
+        switch (location) {
+            case LocationId::Blyathyroid: return std::string("Trial of Resolve");
+            case LocationId::Lacrimere: return std::string("Trial of Mind");
+            case LocationId::Cladrenal: return std::string("Trial of Body");
+            case LocationId::Aerobronchi: return std::string("Trial of Soul");
+            default: return std::nullopt;
+        }
+    }
+
+    std::string trialQuestCompletionText(LocationId location) {
+        switch (location) {
+            case LocationId::Blyathyroid:
+                return "You completed the Trial of Resolve. Rowsted Sheacane's fire calms in respect.";
+            case LocationId::Lacrimere:
+                return "You completed the Trial of Mind. Flawtin Seamen watches the waters settle.";
+            case LocationId::Cladrenal:
+                return "You completed the Trial of Body. Grounded Claymore nods as the ground steadies.";
+            case LocationId::Aerobronchi:
+                return "You completed the Trial of Soul. Gustavo Windimaess's winds finally hush.";
+            default:
+                return "You completed the trial.";
+        }
+    }
+
     constexpr float kSelectionLoggingDuration = 3.f;
     constexpr float kSelectionBlinkDuration = 3.f;
     constexpr float kSelectionBlinkInterval = 0.5f;
@@ -891,6 +928,47 @@ void presentDragonstoneReward(Game& game) {
             line.triggersNameInput,
             line.triggersGenderSelection,
             line.waitForEnter
+        });
+    }
+
+    if (game.umbraFragmentsCollectedCount == 1 && !questStarted(game, "Fragments of Home")) {
+        game.transientDialogue.push_back({
+            TextStyles::SpeakerId::StoryTeller,
+            "You just claimed the first Umbra Ossea map fragment. Noah Lott will want the rest.",
+            false,
+            false,
+            true,
+            DialogueLineAction::StartsQuest,
+            std::optional<std::string>{"Fragments of Home"},
+            std::nullopt
+        });
+    }
+
+    if (auto trialQuest = trialQuestNameForLocation(location)) {
+        if (!questCompleted(game, *trialQuest)) {
+            game.transientDialogue.push_back({
+                TextStyles::SpeakerId::StoryTeller,
+                trialQuestCompletionText(location),
+                false,
+                false,
+                true,
+                DialogueLineAction::CompletesQuest,
+                std::nullopt,
+                std::optional<std::string>{*trialQuest}
+            });
+        }
+    }
+
+    if (game.umbraMapComplete && !questCompleted(game, "Fragments of Home")) {
+        game.transientDialogue.push_back({
+            TextStyles::SpeakerId::StoryTeller,
+            "All four Umbra Ossea fragments lock together into a complete map.",
+            false,
+            false,
+            true,
+            DialogueLineAction::CompletesQuest,
+            std::nullopt,
+            std::optional<std::string>{"Fragments of Home"}
         });
     }
 

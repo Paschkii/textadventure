@@ -7,7 +7,6 @@
 
 inline constexpr std::size_t kDragonQuizIntroLine = 10;
 inline constexpr std::size_t kDragonQuizQuestionLine = 11;
-inline constexpr std::size_t kDragonFinalCheerLine = 14;
 inline constexpr float kQuizIntroDelay = 10.f;
 inline constexpr float kQuizQuestionStartDelay = 4.f;
 inline constexpr float kFinalCheerDelay = 5.f;
