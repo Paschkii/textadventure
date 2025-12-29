@@ -302,6 +302,9 @@ bool Resources::loadAll()
     if (!battleBackgroundLayer.loadFromFile("assets/gfx/battleUI/battlebackground.png")) {
         std::cout << "Failed to load battle background layer\n"; return false;
     }
+    if (!battleBeginsGlandular.loadFromFile("assets/gfx/battleUI/battleBeginsGlandular.png")) {
+        std::cout << "Failed to load battle begins badge\n"; return false;
+    }
     if (!battlePlayerPlatform.loadFromFile("assets/gfx/battleUI/playerPlatform.png")) {
         std::cout << "Failed to load battle player platform\n"; return false;
     }
@@ -325,6 +328,30 @@ bool Resources::loadAll()
     }
     if (!battleIconFemale.loadFromFile("assets/gfx/battleUI/icon_female.png")) {
         std::cout << "Failed to load battle female icon\n"; return false;
+    }
+    if (!skillSlashAir.loadFromFile("assets/gfx/menu/skills/skill_slash_air.png")) {
+        std::cout << "Failed to load skill slash air texture\n"; return false;
+    }
+    if (!skillSlashEarth.loadFromFile("assets/gfx/menu/skills/skill_slash_earth.png")) {
+        std::cout << "Failed to load skill slash earth texture\n"; return false;
+    }
+    if (!skillSlashFire.loadFromFile("assets/gfx/menu/skills/skill_slash_fire.png")) {
+        std::cout << "Failed to load skill slash fire texture\n"; return false;
+    }
+    if (!skillSlashWater.loadFromFile("assets/gfx/menu/skills/skill_slash_water.png")) {
+        std::cout << "Failed to load skill slash water texture\n"; return false;
+    }
+    if (!skillWeaponAir.loadFromFile("assets/gfx/menu/skills/skill_weapon_air.png")) {
+        std::cout << "Failed to load skill weapon air texture\n"; return false;
+    }
+    if (!skillWeaponEarth.loadFromFile("assets/gfx/menu/skills/skill_weapon_earth.png")) {
+        std::cout << "Failed to load skill weapon earth texture\n"; return false;
+    }
+    if (!skillWeaponFire.loadFromFile("assets/gfx/menu/skills/skill_weapon_fire.png")) {
+        std::cout << "Failed to load skill weapon fire texture\n"; return false;
+    }
+    if (!skillWeaponWater.loadFromFile("assets/gfx/menu/skills/skill_weapon_water.png")) {
+        std::cout << "Failed to load skill weapon water texture\n"; return false;
     }
     if (!hpBadgeShader.loadFromFile("assets/shaders/hp_badge.frag", sf::Shader::Type::Fragment)) {
         std::cout << "Failed to load hp badge shader\n"; return false;
@@ -555,6 +582,24 @@ bool Resources::loadAll()
     }
     if (!healSound.loadFromFile(ResourceFiles::Items::kHealPotionSound)) { // Heal Potion Sound
         std::cout << "Failed to load Heal Potion Sound\n"; return false;
+    }
+    if (!skillSlash.loadFromFile("assets/audio/skill_slash.mp3")) {
+        std::cout << "Failed to load Skill Slash Sound\n"; return false;
+    }
+    if (!skillAir.loadFromFile("assets/audio/skill_air.mp3")) {
+        std::cout << "Failed to load Air Skill Sound\n"; return false;
+    }
+    if (!skillEarth.loadFromFile("assets/audio/skill_earth.mp3")) {
+        std::cout << "Failed to load Earth Skill Sound\n"; return false;
+    }
+    if (!skillFire.loadFromFile("assets/audio/skill_fire.mp3")) {
+        std::cout << "Failed to load Fire Skill Sound\n"; return false;
+    }
+    if (!skillWater.loadFromFile("assets/audio/skill_water.mp3")) {
+        std::cout << "Failed to load Water Skill Sound\n"; return false;
+    }
+    if (!skillFriendship.loadFromFile("assets/audio/skill_friendship.mp3")) {
+        std::cout << "Failed to load Friendship Skill Sound\n"; return false;
     }
     if (!forgeSound.loadFromFile("assets/audio/forgeSound.mp3")) { // Forge Sleep Sound
         std::cout << "Failed to load Forge Sound\n"; return false;

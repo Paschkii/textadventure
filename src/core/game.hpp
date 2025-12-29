@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstddef>   // Provides std::size_t for the many index and size fields.
 #include <limits>    // Supplies std::numeric_limits used when tracking dialogue indexes.
+#include <memory>
 #include <optional>  // Stores optional state like hovered locations and cached sounds.
 #include <string>    // Holds player names, dialogue text, and UI labels.
 #include <utility>   // Enables std::move in constructors such as DragonPortrait.
@@ -41,30 +42,158 @@ struct BattleDemoState {
         Victory,
         Complete
     };
+    enum class IntroPhase {
+        Blinking,
+        Shading,
+        Complete
+    };
+
+    static constexpr std::size_t kSkillSlotCount = 4;
+    enum class SkillElement {
+        None,
+        Air,
+        Earth,
+        Fire,
+        Water
+    };
 
     struct Combatant {
         std::string name;
         int level = 0;
         float hp = 0.f;
         float maxHp = 0.f;
+        std::array<std::optional<std::string>, kSkillSlotCount> skills;
     };
 
-        Combatant player{ "Dragonborn", 100, 140.f, 140.f };
-        Combatant enemy{ "Master Bates", 100, 160.f, 160.f };
+    static constexpr std::size_t kActionOptionCount = 4;
+
+    Combatant player{
+        "Dragonborn",
+        100,
+        140.f,
+        140.f,
+        {{
+            std::optional<std::string>{"Air Slash"},
+            std::optional<std::string>{"Fire Slash"},
+            std::optional<std::string>{"Earth Slash"},
+            std::optional<std::string>{"Water Slash"}
+        }}
+    };
+    Combatant enemy{
+        "Master Bates",
+        100,
+        160.f,
+        160.f,
+        {{
+            std::optional<std::string>{"Friendship"},
+            std::optional<std::string>{"Thunder Punch"},
+            std::optional<std::string>{"Earthquake"},
+            std::nullopt
+        }}
+    };
     Phase phase = Phase::PlayerChoice;
+    IntroPhase introPhase = IntroPhase::Blinking;
+    float introBlinkTimer = 0.f;
+    int introBlinkCount = 0;
+    bool introBlinkVisible = true;
+    float introShadeProgress = 0.f;
     int selectedAction = 0;
     float actionTimer = 0.f;
     float playerActionDelay = 0.75f;
     float enemyActionDelay = 0.65f;
     float victoryHoldTime = 1.4f;
-    bool victoryTransitioned = false;
-    int enemyMoveIndex = 0;
-    sf::Clock completionClock;
-    std::vector<std::string> logHistory{
-        "A wild Master Bates appeared!",
-        "Dragonborn, get ready!"
+            bool victoryTransitioned = false;
+            int enemyMoveIndex = 0;
+            float platformEntranceTimer = 0.f;
+            float platformEntranceDuration = 1.75f;
+            bool actionMenuVisible = false;
+    enum class CreatureMenuType {
+        None,
+        Glandumon,
+        Dragons
     };
-};
+    CreatureMenuType creatureMenuType = CreatureMenuType::None;
+    bool creatureMenuVisible = false;
+    int creatureMenuSelection = 0;
+    std::vector<sf::FloatRect> creatureMenuEntryBounds;
+    sf::FloatRect creatureMenuCancelBounds;
+    std::array<sf::FloatRect, kActionOptionCount> actionOptionBounds;
+    bool actionOptionBoundsValid = false;
+    std::array<sf::FloatRect, kSkillSlotCount> fightOptionBounds;
+    bool fightOptionBoundsValid = false;
+    sf::FloatRect fightCancelBounds;
+            sf::Clock completionClock;
+            std::vector<std::string> logHistory{
+                "A wild Master Bates appeared!"
+            };
+            bool fightMenuVisible = false;
+            int fightMenuSelection = 0;
+            bool fightCancelHighlight = false;
+            bool reopenMenuAfterPlayerPulse = false;
+            struct HpPulse {
+        bool active = false;
+        float startHp = 0.f;
+        float endHp = 0.f;
+        sf::Clock clock;
+    };
+    HpPulse playerHpPulse;
+    HpPulse enemyHpPulse;
+    float playerDisplayedHp = player.hp;
+    float enemyDisplayedHp = enemy.hp;
+    sf::Vector2f cachedPlayerCenter{ 0.f, 0.f };
+    sf::Vector2f cachedEnemyCenter{ 0.f, 0.f };
+    struct SkillEffect {
+        enum class Phase {
+            Idle,
+            Slash,
+            Weapon,
+            FadeOut
+        };
+        enum class Target {
+            None,
+            Player,
+            Enemy
+        };
+        bool active = false;
+        Phase phase = Phase::Idle;
+        Target target = Target::None;
+        SkillElement element = SkillElement::None;
+        float blinkTimer = 0.f;
+        int blinkCycles = 0;
+        bool slashVisible = true;
+        float fadeTimer = 0.f;
+        float weaponFade = 1.f;
+        bool hpPulseTriggered = false;
+        std::optional<sf::Sound> slashSound;
+        std::optional<sf::Sound> elementSound;
+            };
+            SkillEffect skillEffect;
+    struct FriendshipEffect {
+        enum class Target {
+            None,
+            Player,
+            Enemy
+        };
+        bool active = false;
+        Target target = Target::None;
+        std::array<const sf::Texture*, 3> textures{};
+        std::array<sf::Vector2f, 3> offsets{};
+        sf::Vector2f startCenter{ 0.f, 0.f };
+        sf::Vector2f targetCenter{ 0.f, 0.f };
+        enum class Phase {
+            Standing,
+            Throwing
+        } phase = Phase::Standing;
+        float timer = 0.f;
+        float standDuration = 5.f;
+        float throwDuration = 2.f;
+        float fade = 1.f;
+        std::optional<sf::Sound> sound;
+    };
+            FriendshipEffect friendshipEffect;
+            std::unique_ptr<sf::Music> battleMusic;
+            bool battleMusicPlaying = false;
+        };
 
 struct Game {
     friend void core::handleTravel(Game& game, LocationId id);

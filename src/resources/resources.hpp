@@ -161,6 +161,7 @@ struct Resources {
     sf::Texture backgroundSeminiferous; // Seminiferous background
     sf::Texture backgroundToryTailor; // Tory Tailor narration background
     sf::Texture battleBackgroundLayer; // Battle background layer
+    sf::Texture battleBeginsGlandular; // Battle intro badge
     sf::Texture battlePlayerPlatform; // Battle player platform layer
     sf::Texture battleEnemyPlatform; // Battle enemy platform layer
     sf::Texture battleTextBox; // Battle dialogue text box
@@ -169,6 +170,14 @@ struct Resources {
     sf::Texture battleEnemyBox; // Battle enemy info box
     sf::Texture battleIconMale; // Icon for male combatants
     sf::Texture battleIconFemale; // Icon for female combatants
+    sf::Texture skillSlashAir;
+    sf::Texture skillSlashEarth;
+    sf::Texture skillSlashFire;
+    sf::Texture skillSlashWater;
+    sf::Texture skillWeaponAir;
+    sf::Texture skillWeaponEarth;
+    sf::Texture skillWeaponFire;
+    sf::Texture skillWeaponWater;
     sf::Shader   hpBadgeShader; // Shader applied to health badge fills
     sf::Texture treasureChestAir;
     sf::Texture treasureChestEarth;
@@ -191,6 +200,12 @@ struct Resources {
     sf::SoundBuffer teleportMiddle; // Sound played during teleportation
     sf::SoundBuffer teleportStop; // Sound played when teleportation ends
     sf::SoundBuffer healSound; // Sound played when using the healing potion
+    sf::SoundBuffer skillSlash; // Skill slash SFX
+    sf::SoundBuffer skillAir; // Air element SFX
+    sf::SoundBuffer skillEarth; // Earth element SFX
+    sf::SoundBuffer skillFire; // Fire element SFX
+    sf::SoundBuffer skillWater; // Water element SFX
+    sf::SoundBuffer skillFriendship; // Friendship skill SFX
     sf::SoundBuffer forgeSound; // Sound played during forging sleep timer
     sf::SoundBuffer levelUp; // Sound played when levelling up
     sf::SoundBuffer openMenu; // Sound when the menu opens
