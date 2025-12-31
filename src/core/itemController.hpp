@@ -38,13 +38,13 @@ public:
     bool removeItem(const std::string& key);
     // Adds the dragonstone icon matching the given location once.
     void collectDragonstone(LocationId id);
+    // Plays the sound that accompanies any new icon.
+    void playAcquireSound();
 
     std::vector<ItemIcon>& icons() noexcept { return icons_; }
     const std::vector<ItemIcon>& icons() const noexcept { return icons_; }
 
 private:
-    // Plays the sound that accompanies any new icon.
-    void playAcquireSound();
     std::vector<ItemIcon> icons_;                         // Icons shown in the UI.
     std::array<bool, 4> dragonstoneIconAdded_{};          // Tracks which dragonstones were already added.
     std::optional<sf::Sound> acquireSound_;               // Sound played when collecting an icon.

@@ -9,6 +9,8 @@
 #include <string>    // Holds player names, dialogue text, and UI labels.
 #include <utility>   // Enables std::move in constructors such as DragonPortrait.
 #include <vector>    // Manages dynamic lists of dialogue lines, locations, and UI elements.
+#include <unordered_set>
+#include <unordered_map>
 #include <chrono>    // Tracks when the current session started for the ranking system.
 #include <random>    // Prepares the RNG used inside quiz data.
 // === SFML Libraries ===
@@ -27,6 +29,7 @@
 #include "story/quests.hpp"                     // Brings quest definitions used for logging and triggering.
 #include "story/textStyles.hpp"                 // Defines TextStyles::SpeakerId and style helpers.
 #include "ui/confirmationUI.hpp"                // Brings the ConfirmationPrompt used in the game state.
+#include "ui/creditsUI.hpp"                     // Stores the credits sequence state.
 #include "ui/nineSliceBox.hpp"                  // Declares the NineSliceBox frame used for the UI.
 #include "ui/quizGenerator.hpp"                 // Defines quiz::Question for the quiz data structure.
 #include "ui/mapSelectionUI.hpp"                // Needed for caching map popup metadata.
@@ -69,9 +72,9 @@ struct BattleDemoState {
 
     Combatant player{
         "Dragonborn",
-        100,
-        140.f,
-        140.f,
+        50,
+        980.f,
+        980.f,
         {{
             std::optional<std::string>{"Air Slash"},
             std::optional<std::string>{"Fire Slash"},
@@ -82,12 +85,12 @@ struct BattleDemoState {
     Combatant enemy{
         "Master Bates",
         100,
-        160.f,
-        160.f,
+        360.f,
+        360.f,
         {{
-            std::optional<std::string>{"Friendship"},
-            std::optional<std::string>{"Thunder Punch"},
-            std::optional<std::string>{"Earthquake"},
+            std::optional<std::string>{"Midnight Release"},
+            std::optional<std::string>{"Bad Habit"},
+            std::nullopt,
             std::nullopt
         }}
     };
@@ -117,14 +120,19 @@ struct BattleDemoState {
     int creatureMenuSelection = 0;
     std::vector<sf::FloatRect> creatureMenuEntryBounds;
     sf::FloatRect creatureMenuCancelBounds;
+    bool creatureMenuAllowCancel = true;
     std::array<sf::FloatRect, kActionOptionCount> actionOptionBounds;
     bool actionOptionBoundsValid = false;
     std::array<sf::FloatRect, kSkillSlotCount> fightOptionBounds;
     bool fightOptionBoundsValid = false;
     sf::FloatRect fightCancelBounds;
             sf::Clock completionClock;
-            std::vector<std::string> logHistory{
-                "A wild Master Bates appeared!"
+            struct LogEntry {
+                std::string message;
+                std::vector<std::pair<std::string, sf::Color>> highlightTokens;
+            };
+            std::vector<LogEntry> logHistory{
+                { "A wild Master Bates appeared!", {} }
             };
             bool fightMenuVisible = false;
             int fightMenuSelection = 0;
@@ -142,6 +150,7 @@ struct BattleDemoState {
     float enemyDisplayedHp = enemy.hp;
     sf::Vector2f cachedPlayerCenter{ 0.f, 0.f };
     sf::Vector2f cachedEnemyCenter{ 0.f, 0.f };
+    const sf::Texture* playerBackSprite = nullptr;
     struct SkillEffect {
         enum class Phase {
             Idle,
@@ -163,7 +172,8 @@ struct BattleDemoState {
         bool slashVisible = true;
         float fadeTimer = 0.f;
         float weaponFade = 1.f;
-        bool hpPulseTriggered = false;
+        bool pendingDamage = false;
+        float pendingHp = 0.f;
         std::optional<sf::Sound> slashSound;
         std::optional<sf::Sound> elementSound;
             };
@@ -189,8 +199,91 @@ struct BattleDemoState {
         float throwDuration = 2.f;
         float fade = 1.f;
         std::optional<sf::Sound> sound;
+        bool hpPulseTriggered = false;
+        bool pendingDamage = false;
+        float pendingHp = 0.f;
     };
             FriendshipEffect friendshipEffect;
+            struct MasterBatesSkillEffect {
+                enum class Stage {
+                    Powerup,
+                    Skill
+                };
+                enum class Target {
+                    Player,
+                    Enemy
+                };
+                Stage stage = Stage::Powerup;
+                bool active = false;
+                Target target = Target::Player;
+                const sf::Texture* powerupTexture = nullptr;
+                const sf::Texture* skillTexture = nullptr;
+                const sf::SoundBuffer* skillSoundBuffer = nullptr;
+                std::optional<sf::Sound> sound;
+                bool pendingDamage = false;
+                float pendingHp = 0.f;
+            };
+            MasterBatesSkillEffect masterBatesSkillEffect;
+            struct SwapPrompt {
+                bool active = false;
+                int selectedButton = 0;
+                Combatant candidate;
+                const sf::Texture* backSprite = nullptr;
+                bool candidateIsDragonborn = false;
+            };
+            struct SwapAnimation {
+                enum class Stage {
+                    Inactive,
+                    OutgoingWhite,
+                    OutgoingSoftRed,
+                    IncomingSoftRedToWhite,
+                    IncomingWhiteToNormal
+                };
+                bool active = false;
+                Stage stage = Stage::Inactive;
+                float timer = 0.f;
+                Combatant pendingCombatant;
+                const sf::Texture* pendingBackSprite = nullptr;
+                bool pendingIsDragonborn = false;
+            };
+            SwapPrompt swapPrompt;
+            SwapAnimation swapAnimation;
+            struct MasterBatesEvolution {
+                enum class Stage {
+                    Idle,
+                    FirstSound,
+                    FadeWhite,
+                    FadePurple,
+                    ChickSound,
+                    AwwSound
+                };
+                Stage stage = Stage::Idle;
+                bool active = false;
+                float timer = 0.f;
+                float whiteDuration = 2.f;
+                float purpleDuration = 2.f;
+                sf::Color tint = sf::Color::White;
+                sf::Vector2f shakeOffset{ 0.f, 0.f };
+                float shakeTimer = 0.f;
+                float shakeInterval = 0.06f;
+                float shakeStrength = 6.f;
+                std::optional<sf::Sound> sound;
+            };
+            MasterBatesEvolution masterBatesEvolution;
+            bool masterBatesDragonActive = false;
+            struct ForcedRetreat {
+                bool active = false;
+                std::string blockedName;
+                bool awaitingSwap = false;
+                std::string pendingName;
+            };
+            ForcedRetreat forcedRetreat;
+            bool currentDragonbornActive = true;
+            std::unordered_set<std::string> defeatedCreatures;
+            int dragonbornLevel = 50;
+            std::unordered_map<std::string, float> creatureHp;
+            std::unordered_map<std::string, float> creatureMaxHp;
+            std::mt19937 rng{ std::random_device{}() };
             std::unique_ptr<sf::Music> battleMusic;
             bool battleMusicPlaying = false;
         };
@@ -427,6 +520,8 @@ struct Game {
     void fadeOutTitleScreenMusic(float duration);
     // Grants the provided amount of XP, handling level progression if needed.
     void grantXp(int amount);
+    // Instantly boosts the player to the requested level.
+    void boostToLevel(int targetLevel);
     void startQuest(const Story::QuestDefinition& quest);
     void completeQuest(const Story::QuestDefinition& quest);
 
@@ -437,7 +532,7 @@ struct Game {
         core::TeleportController teleportController;        // Handles teleport animations.
         core::EndSequenceController endSequenceController;  // Final-overlay sequence control.
         BattleDemoState battleDemo;
-        GameState state = GameState::BattleDemo;             // Current UI/game mode.
+        GameState state = GameState::IntroScreen;             // Current UI/game mode.
 
         // === Dialogues ===
         size_t dialogueIndex = 0;                                   // Current line index inside the active dialogue.
@@ -452,7 +547,7 @@ struct Game {
         sf::RectangleShape optionsBox;                    // Highlights hovered intro options.
         sf::RectangleShape introOptionBackdrop;           // Backdrop behind intro options.
         float playerHp = 5.f;                            // Player HP value for the status bar.
-        float playerHpMax = 500.f;                       // Maximum HP used for the ratio display.
+        float playerHpMax = 485.f;                       // Maximum HP used for the ratio display.
         bool inventoryArrowActive = false;                // Signals that the helper arrow should be visible.
         bool inventoryTutorialPending = false;            // Waiting for the menu to open after the arrow line.
         bool inventoryTutorialPopupActive = false;        // Shows the tutorial popup once the menu opens.
@@ -481,8 +576,12 @@ struct Game {
         bool mapTutorialOkHovered = false;                // Mouse hover state for the Ok button.
         bool mapInteractionUnlocked = false;               // Gates menu map teleport selection.
         std::optional<MapPopupRenderData> menuMapPopup;    // Cached map popup data from the menu tab.
-        bool umbraMapGlowActive = false;                   // Controls the reveal glow shown on the Umbra tab.
-        sf::Clock umbraMapGlowClock;                       // Drives the glow cycle when the Umbra map unlocks.
+        bool menuMapUmbraOverlayActive = false;           // Shows the Umbra overlay on the menu map.
+        bool menuMapUmbraOverlayFadeInActive = false;      // Animates the overlay fade-in.
+        bool menuMapUmbraOverlayHold = false;              // Holds dialogue until the overlay finishes fading.
+        sf::Clock menuMapUmbraOverlayClock;                // Tracks the overlay fade timing.
+        std::optional<sf::FloatRect> menuMapUmbraOverlayContentBounds; // Cached normalized overlay bounds.
+        sf::FloatRect menuMapUmbraOverlayBounds{};         // Clickable bounds for the Umbra overlay.
         bool healingPotionActive = false;                 // Tracks whether a healing sequence is running.
         bool healingPotionReceived = false;               // Ensures the potion is only granted once.
         float healingPotionStartHp = 0.f;                 // HP recorded when the potion started healing.
@@ -551,7 +650,7 @@ struct Game {
         sf::RectangleShape weaponPanel;                  // Weapon selector background.
         sf::RectangleShape menuButton;                   // Button that opens the in-game menu.
         sf::RectangleShape menuPanel;                    // Panel shown when the menu is active.
-        std::array<sf::FloatRect, 6> menuTabBounds{};    // Click/touch areas for menu tabs.
+        std::array<sf::FloatRect, 3> menuTabBounds{};    // Click/touch areas for menu tabs.
         NineSliceBox uiFrame{12};                        // Decorative frame around UI elements.
         bool menuActive = false;                         // Determines whether the menu overlay is visible.
         bool menuButtonHovered = false;                   // Tracks hover state for the menu button.
@@ -592,8 +691,8 @@ struct Game {
         };
         ArtifactSlots artifactSlots;
         std::array<int, 4> artifactCounts{};
-        int umbraFragmentsCollectedCount = 0;
-        bool umbraMapComplete = false;
+        std::array<std::optional<std::string>, 5> emblemSlots{};
+        std::array<std::optional<std::string>, 5> trophySlots{};
 
         std::optional<sf::Sprite> background;             // Background art for the current scene.
         std::optional<sf::Sprite> returnSprite;           // Icon drawn when returning to map.
@@ -617,6 +716,8 @@ struct Game {
         std::optional<sf::Sound> quizEndSound;              // Reward/jingle once quiz concludes.
         std::optional<sf::Sound> buttonHoverSound;          // Plays when hovering interactive buttons.
         std::optional<sf::Sound> introTitleHoverSound;      // Plays when hovering intro title options.
+        std::optional<sf::Sound> menuOpenSound;             // Plays when the menu opens.
+        std::optional<sf::Sound> menuCloseSound;            // Plays when the menu closes.
         std::optional<sf::Sound> healPotionSound;           // Plays when the healing potion restores HP.
         std::optional<sf::Sound> forgeSound;                // Plays while the blacksmith rests.
         std::optional<sf::Sound> levelUpSound;              // Triggered when the player levels up.
@@ -658,7 +759,7 @@ struct Game {
         float introTitleOptionsFadeDuration = 0.9f;
         float introTitleOptionsFadeProgress = 0.f;
         sf::Clock introTitleOptionsFadeClock;
-        std::array<sf::FloatRect, 5> introTitleOptionBounds{};
+        std::array<sf::FloatRect, 2> introTitleOptionBounds{};
         int introTitleHoveredOption = -1;
 
         bool genderSelectionActive = false;
@@ -739,7 +840,6 @@ struct Game {
         int hoveredInventoryItem = -1;
         QuizData quiz;                                  // Manages quiz mode state and lines.
         TreasureChestState treasureChest;
-        std::array<bool, 4> umbraPiecesCollected{};     // Tracks which Umbra Ossea map pieces have been awarded.
         FinalChoiceData finalChoice;                    // Final choice UI state.
         std::vector<DialogueLine> transientDialogue;    // Temporary dialogue content.
         bool transientReturnToMap = false;              // Return map triggered when transient dialogue ends.
@@ -749,7 +849,11 @@ struct Game {
         bool pendingTeleportToSeminiferous = false;     // Teleport to Seminiferous once the Umbra sequence ends.
         bool finalEncounterPending = false;             // Indicates final encounter is queued.
         bool finalEncounterActive = false;              // Final encounter currently running.
+        bool battleReturnToSeminiferous = false;        // Return to Seminiferous dialogue after battle.
         bool finalEndingPending = false;                // Ending sequence is next.
+        bool creditsAfterEndPending = false;            // Credits should start after the end screen.
+        bool creditsAfterEndTimerActive = false;        // Timer started once THE END is visible.
+        sf::Clock creditsAfterEndClock;                 // Delay before starting credits.
         bool startGameSoundPlayed = false;              // Ensures start sound plays once.
         struct RankingSession {
             bool started = false;
@@ -762,10 +866,12 @@ struct Game {
         std::uint64_t lastRecordedEntryId = 0;           // Identifies the latest saved session.
         int lastRecordedRank = -1;                       // 1-based rank of the latest run.
         ui::ranking::OverlayState rankingOverlay;        // State for drawing the leaderboard.
+        ui::credits::State creditsState;                 // State for the credits sequence.
     // Hand off location travel to the dedicated handler.
     void startTravel(LocationId id);
     void beginForcedDestinationSelection();
     void exitForcedDestinationSelection();
+    void setMenuActive(bool active);
     // Starts the teleport animation and audio transition.
     void beginTeleport(LocationId id);
     // Steps the teleport phase machine forward each frame.

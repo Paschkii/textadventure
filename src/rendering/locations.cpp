@@ -29,7 +29,7 @@ namespace {
     // Maps each enum value to a display name, color, and textures.
     std::vector<Location> buildLocations(Resources& resources) {
         std::vector<Location> locations;
-        locations.reserve(7);
+        locations.reserve(8);
 
         locations.push_back(makeLocation(
             LocationId::Perigonal,
@@ -70,6 +70,12 @@ namespace {
         locations.push_back(makeLocation(
             LocationId::Seminiferous,
             "Seminiferous",
+            ColorHelper::Palette::DarkPurple
+        ));
+
+        locations.push_back(makeLocation(
+            LocationId::UmbraOssea,
+            "Umbra Ossea",
             ColorHelper::Palette::DarkPurple
         ));
 

@@ -32,7 +32,7 @@ struct ColorKeyword {
 inline const std::vector<ColorKeyword> kColorHighlights = {
     { { "Dragon Stone", "Dragon Stones", "Dragon Stones!", "Dragon stone", "Dragon stones" }, ColorHelper::Palette::Dim },
     { { "DRAGON STONE", "DRAGON STONES", "DRRAGON STONE", "DRRAGON STONES" }, ColorHelper::Palette::Dim },
-    { { "Dragonborn", "Dragonborns", "Dragon Scales", "Dragonscales", "smoky", "iron", "metal", "steel", "stone", "Stone" }, ColorHelper::Palette::Dim },
+    { { "Dragonborn", "Dragonborns", "Drragonborn", "Dragon Scales", "Dragonscales", "smoky", "iron", "metal", "steel", "stone", "Stone" }, ColorHelper::Palette::Dim },
     { { "Asha Scale", "Ember Scale", "Asha", "Ember", "Umbra Ossea", "brother", "sister", "his", "her" }, ColorHelper::Palette::SoftRed },
     { { "Master Bates", "Bates", "Ominous Castle", "castle", "shady figure", "Seminiferous" }, ColorHelper::Palette::DarkPurple },
     { { "Noah", "Noah Lott", "Village Elder" "Tory Tailor", "Wanda Rinn", "Wanda", "Will Figsid", "Will", "Blacksmith", "smithcraft" }, ColorHelper::Palette::PurpleBlue },
@@ -40,7 +40,7 @@ inline const std::vector<ColorKeyword> kColorHighlights = {
     { { "Water Dragon", "surface", "deep waters", "droplets", "flows", "riverbed", "currents", "cold stream", "Lacrimere" }, ColorHelper::Palette::WaterDragon },
     { { "Earth Dragon", "bedrock", "mountain wall", "rumbles", "shifting earth", "puddle of mud", "Cladrenal" }, ColorHelper::Palette::EarthDragon },
     { { "Air Dragon", "airy", "breeze", "swirling gusts", "wind", "winds", "Aerobronchi" }, ColorHelper::Palette::AirDragon },
-    { { "Gonad", "Glandular", "Perigonal", "Holmabir", "Kattkavar", "Stiggedin", "destination", "village", "weapon", "weapons", "histories", "cores", "core" "spatial magic", "Who wants tyo be", "Hu vants to be a", "Who wants-a to be a", "Who wants to be a" }, ColorHelper::Palette::TitleAccent },
+    { { "Gonad", "Glandular", "Perigonal", "Holmabir", "Kattkavar", "Stiggedin", "destination", "village", "weapon", "weapons", "histories", "cores", "core" "spatial magic", "Who vants tyo be", "Who vants to be", "Who wants-a to be a", "Who wants to be a" }, ColorHelper::Palette::TitleAccent },
 };
 
 // Returns a flattened list of tokens/colors for quicker lookup while typing.
@@ -109,22 +109,22 @@ struct QuizSpeech {
 inline const std::array<QuizSpeech, 4> kQuizSpeeches = {
     QuizSpeech{
         TextStyles::SpeakerId::FireDragon,
-        "Vhat is da solyushun to zis math riddle?",
+        "Vhat is da solyushun to zis riddle?",
         "Da! Flames roar for this correct answer!"
     },
     QuizSpeech{
         TextStyles::SpeakerId::WaterDragon,
-        "Vat is ze solution to zis math riddle?",
+        "Vat is ze solution to zis riddle?",
         "Jawoll! Ze currents applaud your logic!"
     },
     QuizSpeech{
         TextStyles::SpeakerId::EarthDragon,
-        "What's the solution to this math riddle?",
+        "What's the solution to this riddle?",
         "YEEHAW! Yer reasoning is solid as bedrock!"
     },
     QuizSpeech{
         TextStyles::SpeakerId::AirDragon,
-        "What-a is the solutione to dis math riddle?",
+        "What-a is the solutione to dis riddle?",
         "BRAVISSIMO! De winds cheer fer your answer!"
     }
 };
@@ -140,7 +140,7 @@ inline const QuizSpeech* quizSpeechFor(TextStyles::SpeakerId speaker) {
 
 // Returns the math prompt string that matches the dragon speaker.
 inline const std::string& quizMathPrompt(TextStyles::SpeakerId speaker) {
-    static const std::string kDefault = "What is the solution to this math riddle?";
+    static const std::string kDefault = "What is the solution to this riddle?";
     if (auto* speech = quizSpeechFor(speaker))
         return speech->mathPrompt;
     return kDefault;
@@ -318,9 +318,9 @@ inline const std::vector<DialogueLine> gonad_part_two = {
     { Speaker::Player, "And they will all test me?" },
     { Speaker::VillageElder, "Yes. The trials are the same in nature. But the dragons are not." },
     { Speaker::VillageElder, "Each will judge you through their own temper." },
-    { Speaker::VillageElder, "Charm, force, patience, or resolve." },
+    { Speaker::VillageElder, "Soul, resolve, body or mind." },
     { Speaker::Player, "And if I fail?" },
-    { Speaker::VillageElder, "You won't. Not because you shoudln't, but because you can't." },
+    { Speaker::VillageElder, "You won't. Not because you shouldn't, but because you can't." },
     { Speaker::VillageElder, "Your weapon is ready. The paths are open. It's up to you to decide your fate." },
     { Speaker::VillageElder, "And remember - the dragons do not change you. They only reveal what has yet to awaken." },
     { Speaker::Player, "A map... and a chance to save {dragonbornSiblingName}." },
@@ -329,9 +329,9 @@ inline const std::vector<DialogueLine> gonad_part_two = {
 
 // Third Gonad dialogue that bridges the Dragon Stones with the final confrontation.
 inline const std::vector<DialogueLine> gonad_part_three = {
-    { Speaker::VillageElder, "The dragons refined your resolve. I can feel the lessons they've carved into you." },
+    { Speaker::VillageElder, "The dragons refined your Soul, Mind, Body and Resolve. I can feel the lessons they've carved into you." },
     { Speaker::VillageElder, "Have you finally found a way back to Umbra Ossea?" },
-    { Speaker::Player, "I have stitched all the pieces together - this is the Umbra Ossea map.", false, false, true, DialogueLineAction::OpensUmbraMapFromMenu },
+    { Speaker::Player, "The Umbra Ossea map is finally clear to me.", false, false, true, DialogueLineAction::OpensMapFromMenu },
     { Speaker::StoryTeller, "The chart ignites with light as you present it to Noah." },
     { Speaker::StoryTeller, "You should go now, your homeland is waiting for you!", false, false, true, DialogueLineAction::StartsSeminiferousTeleport },
 };
@@ -371,23 +371,30 @@ inline const std::vector<DialogueLine> gonadWelcomeBack = {
 };
 
 // Dialogue triggered once you survive the teleport to Seminiferous.
-inline const std::vector<DialogueLine> seminiferous = {
+inline const std::vector<DialogueLine> seminiferous_part_one = {
     { Speaker::StoryTeller, "Upon reaching ground, you freeze for a minute.", false, false, true, DialogueLineAction::StartsQuest, std::optional<std::string>{"Face of the Master"}, std::nullopt },
-    { Speaker::StoryTeller, "Gonad is gone. And right where it used to be stands a dark, ominous Castle." },
+    { Speaker::StoryTeller, "This is definitely Umbra Ossea. But right where the temple used to be stands a dark, ominous Castle." },
     { Speaker::StoryTeller, "A shady figure steps out of the castle greeting you with an evil smirk." },
-    { Speaker::MasterBates, "So you have finally come, {playerName}! I see you have retrieved all the Dragon Stones!" },
-    { Speaker::MasterBates, "But you are too late! I have already absorbed the power of your Dragonborn siblings!" },
-    { Speaker::MasterBates, "Now I will defeat you and absorb your power and the power of the Dragon Stones, too!" },
-    { Speaker::Player, "I will not let you do that, Master Bates! I will defeat you and free my siblings!" },
-    { Speaker::MasterBates, "You are a fool, {playerName}! You will never defeat me!" },
-    { Speaker::Player, "Dragon Stones, lend me your power!" },
-    { Speaker::StoryTeller, "The Dragon Stones glow and the power of the Fire Dragon, Air Dragon, Water Dragon and Earth Dragon is absorbed into your weapon!" },
-    { Speaker::Player, "Eat this, Master Bates! This is for my siblings!" },
-    { Speaker::StoryTeller, "You attack Master Bates with the power of the Dragon Stones. Master Bates is defeated!", false, false, true, DialogueLineAction::CompletesQuest, std::nullopt, std::optional<std::string>{"Face of the Master"} },
-    { Speaker::NoahBates, "Noooooo! How can this be?! I came so far!" },
-    { Speaker::Player, "Noah Lott?! You are Master Bates?! You are the one who kidnapped my siblings?!" },
-    { Speaker::NoahBates, "Please, {playerName}, don't kill me! We can reign this world together!" },
-    { Speaker::Player, "No! You have to pay for what you have done!" },
+    { Speaker::MasterBates, "So you have survived, {playerName}! Ready to die for real this time?" },
+    { Speaker::Player, "Set my {dragonbornSibling} free, Master Bates! And leave Umbra Ossea to the people it belongs to!" },
+    { Speaker::MasterBates, "Hahaha, did you really think I'd listen to a spoiled little brat with no powers?!" },
+    { Speaker::Player, "Then I got no choice. I will fight for the sake of Umbra Ossea and {dragonbornSiblingName}!" },
+    { Speaker::MasterBates, "Come at me, brooooooooooooooo...!", false, false, true, DialogueLineAction::StartsBattle },
+};
+
+inline const std::vector<DialogueLine> seminiferous_part_two = {
+    { Speaker::MasterBates, "Ughhh....... damn it..... If you and your little friends wouldn't have come.....!!!", false, false, true, DialogueLineAction::CompletesQuest, std::nullopt, std::optional<std::string>{"Face of the Master"} },
+    { Speaker::Player, "Your time is over! Time to pay the price for your wrong-doing!" },
+    { Speaker::MasterBates, "No... this power... I was so close...!" },
+    { Speaker::Player, "Master Bates. Your reign ends here." },
+    { Speaker::StoryTeller, "The castle trembles as Master Bates falls silent." },
+    { Speaker::VillageElder, "You did it, {playerName}. The darkness over Umbra Ossea is broken." },
+    { Speaker::VillageWanderer, "I knew you could bring everyone back. Well done." },
+    { Speaker::Blacksmith, "You handled that weapon real good!" },
+    { Speaker::StoryTeller, "Together, the companions lift you up to cheer for your Glorious Victory!" },
+    { Speaker::Player, "{dragonbornSiblingName}... you're back. I won't let you go again." },
+    { Speaker::DragonbornSibling, "Thank you, {dragonbornSibling} for saving me and our home!" },
+    { Speaker::StoryTeller, "{dragonbornSiblingName} smiles and takes your hand as the journey home begins." },
 };
 
 // Closing thank-you lines played after beating the game.
@@ -399,7 +406,7 @@ inline const std::vector<DialogueLine> finalThanks = {
 // Dialogue branch shown when the player chooses to kill Noah Bates.
 inline const std::vector<DialogueLine> finalChoiceKill = {
     { Speaker::Player, "The world is a better place without you!" },
-    { Speaker::StoryTeller, "You are using {weapon} to kill Noah Bates!" },
+    { Speaker::StoryTeller, "You are using {weapon} to kill Master Bates!" },
     { Speaker::StoryTeller, "You have saved the world!" },
 };
 

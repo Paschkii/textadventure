@@ -12,6 +12,7 @@ namespace TextStyles {
 enum class SpeakerId {
     Unknown,
     Player,
+    DragonbornSibling,
     StoryTeller,
     NoNameNPC,
     NoNameWanderer,
@@ -55,3 +56,4 @@ void applySpeakerStyle(sf::Text& text, SpeakerId speaker);
 // Aktueller Spielername (wird während des Spiels gesetzt)
 // Updated at runtime to hold the player’s chosen name.
 inline std::string playerDisplayName;
+inline std::string dragonbornSiblingDisplayName;

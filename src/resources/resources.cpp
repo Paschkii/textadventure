@@ -189,6 +189,9 @@ bool Resources::loadAll()
     if (!portraitBackgroundSeminiferous.loadFromFile("assets/gfx/chars/portraitsBackground/portraitBackground_seminiferous.png")) {
         std::cout << "Failed to load Seminiferous Portrait Background\n"; return false;
     }
+    if (!portraitBackgroundUmbraOssea.loadFromFile("assets/gfx/chars/portraitsBackground/portraitBackground_umbra_ossea.png")) {
+        std::cout << "Failed to load Umbra Ossea Portrait Background\n"; return false;
+    }
     if (!portraitBackgroundToryTailor.loadFromFile("assets/gfx/chars/portraitsBackground/portraitBackground_torytailor.png")) {
         std::cout << "Failed to load Tory Tailor Portrait Background\n"; return false;
     }
@@ -198,6 +201,12 @@ bool Resources::loadAll()
     // ----------------------------
     if (!spriteDragonbornBack.loadFromFile("assets/gfx/chars/sprites/dragonborn_backsprite.png")) {
         std::cout << "Failed to load Dragonborn Back Sprite\n"; return false;
+    }
+    if (!spriteDragonbornFemaleBack.loadFromFile("assets/gfx/chars/sprites/dragonborn_female_backsprite.png")) {
+        std::cout << "Failed to load Dragonborn Female Back Sprite\n"; return false;
+    }
+    if (!spriteDragonbornMaleBack.loadFromFile("assets/gfx/chars/sprites/dragonborn_male_backsprite.png")) {
+        std::cout << "Failed to load Dragonborn Male Back Sprite\n"; return false;
     }
     if (!spriteDragonbornFemale.loadFromFile("assets/gfx/chars/sprites/dragonborn_female_sprite_cape.png")) {
         std::cout << "Failed to load Dragonborn Female Sprite\n"; return false;
@@ -220,14 +229,23 @@ bool Resources::loadAll()
     if (!spriteFlawtinSeamen.loadFromFile("assets/gfx/chars/sprites/flawtin_seamen_sprite.png")) {
         std::cout << "Failed to load Flawtin Seamen Sprite\n"; return false;
     }
+    if (!spriteFlawtinSeamenBack.loadFromFile("assets/gfx/chars/sprites/flawtin_seamen_backsprite.png")) {
+        std::cout << "Failed to load Flawtin Seamen Back Sprite\n"; return false;
+    }
     if (!spriteGlandularCape.loadFromFile("assets/gfx/menu/character/glandular_cape.png")) {
         std::cout << "Failed to load Glandular Cape Sprite\n"; return false;
     }
     if (!spriteGroundedClaymore.loadFromFile("assets/gfx/chars/sprites/grounded_claymore_sprite.png")) {
         std::cout << "Failed to load Grounded Claymore Sprite\n"; return false;
     }
+    if (!spriteGroundedClaymoreBack.loadFromFile("assets/gfx/chars/sprites/grounded_claymore_backsprite.png")) {
+        std::cout << "Failed to load Grounded Claymore Back Sprite\n"; return false;
+    }
     if (!spriteGustavoWindimaess.loadFromFile("assets/gfx/chars/sprites/gustavo_windimaess_sprite.png")) {
         std::cout << "Failed to load Gustavo Windimaess Sprite\n"; return false;
+    }
+    if (!spriteGustavoWindimaessBack.loadFromFile("assets/gfx/chars/sprites/gustavo_windimaess_backsprite.png")) {
+        std::cout << "Failed to load Gustavo Windimaess Back Sprite\n"; return false;
     }
     if (!spriteMasterBates.loadFromFile("assets/gfx/chars/sprites/master_bates_sprite.png")) {
         std::cout << "Failed to load Master Bates Sprite\n"; return false;
@@ -238,14 +256,26 @@ bool Resources::loadAll()
     if (!spriteNoahLott.loadFromFile("assets/gfx/chars/sprites/noah_lott_sprite.png")) {
         std::cout << "Failed to load Noah Lott Sprite\n"; return false;
     }
+    if (!spriteNoahLottBack.loadFromFile("assets/gfx/chars/sprites/noah_lott_backsprite.png")) {
+        std::cout << "Failed to load Noah Lott Back Sprite\n"; return false;
+    }
     if (!spriteRowstedSheacane.loadFromFile("assets/gfx/chars/sprites/rowsted_sheacane_sprite.png")) {
         std::cout << "Failed to load Rowsted Sheacane Sprite\n"; return false;
+    }
+    if (!spriteRowstedSheacaneBack.loadFromFile("assets/gfx/chars/sprites/rowsted_sheacane_backsprite.png")) {
+        std::cout << "Failed to load Rowsted Sheacane Back Sprite\n"; return false;
     }
     if (!spriteWandaRinn.loadFromFile("assets/gfx/chars/sprites/wanda_rinn_sprite.png")) {
         std::cout << "Failed to load Wanda Rinn Sprite\n"; return false;
     }
+    if (!spriteWandaRinnBack.loadFromFile("assets/gfx/chars/sprites/wanda_rinn_backsprite.png")) {
+        std::cout << "Failed to load Wanda Rinn Back Sprite\n"; return false;
+    }
     if (!spriteWillFigsid.loadFromFile("assets/gfx/chars/sprites/will_figsid_sprite.png")) {
         std::cout << "Failed to load Will Figsid Sprite\n"; return false;
+    }
+    if (!spriteWillFigsidBack.loadFromFile("assets/gfx/chars/sprites/will_figsid_backsprite.png")) {
+        std::cout << "Failed to load Will Figsid Back Sprite\n"; return false;
     }
 
     // ---------------------------
@@ -272,6 +302,9 @@ bool Resources::loadAll()
     if (!menuMapPetrigonal.loadFromFile("assets/gfx/menu/map/Perigonal.png")) {
         std::cout << "Failed to load Menu Map Overlay (Petrigonal)\n"; return false;
     }
+    if (!menuMapUmbraOverlay.loadFromFile("assets/gfx/menu/map/Umbra Ossea.png")) {
+        std::cout << "Failed to load Menu Map Overlay (Umbra Ossea)\n"; return false;
+    }
     if (!backgroundAerobronchi.loadFromFile("assets/gfx/background/background_aerobronchi.png")) {
         std::cout << "Failed to load Background Aerobronchi\n"; return false;
     }
@@ -295,6 +328,9 @@ bool Resources::loadAll()
     }
     if (!backgroundSeminiferous.loadFromFile("assets/gfx/background/background_seminiferous.png")) {
         std::cout << "Failed to load Background Seminiferous\n"; return false;
+    }
+    if (!backgroundUmbraOssea.loadFromFile("assets/gfx/background/background_umbra_ossea.png")) {
+        std::cout << "Failed to load Background Umbra Ossea\n"; return false;
     }
     if (!backgroundToryTailor.loadFromFile("assets/gfx/background/background_torytailor.png")) {
         std::cout << "Failed to load Background ToryTailor\n"; return false;
@@ -353,6 +389,21 @@ bool Resources::loadAll()
     if (!skillWeaponWater.loadFromFile("assets/gfx/menu/skills/skill_weapon_water.png")) {
         std::cout << "Failed to load skill weapon water texture\n"; return false;
     }
+    if (!skillMasterBatesPowerup.loadFromFile("assets/gfx/menu/skills/skill_master_bates_powerup.png")) {
+        std::cout << "Failed to load Master Bates powerup texture\n"; return false;
+    }
+    if (!skillMasterBatesMidnightRelease.loadFromFile("assets/gfx/menu/skills/skill_master_bates_midnight_release.png")) {
+        std::cout << "Failed to load Master Bates Midnight Release texture\n"; return false;
+    }
+    if (!skillMasterBatesBadHabit.loadFromFile("assets/gfx/menu/skills/skill_master_bates_bad_habit.png")) {
+        std::cout << "Failed to load Master Bates Bad Habit texture\n"; return false;
+    }
+    if (!skillMasterBatesShadowRoutine.loadFromFile("assets/gfx/menu/skills/skill_master_bates_shadow_routine.png")) {
+        std::cout << "Failed to load Master Bates Shadow Routine texture\n"; return false;
+    }
+    if (!skillMasterBatesGuiltyEmber.loadFromFile("assets/gfx/menu/skills/skill_master_bates_guilty_ember.png")) {
+        std::cout << "Failed to load Master Bates Guilty Ember texture\n"; return false;
+    }
     if (!hpBadgeShader.loadFromFile("assets/shaders/hp_badge.frag", sf::Shader::Type::Fragment)) {
         std::cout << "Failed to load hp badge shader\n"; return false;
     }
@@ -370,6 +421,36 @@ bool Resources::loadAll()
     if (!treasureChestWater.loadFromFile("assets/gfx/trophies/treasure_chest_water.png")) {
         std::cout << "Failed to load treasure_chest_water.png\n"; return false;
     }
+    if (!trophyDragoncupAir.loadFromFile("assets/gfx/trophies/dragoncup_air.png")) {
+        std::cout << "Failed to load dragoncup_air.png\n"; return false;
+    }
+    if (!trophyDragoncupEarth.loadFromFile("assets/gfx/trophies/dragoncup_earth.png")) {
+        std::cout << "Failed to load dragoncup_earth.png\n"; return false;
+    }
+    if (!trophyDragoncupFire.loadFromFile("assets/gfx/trophies/dragoncup_fire.png")) {
+        std::cout << "Failed to load dragoncup_fire.png\n"; return false;
+    }
+    if (!trophyDragoncupWater.loadFromFile("assets/gfx/trophies/dragoncup_water.png")) {
+        std::cout << "Failed to load dragoncup_water.png\n"; return false;
+    }
+    if (!trophyDragoncupUmbra.loadFromFile("assets/gfx/trophies/dragoncup_umbra.png")) {
+        std::cout << "Failed to load dragoncup_umbra.png\n"; return false;
+    }
+    if (!emblemSoul.loadFromFile("assets/gfx/trophies/emblem_soul.png")) {
+        std::cout << "Failed to load emblem_soul.png\n"; return false;
+    }
+    if (!emblemBody.loadFromFile("assets/gfx/trophies/emblem_body.png")) {
+        std::cout << "Failed to load emblem_body.png\n"; return false;
+    }
+    if (!emblemResolve.loadFromFile("assets/gfx/trophies/emblem_resolve.png")) {
+        std::cout << "Failed to load emblem_resolve.png\n"; return false;
+    }
+    if (!emblemMind.loadFromFile("assets/gfx/trophies/emblem_mind.png")) {
+        std::cout << "Failed to load emblem_mind.png\n"; return false;
+    }
+    if (!emblemAscension.loadFromFile("assets/gfx/trophies/emblem_ascension.png")) {
+        std::cout << "Failed to load emblem_ascension.png\n"; return false;
+    }
     if (!umbraUsseaOne.loadFromFile("assets/gfx/menu/map/Umbra_Ussea_one.png")) {
         std::cout << "Failed to load Umbra_Ussea_one.png\n"; return false;
     }
@@ -384,6 +465,48 @@ bool Resources::loadAll()
     }
     if (!umbraUsseaComplete.loadFromFile("assets/gfx/menu/map/Umbra_Ussea.png")) {
         std::cout << "Failed to load Umbra_Ussea.png\n"; return false;
+    }
+    if (!creditActAsha.loadFromFile("assets/gfx/chars/credits/act_asha.png")) {
+        std::cout << "Failed to load act_asha.png\n"; return false;
+    }
+    if (!creditActEmber.loadFromFile("assets/gfx/chars/credits/act_ember.png")) {
+        std::cout << "Failed to load act_ember.png\n"; return false;
+    }
+    if (!creditActBates.loadFromFile("assets/gfx/chars/credits/act_bates.png")) {
+        std::cout << "Failed to load act_bates.png\n"; return false;
+    }
+    if (!creditActBatesDragon.loadFromFile("assets/gfx/chars/credits/act_bates_dragon.png")) {
+        std::cout << "Failed to load act_bates_dragon.png\n"; return false;
+    }
+    if (!creditActNoah.loadFromFile("assets/gfx/chars/credits/act_noah.png")) {
+        std::cout << "Failed to load act_noah.png\n"; return false;
+    }
+    if (!creditActWanda.loadFromFile("assets/gfx/chars/credits/act_wanda.png")) {
+        std::cout << "Failed to load act_wanda.png\n"; return false;
+    }
+    if (!creditActWill.loadFromFile("assets/gfx/chars/credits/act_will.png")) {
+        std::cout << "Failed to load act_will.png\n"; return false;
+    }
+    if (!creditActFlawtin.loadFromFile("assets/gfx/chars/credits/act_flawtin.png")) {
+        std::cout << "Failed to load act_flawtin.png\n"; return false;
+    }
+    if (!creditActGrounded.loadFromFile("assets/gfx/chars/credits/act_grounded.png")) {
+        std::cout << "Failed to load act_grounded.png\n"; return false;
+    }
+    if (!creditActGustavo.loadFromFile("assets/gfx/chars/credits/act_gustavo.png")) {
+        std::cout << "Failed to load act_gustavo.png\n"; return false;
+    }
+    if (!creditActRowsted.loadFromFile("assets/gfx/chars/credits/act_rowsted.png")) {
+        std::cout << "Failed to load act_rowsted.png\n"; return false;
+    }
+    if (!creditActTory.loadFromFile("assets/gfx/chars/credits/act_tory.png")) {
+        std::cout << "Failed to load act_tory.png\n"; return false;
+    }
+    if (!creditActKensen.loadFromFile("assets/gfx/chars/credits/act_kensen.png")) {
+        std::cout << "Failed to load act_kensen.png\n"; return false;
+    }
+    if (!creditBetaTesterAlex.loadFromFile("assets/gfx/chars/credits/beta_tester_alex.png")) {
+        std::cout << "Failed to load beta_tester_alex.png\n"; return false;
     }
     if (!returnSymbol.loadFromFile("assets/textures/returnSymbol.png")) { // Return Symbol
         std::cout << "Failed to load Return Symbol Texture\n"; return false;
@@ -601,6 +724,30 @@ bool Resources::loadAll()
     if (!skillFriendship.loadFromFile("assets/audio/skill_friendship.mp3")) {
         std::cout << "Failed to load Friendship Skill Sound\n"; return false;
     }
+    if (!skillPowerUp.loadFromFile("assets/audio/skill_power_up.mp3")) {
+        std::cout << "Failed to load Master Bates powerup sound\n"; return false;
+    }
+    if (!chickSound.loadFromFile("assets/audio/chick_sound.mp3")) {
+        std::cout << "Failed to load Master Bates chick sound\n"; return false;
+    }
+    if (!awwSound.loadFromFile("assets/audio/aww_sound.mp3")) {
+        std::cout << "Failed to load Master Bates dragon sound\n"; return false;
+    }
+    if (!skillMidnightRelease.loadFromFile("assets/audio/skill_midnight_release.mp3")) {
+        std::cout << "Failed to load Midnight Release Sound\n"; return false;
+    }
+    if (!skillBadHabit.loadFromFile("assets/audio/skill_bad_habit.mp3")) {
+        std::cout << "Failed to load Bad Habit Sound\n"; return false;
+    }
+    if (!skillShadowRoutine.loadFromFile("assets/audio/skill_shadow_routine.mp3")) {
+        std::cout << "Failed to load Shadow Routine Sound\n"; return false;
+    }
+    if (!skillGuiltyEmber.loadFromFile("assets/audio/skill_guilty_ember.mp3")) {
+        std::cout << "Failed to load Guilty Ember Sound\n"; return false;
+    }
+    if (!masterBatesEvolution.loadFromFile("assets/audio/master_bates_evolution.mp3")) {
+        std::cout << "Failed to load Master Bates Evolution Sound\n"; return false;
+    }
     if (!forgeSound.loadFromFile("assets/audio/forgeSound.mp3")) { // Forge Sleep Sound
         std::cout << "Failed to load Forge Sound\n"; return false;
     }
@@ -630,6 +777,9 @@ bool Resources::loadAll()
     }
     if (!locationMusicSeminiferous.loadFromFile("assets/audio/locationMusicSeminiferous.mp3")) { // Seminiferous Location Sound
         std::cout << "Failed to load Seminiferous Location Music\n"; return false;
+    }
+    if (!locationMusicUmbraOssea.loadFromFile("assets/audio/locationMusicUmbraOssea.mp3")) { // Umbra Ossea Location Sound
+        std::cout << "Failed to load Umbra Ossea Location Music\n"; return false;
     }
     if (!questStart.loadFromFile("assets/audio/quest_start.mp3")) {
         std::cout << "Failed to load Quest Start Sound\n"; return false;

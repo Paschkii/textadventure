@@ -129,8 +129,7 @@ void TeleportController::stopSounds() {
 // Swaps game state to the requested location and sets up its dialogue.
 void handleTravel(Game& game, LocationId id) {
     auto locPtr = Locations::findById(game.locations, id);
-    const std::vector<DialogueLine>* dialog = story::locationDialogueFor(id);
-    if (!locPtr || !dialog)
+    if (!locPtr)
         return;
 
     game.holdMapDialogue = false;
@@ -157,7 +156,7 @@ void handleTravel(Game& game, LocationId id) {
         game.setCurrentLocation(locPtr);
 
         game.transientDialogue.clear();
-        game.transientDialogue.insert(game.transientDialogue.end(), seminiferous.begin(), seminiferous.end());
+        game.transientDialogue.insert(game.transientDialogue.end(), seminiferous_part_one.begin(), seminiferous_part_one.end());
         game.currentDialogue = &game.transientDialogue;
         game.dialogueIndex = 0;
         game.visibleText.clear();
@@ -166,6 +165,10 @@ void handleTravel(Game& game, LocationId id) {
         game.state = GameState::Dialogue;
         return;
     }
+
+    const std::vector<DialogueLine>* dialog = story::locationDialogueFor(id);
+    if (!dialog)
+        return;
 
     game.setCurrentLocation(locPtr);
 

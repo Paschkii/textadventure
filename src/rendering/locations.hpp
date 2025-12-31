@@ -18,6 +18,7 @@ enum class LocationId {
     Cladrenal,
     Aerobronchi,
     Seminiferous,
+    UmbraOssea,
 };
 
 // Describes a location entry, including display name, tint color, and textures.

@@ -42,7 +42,8 @@ constexpr std::size_t playerNameMaxLength = 18;
 constexpr float kXpCurveExponent = 1.2f;
 constexpr float kXpCurveScale = 0.25f;
 constexpr int kBaseXpRequirement = 100;
-constexpr float kHpGainPerLevel = 20.f;
+constexpr float kHpGainPerLevel = 5.f;
+constexpr int kMaxPlayerLevel = 100;
 
 inline int xpForLevel(int level) {
     int clampedLevel = std::max(1, level);
@@ -62,6 +63,7 @@ namespace {
             case LocationId::Cladrenal: return &game.resources.backgroundCladrenal;
             case LocationId::Aerobronchi: return &game.resources.backgroundAerobronchi;
             case LocationId::Seminiferous: return &game.resources.backgroundSeminiferous;
+            case LocationId::UmbraOssea: return &game.resources.backgroundUmbraOssea;
             default: return nullptr;
         }
     }
@@ -98,6 +100,8 @@ Game::Game()
     buttonHoverSound->setVolume(120.f);
     introTitleHoverSound.emplace(resources.titleButtons);
     introTitleHoverSound->setVolume(120.f);
+    menuOpenSound.emplace(resources.openMenu);
+    menuCloseSound.emplace(resources.closeMenu);
     quizLoggingSound.emplace(resources.quizLoggingAnswer);
     quizCorrectSound.emplace(resources.quizAnswerCorrect);
     quizIncorrectSound.emplace(resources.quizAnswerIncorrect);
@@ -195,7 +199,7 @@ void Game::beginTeleport(LocationId id) {
         return;
 
     stopTypingSound();
-    menuActive = false;
+    setMenuActive(false);
     menuActiveTab = -1;
     menuHoveredTab = -1;
     menuMapPopup.reset();
@@ -208,8 +212,8 @@ void Game::beginTeleport(LocationId id) {
 
 void Game::beginForcedDestinationSelection() {
     forcedDestinationSelection = true;
-    menuActive = true;
-    menuActiveTab = 2;
+    setMenuActive(true);
+    menuActiveTab = 1;
     menuHoveredTab = -1;
     menuButtonUnlocked = true;
     menuButtonFadeActive = false;
@@ -229,10 +233,21 @@ void Game::beginForcedDestinationSelection() {
 
 void Game::exitForcedDestinationSelection() {
     forcedDestinationSelection = false;
-    menuActive = false;
+    setMenuActive(false);
     menuHoveredTab = -1;
     menuMapPopup.reset();
     mapInteractionUnlocked = false;
+}
+
+void Game::setMenuActive(bool active) {
+    if (menuActive == active)
+        return;
+    menuActive = active;
+    auto& sound = active ? menuOpenSound : menuCloseSound;
+    if (sound) {
+        sound->stop();
+        sound->play();
+    }
 }
 
 // Advances the teleport sequence and invokes callbacks when ready.
@@ -244,7 +259,9 @@ void Game::updateTeleport() {
 
 // Picks the base UI frame color based on the current location.
 sf::Color Game::frameBaseColor() const {
-    if (currentLocation && currentLocation->id == LocationId::Seminiferous)
+    if (currentLocation
+        && (currentLocation->id == LocationId::Seminiferous
+            || currentLocation->id == LocationId::UmbraOssea))
         return ColorHelper::Palette::DarkPurple;
 
     return TextStyles::UI::PanelDark;
@@ -422,6 +439,21 @@ void Game::run() {
 
         updateTeleport();
         endSequenceController.update();
+        if (creditsAfterEndPending && endSequenceController.isScreenVisible()) {
+            constexpr float kCreditsStartDelay = 2.0f;
+            if (!creditsAfterEndTimerActive) {
+                creditsAfterEndTimerActive = true;
+                creditsAfterEndClock.restart();
+            }
+            if (creditsAfterEndClock.getElapsedTime().asSeconds() >= kCreditsStartDelay) {
+                creditsAfterEndPending = false;
+                creditsAfterEndTimerActive = false;
+                endSequenceController.reset();
+                state = GameState::Credits;
+                creditsState.initialized = false;
+                creditsState.active = true;
+            }
+        }
         if (endSequenceController.isScreenVisible() && rankingOverlay.pending)
             ui::ranking::activateOverlay(rankingOverlay);
         ui::ranking::updateOverlay(rankingOverlay);
@@ -431,6 +463,19 @@ void Game::run() {
         helper::healingPotion::update(*this);
         ui::treasureChest::update(*this, frameTime.asSeconds());
         ui::battle::update(*this, frameTime);
+        if (state == GameState::Credits) {
+            ui::credits::update(*this);
+        }
+        if (menuMapUmbraOverlayFadeInActive) {
+            float elapsed = menuMapUmbraOverlayClock.getElapsedTime().asSeconds();
+            if (elapsed >= 2.f) {
+                menuMapUmbraOverlayFadeInActive = false;
+                if (menuMapUmbraOverlayHold) {
+                    menuMapUmbraOverlayHold = false;
+                    holdMapDialogue = false;
+                }
+            }
+        }
         updateLayout();
 
         window.clear(ColorHelper::Palette::BlueNearBlack);
@@ -450,7 +495,7 @@ void Game::stopTypingSound() {
 }
 
 void Game::grantXp(int amount) {
-    if (amount <= 0)
+    if (amount <= 0 || playerLevel >= kMaxPlayerLevel)
         return;
 
     float tempXp = playerXp;
@@ -460,7 +505,7 @@ void Game::grantXp(int amount) {
     std::vector<XpGainSegment> segments;
     segments.reserve(4);
     int levelUpsAwarded = 0;
-    while (xpRemaining > 0.f) {
+    while (xpRemaining > 0.f && tempLevel < kMaxPlayerLevel) {
         float xpNeeded = tempXpMax - tempXp;
         if (xpNeeded <= 0.f)
             xpNeeded = tempXpMax;
@@ -481,6 +526,11 @@ void Game::grantXp(int amount) {
             xpRemaining = 0.f;
         }
     }
+    if (tempLevel >= kMaxPlayerLevel) {
+        tempLevel = kMaxPlayerLevel;
+        tempXp = 0.f;
+        tempXpMax = static_cast<float>(xpForLevel(tempLevel));
+    }
 
     if (levelUpsAwarded > 0)
         pendingLevelUps += levelUpsAwarded;
@@ -494,19 +544,41 @@ void Game::grantXp(int amount) {
 
     playerXp += static_cast<float>(amount);
     auto applyLevelBonus = [&]() {
+        if (playerLevel >= kMaxPlayerLevel)
+            return;
         playerLevel++;
         playerHpMax += kHpGainPerLevel;
-        playerHp = std::min(playerHp + kHpGainPerLevel, playerHpMax);
+        playerHp = playerHpMax;
         playerXpMax = static_cast<float>(xpForLevel(playerLevel));
     };
 
-    while (playerXpMax > 0.f && playerXp >= playerXpMax) {
+    while (playerXpMax > 0.f && playerXp >= playerXpMax && playerLevel < kMaxPlayerLevel) {
         playerXp -= playerXpMax;
         applyLevelBonus();
     }
 
+    if (playerLevel >= kMaxPlayerLevel) {
+        playerLevel = kMaxPlayerLevel;
+        playerXp = 0.f;
+        playerXpMax = static_cast<float>(xpForLevel(playerLevel));
+    }
+
     if (playerXp < 0.f)
         playerXp = 0.f;
+}
+
+void Game::boostToLevel(int targetLevel) {
+    int cappedLevel = std::min(targetLevel, kMaxPlayerLevel);
+    if (cappedLevel <= playerLevel)
+        return;
+    int levelsToGain = cappedLevel - playerLevel;
+    playerLevel = cappedLevel;
+    playerHpMax += kHpGainPerLevel * static_cast<float>(levelsToGain);
+    playerHp = playerHpMax;
+    playerXp = 0.f;
+    playerXpMax = static_cast<float>(xpForLevel(playerLevel));
+    pendingLevelUps = 0;
+    xpGainDisplay.active = false;
 }
 
 void Game::startQuest(const Story::QuestDefinition& quest) {
@@ -529,6 +601,8 @@ void Game::startQuest(const Story::QuestDefinition& quest) {
     };
     questLog.push_back(entry);
     questFoldButtonBounds.resize(questLog.size());
+    if (!questTutorialCompleted && !questTutorialPending)
+        questTutorialPending = true;
 
     questPopup.entry = entry;
     questPopup.phase = QuestPopupState::Phase::Entering;

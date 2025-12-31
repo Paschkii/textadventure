@@ -39,22 +39,16 @@
 namespace ui::menu {
 
 namespace {
-    constexpr std::array<const char*, 6> kTabLabels = {
+    constexpr std::array<const char*, 3> kTabLabels = {
         "Inventory",
-        "Skills",
         "Map",
-        "Quests",
-        "",
-        "Rankings"
+        "Quests"
     };
 
     enum class MenuTab {
         Inventory = 0,
-        Skills,
         Map,
-        Quests,
-        UmbraMap,
-        Rankings,
+        Quests
     };
 
     std::string formatTime(double totalSeconds) {
@@ -97,7 +91,6 @@ namespace {
     constexpr float kMapTutorialButtonPadding = 12.f;
     constexpr unsigned int kMapTutorialTextSize = 20;
     constexpr float kMapTutorialLineSpacing = 1.f;
-    constexpr float kUmbraMapGlowDuration = 3.f;
 
     void beginInventoryTutorial(Game& game) {
         if (!game.inventoryTutorialPending)
@@ -525,17 +518,50 @@ namespace {
         constexpr float iconSpacing = 28.f;
         constexpr int columns = 4;
         constexpr float slotCornerRadius = 12.f;
+        const sf::Color ceremonialIconTint = ColorHelper::lighten(ColorHelper::Palette::MenuSectionBeige, 0.08f);
 
         std::size_t rows = std::max<std::size_t>(3, icons.empty() ? 0 : (icons.size() + columns - 1) / columns);
-        float gridHeight = rows * iconSize + (rows - 1) * iconSpacing;
-        float gridWidth = columns * iconSize + (columns - 1) * iconSpacing;
-        float gridStartX = leftColumnX + (leftColumnWidth - gridWidth) * 0.5f;
-        float startGridX = std::max(leftColumnX + 16.f, gridStartX);
+        constexpr float kSideSlotScale = 0.8f;
+        constexpr float kSideSlotSpacing = 16.f;
+        constexpr float kSideColumnGap = 18.f;
+        const std::size_t ceremonySlotCount = game.emblemSlots.size();
+        float baseGridHeight = rows * iconSize + (rows - 1) * iconSpacing;
+        float baseGridWidth = columns * iconSize + (columns - 1) * iconSpacing;
+        float baseSideSlotSize = iconSize * kSideSlotScale;
+        float baseTotalWidth = baseGridWidth + (baseSideSlotSize * 2.f) + (kSideColumnGap * 2.f);
+        float maxWidth = std::max(0.f, leftColumnWidth - 32.f);
+        float scale = (baseTotalWidth > 0.f && baseTotalWidth > maxWidth)
+            ? (maxWidth / baseTotalWidth)
+            : 1.f;
+        float gridCellSize = iconSize * scale;
+        float gridSpacing = iconSpacing * scale;
+        float sideSlotSize = baseSideSlotSize * scale;
+        float sideSlotSpacing = kSideSlotSpacing * scale;
+        float sideColumnGap = kSideColumnGap * scale;
+        float gridHeight = rows * gridCellSize + (rows - 1) * gridSpacing;
+        float gridWidth = columns * gridCellSize + (columns - 1) * gridSpacing;
+        float sideColumnHeight = ceremonySlotCount > 0
+            ? sideSlotSize * ceremonySlotCount + sideSlotSpacing * (static_cast<float>(ceremonySlotCount) - 1.f)
+            : 0.f;
+        float totalWidth = gridWidth + (sideSlotSize * 2.f) + (sideColumnGap * 2.f);
         float infoY = info.getPosition().y;
         float gridStartY = infoY + info.getLocalBounds().size.y + 24.f;
         float gridBottomLimit = columnTop + columnHeight - 20.f - gridHeight;
         float startGridY = std::min(gridStartY, gridBottomLimit);
         startGridY = std::max(startGridY, infoY);
+        float minStartX = leftColumnX + 16.f;
+        float maxStartX = leftColumnX + leftColumnWidth - totalWidth - 16.f;
+        float combinedStartX = leftColumnX + (leftColumnWidth - totalWidth) * 0.5f;
+        if (maxStartX < minStartX)
+            combinedStartX = minStartX;
+        else
+            combinedStartX = std::clamp(combinedStartX, minStartX, maxStartX);
+        float leftSlotsX = combinedStartX;
+        float startGridX = leftSlotsX + sideSlotSize + sideColumnGap;
+        float rightSlotsX = startGridX + gridWidth + sideColumnGap;
+        float sideColumnStartY = (gridHeight > sideColumnHeight)
+            ? startGridY + (gridHeight - sideColumnHeight) * 0.5f
+            : startGridY;
 
         const float gridOutlinePad = 8.f;
         RoundedRectangleShape gridOutline({ gridWidth + gridOutlinePad * 2.f, gridHeight + gridOutlinePad * 2.f }, 16.f, 16);
@@ -547,9 +573,9 @@ namespace {
 
         for (std::size_t row = 0; row < rows; ++row) {
             for (std::size_t column = 0; column < columns; ++column) {
-                float cellX = startGridX + static_cast<float>(column) * (iconSize + iconSpacing);
-                float cellY = startGridY + static_cast<float>(row) * (iconSize + iconSpacing);
-                RoundedRectangleShape cell({ iconSize, iconSize }, slotCornerRadius, 8);
+                float cellX = startGridX + static_cast<float>(column) * (gridCellSize + gridSpacing);
+                float cellY = startGridY + static_cast<float>(row) * (gridCellSize + gridSpacing);
+                RoundedRectangleShape cell({ gridCellSize, gridCellSize }, slotCornerRadius, 8);
                 cell.setPosition({ cellX, cellY });
                 cell.setFillColor(applyAlpha(slotBackground));
                 cell.setOutlineThickness(0.f);
@@ -562,9 +588,9 @@ namespace {
         float adjustedGridWidth = gridWidth;
         for (int divider = 1; divider < columns; ++divider) {
             float x = startGridX
-                + static_cast<float>(divider) * iconSize
-                + static_cast<float>(divider - 1) * iconSpacing
-                + (iconSpacing * 0.5f);
+                + static_cast<float>(divider) * gridCellSize
+                + static_cast<float>(divider - 1) * gridSpacing
+                + (gridSpacing * 0.5f);
             sf::RectangleShape line({ kDividerThickness, gridHeight });
             line.setPosition({ x - (kDividerThickness * 0.5f), startGridY });
             line.setFillColor(applyAlpha(dividerColor));
@@ -572,13 +598,45 @@ namespace {
         }
         for (std::size_t divider = 1; divider < rows; ++divider) {
             float y = startGridY
-                + static_cast<float>(divider) * iconSize
-                + static_cast<float>(divider - 1) * iconSpacing
-                + (iconSpacing * 0.5f);
+                + static_cast<float>(divider) * gridCellSize
+                + static_cast<float>(divider - 1) * gridSpacing
+                + (gridSpacing * 0.5f);
             sf::RectangleShape line({ adjustedGridWidth, kDividerThickness });
             line.setPosition({ startGridX, y - (kDividerThickness * 0.5f) });
             line.setFillColor(applyAlpha(dividerColor));
             target.draw(line);
+        }
+
+        auto drawCeremonialSlots = [&](float columnX, const std::array<std::optional<std::string>, 5>& slots) {
+            for (std::size_t slotIdx = 0; slotIdx < slots.size(); ++slotIdx) {
+                float slotY = sideColumnStartY + static_cast<float>(slotIdx) * (sideSlotSize + sideSlotSpacing);
+                RoundedRectangleShape cell({ sideSlotSize, sideSlotSize }, slotCornerRadius, 8);
+                cell.setPosition({ columnX, slotY });
+                cell.setFillColor(applyAlpha(slotBackground));
+                cell.setOutlineThickness(1.f);
+                cell.setOutlineColor(applyAlpha(ColorHelper::Palette::Dim));
+                target.draw(cell);
+
+                sf::FloatRect slotBounds({ columnX, slotY }, { sideSlotSize, sideSlotSize });
+                const auto& key = slots[slotIdx];
+                if (key) {
+                    if (const sf::Texture* texture = core::itemActivation::textureForItemKey(game, *key)) {
+                        drawSlotIcon(
+                            *texture,
+                            { columnX + sideSlotSize * 0.5f, slotY + sideSlotSize * 0.5f },
+                            { sideSlotSize * 0.7f, sideSlotSize * 0.7f },
+                            1.f,
+                            ceremonialIconTint
+                        );
+                    }
+                    registerSlotEntry(slotBounds, std::nullopt, key);
+                }
+            }
+        };
+
+        if (sideSlotSize > 0.f) {
+            drawCeremonialSlots(leftSlotsX, game.emblemSlots);
+            drawCeremonialSlots(rightSlotsX, game.trophySlots);
         }
 
         for (std::size_t idx = 0; idx < icons.size(); ++idx) {
@@ -587,7 +645,7 @@ namespace {
 
             sf::Sprite sprite = icons[idx].sprite;
             auto texRect = sprite.getTextureRect();
-            sf::Vector2f iconArea{ iconSize * 0.85f, iconSize * 0.85f };
+            sf::Vector2f iconArea{ gridCellSize * 0.85f, gridCellSize * 0.85f };
             float texWidth = static_cast<float>(std::max(1, texRect.size.x));
             float texHeight = static_cast<float>(std::max(1, texRect.size.y));
             float widthScale = iconArea.x / texWidth;
@@ -601,14 +659,14 @@ namespace {
                 spriteBounds.position.x + spriteBounds.size.x * 0.5f,
                 spriteBounds.position.y + spriteBounds.size.y * 0.5f
             });
-            float posX = startGridX + static_cast<float>(column) * (iconSize + iconSpacing);
-            float posY = startGridY + static_cast<float>(row) * (iconSize + iconSpacing);
-            sprite.setPosition({ posX + iconSize * 0.5f, posY + iconSize * 0.5f });
+            float posX = startGridX + static_cast<float>(column) * (gridCellSize + gridSpacing);
+            float posY = startGridY + static_cast<float>(row) * (gridCellSize + gridSpacing);
+            sprite.setPosition({ posX + gridCellSize * 0.5f, posY + gridCellSize * 0.5f });
 
-            sf::FloatRect slotBounds({ posX, posY }, { iconSize, iconSize });
+            sf::FloatRect slotBounds({ posX, posY }, { gridCellSize, gridCellSize });
             std::size_t slotIndex = registerSlotEntry(slotBounds, idx, icons[idx].key);
             if (game.hoveredInventoryItem == static_cast<int>(slotIndex)) {
-                RoundedRectangleShape hoverHighlight({ iconSize, iconSize }, slotCornerRadius, 12);
+                RoundedRectangleShape hoverHighlight({ gridCellSize, gridCellSize }, slotCornerRadius, 12);
                 hoverHighlight.setPosition({ posX, posY });
                 hoverHighlight.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::MenuSectionBeige, 0.35f));
                 target.draw(hoverHighlight);
@@ -1148,21 +1206,21 @@ namespace {
         Game& game,
         sf::RenderTarget& target,
         const sf::FloatRect& panelBounds,
+        float contentBottomY,
         float alphaFactor
     ) {
         game.questTutorialButtonBounds = {};
-        if (!game.questTutorialPopupActive
-            || game.menuActiveTab != static_cast<int>(MenuTab::Quests)) {
+        if (!game.questTutorialPopupActive) {
             game.questTutorialButtonHovered = false;
             return;
         }
 
-        float width = panelBounds.size.x * 0.85f;
-        float height = 220.f;
-        float popupY = panelBounds.position.y + 32.f;
-        float maxPopupY = panelBounds.position.y + panelBounds.size.y - height - 12.f;
-        if (popupY > maxPopupY)
-            popupY = maxPopupY;
+        float width = panelBounds.size.x * 0.9f;
+        float height = 210.f;
+        float popupY = std::min(
+            panelBounds.position.y + panelBounds.size.y - height - 12.f,
+            contentBottomY + 32.f
+        );
         popupY = std::max(popupY, panelBounds.position.y + 12.f);
         sf::Vector2f position{
             panelBounds.position.x + (panelBounds.size.x - width) * 0.5f,
@@ -1295,7 +1353,7 @@ namespace {
         target.draw(arrow);
     }
 
-    void drawQuestContent(Game& game, sf::RenderTarget& target, const sf::FloatRect& bounds, float alphaFactor) {
+    float drawQuestContent(Game& game, sf::RenderTarget& target, const sf::FloatRect& bounds, float alphaFactor) {
         auto applyAlpha = [&](const sf::Color& color) {
             return ColorHelper::applyAlphaFactor(color, alphaFactor);
         };
@@ -1725,6 +1783,7 @@ namespace {
         drawQuestScrollbar(game.questActiveColumnBounds, activeScroll, activeMaxScroll, activeAvailableHeight);
         drawQuestScrollbar(game.questFinishedColumnBounds, finishedScroll, finishedMaxScroll, finishedAvailableHeight);
 
+        return bounds.position.y + bounds.size.y - 24.f;
     }
 
     void drawSkillsContent(Game& game, sf::RenderTarget& target, const sf::FloatRect& bounds, float alphaFactor) {
@@ -1878,96 +1937,6 @@ namespace {
         }
     }
 
-    void drawUmbraMapContent(Game& game, sf::RenderTarget& target, const sf::FloatRect& bounds, float menuFadeFactor) {
-        if (!game.umbraMapComplete) {
-            sf::Vector2f boxSize{ bounds.size.x - 32.f, bounds.size.y - 32.f };
-            if (boxSize.x < 0.f) boxSize.x = 0.f;
-            if (boxSize.y < 0.f) boxSize.y = 0.f;
-
-            sf::RectangleShape placeholder(boxSize);
-            placeholder.setPosition({
-                (bounds.size.x - boxSize.x) * 0.5f,
-                (bounds.size.y - boxSize.y) * 0.5f
-            });
-            placeholder.setFillColor(ColorHelper::applyAlphaFactor(sf::Color(20, 20, 20, 200), menuFadeFactor));
-            placeholder.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::FrameGoldLight, menuFadeFactor));
-            placeholder.setOutlineThickness(2.f);
-            target.draw(placeholder);
-
-            sf::Text label{ game.resources.uiFont, "??????", 42 };
-            label.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Dim, menuFadeFactor));
-            auto labelBounds = label.getLocalBounds();
-            label.setOrigin({
-                labelBounds.position.x + labelBounds.size.x * 0.5f,
-                labelBounds.position.y + labelBounds.size.y * 0.5f
-            });
-            label.setPosition({
-                bounds.size.x * 0.5f,
-                bounds.size.y * 0.5f - 18.f
-            });
-            target.draw(label);
-
-            sf::Text hint{ game.resources.uiFont, "Collect every fragment to reveal this chart.", 20 };
-            hint.setFillColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::Dim, menuFadeFactor));
-            auto hintBounds = hint.getLocalBounds();
-            hint.setOrigin({
-                hintBounds.position.x + hintBounds.size.x * 0.5f,
-                hintBounds.position.y + hintBounds.size.y * 0.5f
-            });
-            hint.setPosition({
-                bounds.size.x * 0.5f,
-                bounds.size.y * 0.5f + 18.f
-            });
-            target.draw(hint);
-            return;
-        }
-
-        const auto& mapTex = game.resources.umbraUsseaComplete;
-        if (mapTex.getSize().x == 0 || mapTex.getSize().y == 0)
-            return;
-
-        sf::Sprite mapSprite(mapTex);
-        float panelWidth = bounds.size.x;
-        float panelHeight = bounds.size.y;
-        auto texSize = mapTex.getSize();
-        float desiredWidth = panelWidth * 0.92f;
-        float desiredHeight = panelHeight * 0.92f;
-        float scale = std::min(desiredWidth / static_cast<float>(texSize.x), desiredHeight / static_cast<float>(texSize.y));
-        if (scale <= 0.f)
-            scale = 1.f;
-        mapSprite.setScale({ scale, scale });
-        mapSprite.setOrigin({
-            static_cast<float>(texSize.x) * 0.5f,
-            static_cast<float>(texSize.y) * 0.5f
-        });
-        mapSprite.setPosition({
-            panelWidth * 0.5f,
-            panelHeight * 0.5f
-        });
-
-        auto mousePos = game.window.mapPixelToCoords(sf::Mouse::getPosition(game.window));
-        bool hovered = mapSprite.getGlobalBounds().contains(mousePos);
-
-        sf::Color spriteColor = ColorHelper::applyAlphaFactor(sf::Color::White, menuFadeFactor);
-        if (hovered)
-            spriteColor = ColorHelper::darken(spriteColor, 0.18f);
-
-        float glowAmount = 0.f;
-        if (game.umbraMapGlowActive) {
-            float elapsed = game.umbraMapGlowClock.getElapsedTime().asSeconds();
-            if (elapsed >= kUmbraMapGlowDuration) {
-                game.umbraMapGlowActive = false;
-            } else {
-                float phase = elapsed / kUmbraMapGlowDuration * 2.f * 3.14159265f;
-                glowAmount = (std::sin(phase) + 1.f) * 0.5f;
-            }
-        }
-        if (glowAmount > 0.f)
-            spriteColor = ColorHelper::tint(spriteColor, ColorHelper::Palette::SoftYellow, glowAmount * menuFadeFactor);
-
-        mapSprite.setColor(spriteColor);
-        target.draw(mapSprite);
-    }
 } // namespace
 
 bool handleEvent(Game& game, const sf::Event& event) {
@@ -2038,20 +2007,7 @@ bool handleEvent(Game& game, const sf::Event& event) {
             else
                 game.menuHoveredTab = -1;
             game.mapTutorialOkHovered = false;
-            if (!anyTutorialBlocking()
-                && game.menuActiveTab == static_cast<int>(MenuTab::Quests))
-            {
-                game.questFoldHoveredIndex = -1;
-                for (std::size_t idx = 0; idx < game.questFoldButtonBounds.size(); ++idx) {
-                    if (game.questFoldButtonBounds[idx].contains(point)) {
-                        game.questFoldHoveredIndex = static_cast<int>(idx);
-                        break;
-                    }
-                }
-            }
-            else {
-                game.questFoldHoveredIndex = -1;
-            }
+            game.questFoldHoveredIndex = -1;
             if (!anyTutorialBlocking()
                 && game.menuActiveTab == static_cast<int>(MenuTab::Inventory))
             {
@@ -2104,32 +2060,32 @@ bool handleEvent(Game& game, const sf::Event& event) {
     }
 
     if (auto wheel = event.getIf<sf::Event::MouseWheelScrolled>()) {
-        if (!anyTutorialBlocking() && game.menuActive && game.menuActiveTab == static_cast<int>(MenuTab::Quests)) {
-            sf::Vector2f point = game.window.mapPixelToCoords(wheel->position);
-            constexpr float kQuestScrollStep = 48.f;
-            float delta = -wheel->delta * kQuestScrollStep;
-            bool handled = false;
-            if (game.questActiveColumnBounds.contains(point) && game.questActiveMaxScroll > 0.f) {
-                game.questActiveScrollOffset = std::clamp(
-                    game.questActiveScrollOffset + delta,
-                    0.f,
-                    game.questActiveMaxScroll
-                );
-                handled = true;
-            }
-            else if (game.questFinishedColumnBounds.contains(point) && game.questFinishedMaxScroll > 0.f) {
-                game.questFinishedScrollOffset = std::clamp(
-                    game.questFinishedScrollOffset + delta,
-                    0.f,
-                    game.questFinishedMaxScroll
-                );
-                handled = true;
-            }
-            if (handled) {
-                consumed = true;
-                return true;
-            }
+        if (!game.menuActive)
+            return false;
+        if (game.menuActiveTab != static_cast<int>(MenuTab::Quests))
+            return false;
+        if (anyTutorialBlocking() || game.mapTutorialActive)
+            return false;
+        sf::Vector2f point = game.window.mapPixelToCoords(wheel->position);
+        float delta = wheel->delta * 40.f;
+        bool handled = false;
+        if (game.questActiveColumnBounds.contains(point)) {
+            game.questActiveScrollOffset = std::clamp(
+                game.questActiveScrollOffset - delta,
+                0.f,
+                game.questActiveMaxScroll
+            );
+            handled = true;
         }
+        else if (game.questFinishedColumnBounds.contains(point)) {
+            game.questFinishedScrollOffset = std::clamp(
+                game.questFinishedScrollOffset - delta,
+                0.f,
+                game.questFinishedMaxScroll
+            );
+            handled = true;
+        }
+        return handled;
     }
 
     if (auto button = event.getIf<sf::Event::MouseButtonReleased>()) {
@@ -2147,7 +2103,7 @@ bool handleEvent(Game& game, const sf::Event& event) {
             }
 
             if (!game.menuActive && menuButtonInteractable && game.menuButton.getGlobalBounds().contains(point)) {
-                game.menuActive = true;
+                game.setMenuActive(true);
                 consumed = true;
                 beginInventoryTutorial(game);
             }
@@ -2190,20 +2146,6 @@ bool handleEvent(Game& game, const sf::Event& event) {
 
                     auto panelBounds = game.menuPanel.getGlobalBounds();
                     bool insidePanel = panelBounds.contains(point);
-                    if (!anyTutorialBlocking()
-                        && game.menuActiveTab == static_cast<int>(MenuTab::Quests))
-                    {
-                        for (std::size_t idx = 0; idx < game.questFoldButtonBounds.size(); ++idx) {
-                            if (game.questFoldButtonBounds[idx].contains(point)) {
-                                auto& entry = game.questLog[idx];
-                                if (!entry.completed) {
-                                    entry.collapsed = !entry.collapsed;
-                                    consumed = true;
-                                    return true;
-                                }
-                            }
-                        }
-                    }
                     if (inventoryTutorialBlocking()) {
                         if (game.inventoryTutorialButtonBounds.contains(point)) {
                             game.inventoryTutorialPopupActive = false;
@@ -2213,8 +2155,6 @@ bool handleEvent(Game& game, const sf::Event& event) {
                             game.menuHoveredTab = -1;
                             game.inventoryTutorialButtonHovered = false;
                             game.inventoryTutorialButtonBounds = {};
-                            if (!game.questTutorialCompleted)
-                                game.questTutorialPending = true;
                             consumed = true;
                             return true;
                         }
@@ -2232,7 +2172,7 @@ bool handleEvent(Game& game, const sf::Event& event) {
                     }
                     else if (!insidePanel) {
                         if (!game.forcedDestinationSelection)
-                            game.menuActive = false;
+                            game.setMenuActive(false);
                     }
                     consumed = true;
                 }
@@ -2244,10 +2184,10 @@ bool handleEvent(Game& game, const sf::Event& event) {
         if (key->code == sf::Keyboard::Key::Escape) {
             if (game.menuActive) {
                 if (!anyTutorialBlocking() && !game.mapTutorialActive && !game.forcedDestinationSelection)
-                    game.menuActive = false;
+                    game.setMenuActive(false);
             }
             else if (menuButtonInteractable) {
-                game.menuActive = true;
+                game.setMenuActive(true);
                 consumed = true;
                 beginInventoryTutorial(game);
             }
@@ -2364,11 +2304,8 @@ void draw(Game& game, sf::RenderTarget& target) {
         const sf::Texture* icon = nullptr;
         switch (static_cast<MenuTab>(idx)) {
             case MenuTab::Inventory: icon = &game.resources.buttonInventory; break;
-            case MenuTab::Skills: icon = &game.resources.buttonSkills; break;
             case MenuTab::Map: icon = &game.resources.buttonMap; break;
             case MenuTab::Quests: icon = &game.resources.buttonQuests; break;
-            case MenuTab::UmbraMap: icon = nullptr; break;
-            case MenuTab::Rankings: icon = &game.resources.buttonRankings; break;
         }
 
         std::optional<sf::Sprite> sprite;
@@ -2384,8 +2321,6 @@ void draw(Game& game, sf::RenderTarget& target) {
         }
 
         std::string labelText = kTabLabels[idx];
-        if (static_cast<MenuTab>(idx) == MenuTab::UmbraMap)
-            labelText = game.umbraMapComplete ? "Umbra Ossea" : "??????";
         sf::Text label{ game.resources.uiFont, labelText, 22 };
         bool active = static_cast<int>(idx) == game.menuActiveTab;
         sf::Color textColor = active ? ColorHelper::Palette::SoftYellow : ColorHelper::Palette::Normal;
@@ -2423,9 +2358,6 @@ void draw(Game& game, sf::RenderTarget& target) {
         case MenuTab::Inventory:
             contentBottom = drawInventoryContent(game, target, panelBounds, menuFadeFactor);
             break;
-        case MenuTab::Skills:
-            drawSkillsContent(game, target, panelBounds, menuFadeFactor);
-            break;
         case MenuTab::Map: {
             sf::View prev = target.getView();
             sf::View mapView(sf::FloatRect({ 0.f, 0.f }, { panelBounds.size.x, panelBounds.size.y }));
@@ -2443,31 +2375,13 @@ void draw(Game& game, sf::RenderTarget& target) {
             break;
         }
         case MenuTab::Quests:
-            drawQuestContent(game, target, panelBounds, menuFadeFactor);
-            break;
-        case MenuTab::UmbraMap: {
-            sf::View prev = target.getView();
-            sf::View mapView(sf::FloatRect({ 0.f, 0.f }, { panelBounds.size.x, panelBounds.size.y }));
-            mapView.setCenter(sf::Vector2f{ panelBounds.size.x * 0.5f, panelBounds.size.y * 0.5f });
-            mapView.setViewport(sf::FloatRect(
-                { panelBounds.position.x / static_cast<float>(windowSize.x),
-                  panelBounds.position.y / static_cast<float>(windowSize.y) },
-                { panelBounds.size.x / static_cast<float>(windowSize.x),
-                  panelBounds.size.y / static_cast<float>(windowSize.y) }
-            ));
-            target.setView(mapView);
-            drawUmbraMapContent(game, target, panelBounds, menuFadeFactor);
-            target.setView(prev);
-            break;
-        }
-        case MenuTab::Rankings:
-            drawRankingContent(game, target, panelBounds);
+            contentBottom = drawQuestContent(game, target, panelBounds, menuFadeFactor);
             break;
     }
 
     drawMapTutorialPopup(game, target, panelBounds, menuFadeFactor);
     drawInventoryTutorialPopup(game, target, panelBounds, contentBottom, menuFadeFactor);
-    drawQuestTutorialPopup(game, target, panelBounds, menuFadeFactor);
+    drawQuestTutorialPopup(game, target, panelBounds, contentBottom, menuFadeFactor);
 
     if (game.questTutorialClosing && questTutorialCloseProgress >= 1.f) {
         game.questTutorialClosing = false;
@@ -2478,9 +2392,9 @@ void draw(Game& game, sf::RenderTarget& target) {
         game.questTutorialCloseProgress = 0.f;
         bool shouldAdvance = game.questTutorialAdvancePending;
         game.questTutorialAdvancePending = false;
+        game.setMenuActive(false);
+        game.menuHoveredTab = -1;
         if (shouldAdvance) {
-            game.menuActive = false;
-            game.menuHoveredTab = -1;
             advanceDialogueLine(game);
         }
     }

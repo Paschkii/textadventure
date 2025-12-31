@@ -37,12 +37,6 @@ const std::array<const char*, 8> kSillyWords{{
     "Wow", "uuhh", "Can I sell this?", "Booooring", "Cool", "I knew it!", "Yay!", "What a catch"
 }};
 
-const std::array<const char*, 4> kUmbraPieces{{
-    "umbra_ussea_one",
-    "umbra_ussea_two",
-    "umbra_ussea_three",
-    "umbra_ussea_four"
-}};
 
 std::optional<std::size_t> artifactTypeIndex(std::string_view key) {
     auto delim = key.find('_');
@@ -65,21 +59,16 @@ void incrementArtifactCounter(Game& game, std::string_view key) {
         ++game.artifactCounts[*type];
 }
 
-void maybeCombineUmbraPieces(Game& game) {
-    if (game.umbraMapComplete)
-        return;
-    if (game.umbraFragmentsCollectedCount < static_cast<int>(kUmbraPieces.size()))
-        return;
-    for (const char* key : kUmbraPieces)
-        game.itemController.removeItem(key);
-    game.itemController.addItem(game.resources.umbraUsseaComplete, "umbra_ussea_complete");
-    game.umbraMapComplete = true;
-}
 
 bool isArtifactKey(std::string_view key) {
     return key.rfind("dragonscale_", 0) == 0
         || key.rfind("dragonclaw_", 0) == 0
         || key.rfind("luckycharm_", 0) == 0;
+}
+
+bool isCeremonialKey(std::string_view key) {
+    return key.rfind("dragoncup_", 0) == 0
+        || key.rfind("emblem_", 0) == 0;
 }
 
 std::string elementSuffix(LocationId location) {
@@ -92,6 +81,25 @@ std::string elementSuffix(LocationId location) {
     }
 }
 
+std::string emblemKeyFor(LocationId location) {
+    switch (location) {
+        case LocationId::Aerobronchi: return "emblem_soul";
+        case LocationId::Cladrenal: return "emblem_body";
+        case LocationId::Blyathyroid: return "emblem_resolve";
+        case LocationId::Lacrimere: return "emblem_mind";
+        default: return {};
+    }
+}
+
+std::string trophyKeyFor(LocationId location) {
+    switch (location) {
+        case LocationId::Aerobronchi: return "dragoncup_air";
+        case LocationId::Cladrenal: return "dragoncup_earth";
+        case LocationId::Blyathyroid: return "dragoncup_fire";
+        case LocationId::Lacrimere: return "dragoncup_water";
+        default: return {};
+    }
+}
 const sf::Texture* chestTextureFor(LocationId location, const Game& game) {
     switch (location) {
         case LocationId::Blyathyroid: return &game.resources.treasureChestFire;
@@ -102,30 +110,6 @@ const sf::Texture* chestTextureFor(LocationId location, const Game& game) {
     }
 }
 
-std::optional<std::size_t> umbraPieceIndex(const std::string& key) {
-    if (key == "umbra_ussea_one")
-        return 0;
-    if (key == "umbra_ussea_two")
-        return 1;
-    if (key == "umbra_ussea_three")
-        return 2;
-    if (key == "umbra_ussea_four")
-        return 3;
-    return std::nullopt;
-}
-
-const sf::Texture* mapPieceTexture(const Game& game, const std::string& key) {
-    if (auto index = umbraPieceIndex(key)) {
-        switch (*index) {
-            case 0: return &game.resources.umbraUsseaOne;
-            case 1: return &game.resources.umbraUsseaTwo;
-            case 2: return &game.resources.umbraUsseaThree;
-            case 3: return &game.resources.umbraUsseaFour;
-            default: break;
-        }
-    }
-    return nullptr;
-}
 
 std::string randomSillyWord(Game::TreasureChestState& state) {
     if (kSillyWords.empty())
@@ -134,26 +118,8 @@ std::string randomSillyWord(Game::TreasureChestState& state) {
     return kSillyWords[picker(state.rng)];
 }
 
-std::string chooseMapPiece(Game& game, Game::TreasureChestState& state) {
-    std::vector<std::size_t> available;
-    available.reserve(kUmbraPieces.size());
-    for (std::size_t idx = 0; idx < kUmbraPieces.size(); ++idx) {
-        if (!game.umbraPiecesCollected[idx])
-            available.push_back(idx);
-    }
-    std::size_t chosen = 0;
-    if (available.empty()) {
-        std::uniform_int_distribution<std::size_t> picker(0, kUmbraPieces.size() - 1);
-        chosen = picker(state.rng);
-    }
-    else {
-        std::uniform_int_distribution<std::size_t> picker(0, available.size() - 1);
-        chosen = available[picker(state.rng)];
-    }
-    return kUmbraPieces[chosen];
-}
 
-std::vector<std::string> buildRewardKeys(Game& game, LocationId location, Game::TreasureChestState& state) {
+std::vector<std::string> buildRewardKeys(LocationId location) {
     std::vector<std::string> keys;
     std::string suffix = elementSuffix(location);
     keys.push_back("dragonclaw_" + suffix);
@@ -161,7 +127,12 @@ std::vector<std::string> buildRewardKeys(Game& game, LocationId location, Game::
     keys.push_back("dragonstone_" + suffix);
     keys.push_back("luckycharm_" + suffix);
     keys.push_back("ring_" + suffix);
-    keys.push_back(chooseMapPiece(game, state));
+    auto trophyKey = trophyKeyFor(location);
+    if (!trophyKey.empty())
+        keys.push_back(trophyKey);
+    auto emblemKey = emblemKeyFor(location);
+    if (!emblemKey.empty())
+        keys.push_back(emblemKey);
     return keys;
 }
 
@@ -172,11 +143,12 @@ void awardReward(Game& game, const std::string& key) {
         core::itemActivation::activateItem(game, key);
         return;
     }
+    if (isCeremonialKey(key)) {
+        core::itemActivation::activateItem(game, key);
+        return;
+    }
     const sf::Texture* texture = nullptr;
-    if (key.rfind("umbra_ussea", 0) == 0)
-        texture = mapPieceTexture(game, key);
-    else
-        texture = core::itemActivation::textureForItemKey(game, key);
+    texture = core::itemActivation::textureForItemKey(game, key);
     if (!texture)
         return;
     if (key.rfind("ring_", 0) == 0) {
@@ -184,14 +156,7 @@ void awardReward(Game& game, const std::string& key) {
         return;
     }
     game.itemController.addItem(*texture, key);
-    if (auto pieceIndex = umbraPieceIndex(key)) {
-        if (!game.umbraPiecesCollected[*pieceIndex]) {
-            game.umbraPiecesCollected[*pieceIndex] = true;
-            ++game.umbraFragmentsCollectedCount;
-        }
-    }
     incrementArtifactCounter(game, key);
-    maybeCombineUmbraPieces(game);
     if (isArtifactKey(key))
         core::itemActivation::activateItem(game, key);
 }
@@ -216,7 +181,7 @@ void prepare(Game& game, LocationId location) {
     game.state = GameState::TreasureChest;
     auto& state = game.treasureChest;
     state.targetLocation = location;
-    state.rewardKeys = buildRewardKeys(game, location, state);
+    state.rewardKeys = buildRewardKeys(location);
     state.rewardIndex = 0;
     state.chestFade = 0.f;
     state.chestVisible = false;
@@ -334,11 +299,7 @@ void draw(Game& game, sf::RenderTarget& target) {
     });
     target.draw(descText);
 
-    const sf::Texture* iconTexture = nullptr;
-    if (key.rfind("umbra_ussea", 0) == 0)
-        iconTexture = mapPieceTexture(game, key);
-    else
-        iconTexture = core::itemActivation::textureForItemKey(game, key);
+    const sf::Texture* iconTexture = core::itemActivation::textureForItemKey(game, key);
     if (iconTexture && iconTexture->getSize().x > 0 && iconTexture->getSize().y > 0) {
         sf::Sprite icon(*iconTexture);
         float iconSize = std::min(popupWidth, popupHeight) * 0.35f;

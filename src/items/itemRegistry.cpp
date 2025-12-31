@@ -16,7 +16,7 @@ namespace {
         return buffer;
     }
 
-    const std::array<std::pair<const char*, ItemDefinition>, 33> kDefinitions = {{
+    const std::array<std::pair<const char*, ItemDefinition>, 43> kDefinitions = {{
         { "heal_potion", ItemDefinition{
             "Healing Potion",
             "Restores health over a short span.",
@@ -192,6 +192,86 @@ namespace {
             { "Hardens your skin with earthy steadiness" },
             "Equip",
             "Rings"
+        } },
+        { "dragoncup_air", ItemDefinition{
+            "Dragon Cup of Air",
+            "A ceremonial cup awarded by Gustavo Windimaess.",
+            Category::Misc,
+            { "Proof of the Air Dragon's trial" },
+            "Inspect",
+            "Trophies"
+        } },
+        { "dragoncup_earth", ItemDefinition{
+            "Dragon Cup of Earth",
+            "A ceremonial cup awarded by Grounded Claymore.",
+            Category::Misc,
+            { "Proof of the Earth Dragon's trial" },
+            "Inspect",
+            "Trophies"
+        } },
+        { "dragoncup_fire", ItemDefinition{
+            "Dragon Cup of Fire",
+            "A ceremonial cup awarded by Rowsted Sheacane.",
+            Category::Misc,
+            { "Proof of the Fire Dragon's trial" },
+            "Inspect",
+            "Trophies"
+        } },
+        { "dragoncup_water", ItemDefinition{
+            "Dragon Cup of Water",
+            "A ceremonial cup awarded by Flawtin Seamen.",
+            Category::Misc,
+            { "Proof of the Water Dragon's trial" },
+            "Inspect",
+            "Trophies"
+        } },
+        { "dragoncup_umbra", ItemDefinition{
+            "Dragon Cup of Umbra",
+            "A ceremonial cup awarded after Master Bates falls.",
+            Category::Misc,
+            { "Proof of the final triumph" },
+            "Inspect",
+            "Trophies"
+        } },
+        { "emblem_soul", ItemDefinition{
+            "Emblem of Soul",
+            "An emblem imbued with the Air Dragon's blessing.",
+            Category::Misc,
+            { "A ceremonial emblem of the Air trial" },
+            "Inspect",
+            "Emblems"
+        } },
+        { "emblem_body", ItemDefinition{
+            "Emblem of Body",
+            "An emblem imbued with the Earth Dragon's blessing.",
+            Category::Misc,
+            { "A ceremonial emblem of the Earth trial" },
+            "Inspect",
+            "Emblems"
+        } },
+        { "emblem_resolve", ItemDefinition{
+            "Emblem of Resolve",
+            "An emblem imbued with the Fire Dragon's blessing.",
+            Category::Misc,
+            { "A ceremonial emblem of the Fire trial" },
+            "Inspect",
+            "Emblems"
+        } },
+        { "emblem_mind", ItemDefinition{
+            "Emblem of Mind",
+            "An emblem imbued with the Water Dragon's blessing.",
+            Category::Misc,
+            { "A ceremonial emblem of the Water trial" },
+            "Inspect",
+            "Emblems"
+        } },
+        { "emblem_ascension", ItemDefinition{
+            "Emblem of Ascension",
+            "An emblem forged from the fall of Master Bates.",
+            Category::Misc,
+            { "A ceremonial emblem of Umbra Ossea" },
+            "Inspect",
+            "Emblems"
         } },
         { "umbra_ussea_one", ItemDefinition{
             "Umbra Ossea Fragment One",

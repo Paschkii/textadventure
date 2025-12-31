@@ -8,6 +8,7 @@
 #include "ui/dialogUI.hpp"                 // Draws the dialogue UI during most GameState modes.
 #include "ui/confirmationUI.hpp"           // Renders the confirmation popup when weapon selection is active.
 #include "ui/battleUI.hpp"                 // Renders the temporary battle screen used before the intro.
+#include "ui/creditsUI.hpp"                // Draws the credits sequence before the intro.
 #include "ui/introScreen.hpp"              // Renders the intro screen when GameState is IntroScreen.
 #include "ui/introTitle.hpp"               // Handles the intro title overlay used before dialogue.
 #include "ui/mapSelectionUI.hpp"           // Displays the map UI and popup when in map selection.
@@ -90,6 +91,9 @@ inline void renderGame(Game& game) {
         case GameState::BattleDemo:
             ui::battle::draw(game, game.window);
             break;
+        case GameState::Credits:
+            ui::credits::draw(game, game.window);
+            break;
         case GameState::IntroScreen:
             renderIntroScreen(game);
             break;
@@ -136,10 +140,12 @@ inline void renderGame(Game& game) {
     }
 
     drawTeleportOverlay(game);
-    drawEndScreen(game);
-    const auto& entries = game.rankingManager.entries();
-    int highlightIndex = -1;
-    if (game.lastRecordedRank > 0 && game.lastRecordedRank <= static_cast<int>(entries.size()))
-        highlightIndex = game.lastRecordedRank - 1;
-    ui::ranking::drawOverlay(game.rankingOverlay, game.window, game.resources.uiFont, entries, highlightIndex, game.playerName);
+    if (game.state != GameState::Credits) {
+        drawEndScreen(game);
+        const auto& entries = game.rankingManager.entries();
+        int highlightIndex = -1;
+        if (game.lastRecordedRank > 0 && game.lastRecordedRank <= static_cast<int>(entries.size()))
+            highlightIndex = game.lastRecordedRank - 1;
+        ui::ranking::drawOverlay(game.rankingOverlay, game.window, game.resources.uiFont, entries, highlightIndex, game.playerName);
+    }
 }

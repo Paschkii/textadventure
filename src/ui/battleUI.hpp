@@ -8,6 +8,7 @@ class Game;
 
 namespace ui::battle {
 
+void startBattle(Game& game);
 void update(Game& game, sf::Time dt);
 bool handleEvent(Game& game, const sf::Event& event);
 void draw(Game& game, sf::RenderTarget& target);

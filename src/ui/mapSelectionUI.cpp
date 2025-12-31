@@ -20,6 +20,7 @@
 
 namespace {
     constexpr std::size_t kLocationCount = 5;
+    constexpr float kUmbraOverlayFadeDuration = 2.f;
 
     std::optional<sf::FloatRect> computeNormalizedContentBounds(const sf::Texture* texture) {
         if (!texture)
@@ -187,6 +188,28 @@ namespace {
         game.charIndex = prevChar;
     }
 
+    void promptUmbraTravel(Game& game) {
+        std::string message = "Do you really want to travel to Umbra Ossea?";
+        auto prevText = game.visibleText;
+        auto prevChar = game.charIndex;
+        auto onConfirm = [](Game& confirmed) {
+            if (confirmed.forcedDestinationSelection) {
+                if (auto quest = Story::questNamed("Dragonbound Destinations"))
+                    confirmed.completeQuest(*quest);
+                confirmed.exitForcedDestinationSelection();
+            }
+            confirmed.beginTeleport(LocationId::Seminiferous);
+        };
+        showConfirmationPrompt(
+            game,
+            message,
+            onConfirm,
+            [](Game&) {}
+        );
+        game.visibleText = prevText;
+        game.charIndex = prevChar;
+    }
+
 std::optional<LocationId> locationAtPoint(const Game& game, sf::Vector2f pt) {
     const std::array<LocationId, kLocationCount> ids{
         LocationId::Gonad,
@@ -294,6 +317,37 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
         };
     };
 
+    float umbraAlpha = 0.f;
+    bool umbraActive = game.menuMapUmbraOverlayActive && game.resources.menuMapUmbraOverlay.getSize().x > 0;
+    bool umbraHovered = false;
+    sf::FloatRect umbraBounds{};
+    if (umbraActive) {
+        umbraAlpha = 1.f;
+        if (game.menuMapUmbraOverlayFadeInActive) {
+            float elapsed = game.menuMapUmbraOverlayClock.getElapsedTime().asSeconds();
+            umbraAlpha = std::clamp(elapsed / kUmbraOverlayFadeDuration, 0.f, 1.f);
+            if (elapsed >= kUmbraOverlayFadeDuration) {
+                game.menuMapUmbraOverlayFadeInActive = false;
+                if (game.menuMapUmbraOverlayHold) {
+                    game.menuMapUmbraOverlayHold = false;
+                    game.holdMapDialogue = false;
+                }
+            }
+        }
+        if (!game.menuMapUmbraOverlayContentBounds)
+            game.menuMapUmbraOverlayContentBounds = computeNormalizedContentBounds(&game.resources.menuMapUmbraOverlay);
+        if (game.menuMapUmbraOverlayContentBounds)
+            umbraBounds = toGlobalRect(*game.menuMapUmbraOverlayContentBounds);
+        else
+            umbraBounds = mapBounds;
+        game.menuMapUmbraOverlayBounds = umbraBounds;
+        if (!game.mapTutorialActive && umbraBounds.size.x > 0.f && umbraBounds.size.y > 0.f)
+            umbraHovered = umbraBounds.contains(mousePos);
+    }
+    else {
+        game.menuMapUmbraOverlayBounds = {};
+    }
+
     for (std::size_t idx = 0; idx < locationsCache.size(); ++idx) {
         auto& loc = locationsCache[idx];
         auto locIdOpt = loc.id;
@@ -347,7 +401,7 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
         if (locIdOpt)
             game.mapLocationHitboxes[locationIndex(*locIdOpt)] = regionArea;
 
-        bool hoveredByMouse = allowedForHover && regionArea.contains(mousePos);
+        bool hoveredByMouse = allowedForHover && !umbraHovered && regionArea.contains(mousePos);
         if (hoveredByMouse && locIdOpt)
             game.mouseMapHover = locIdOpt;
 
@@ -409,6 +463,24 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
         }
     }
 
+    if (umbraHovered) {
+        MapPopupRenderData popup{
+            "Umbra Ossea",
+            "The path home opens. Will you be able to save it from Master Bates?",
+            {},
+            {},
+            std::nullopt,
+            mapBounds.position.x + mapBounds.size.x * 0.5f,
+            mapBounds.position.y + mapBounds.size.y * 0.5f,
+            umbraBounds,
+            mapBounds,
+            winW,
+            winH,
+            mousePos
+        };
+        pendingPopup = popup;
+    }
+
     if (game.mapTutorialHighlight) {
         highlightedOverlayIndex = locationIndex(*game.mapTutorialHighlight);
     }
@@ -424,6 +496,14 @@ std::optional<MapPopupRenderData> drawMapSelectionUI(Game& game, sf::RenderTarge
     if (highlightedOverlayIndex) {
         const auto& picked = locationsCache[*highlightedOverlayIndex];
         drawOverlaySprite(picked.overlay, ColorHelper::darken(ColorHelper::Palette::Normal, 0.18f));
+    }
+
+    if (umbraActive) {
+        sf::Color baseColor = umbraHovered
+            ? ColorHelper::darken(ColorHelper::Palette::Normal, 0.18f)
+            : ColorHelper::Palette::Normal;
+        sf::Color overlayColor = ColorHelper::applyAlphaFactor(baseColor, 0.9f * umbraAlpha);
+        drawOverlaySprite(&game.resources.menuMapUmbraOverlay, overlayColor);
     }
 
     return pendingPopup;
@@ -705,12 +785,26 @@ void handleMapSelectionEvent(Game& game, const sf::Event& event, const sf::View*
     };
     if (event.is<sf::Event::MouseMoved>()) {
         auto mousePos = convertPixel(sf::Mouse::getPosition(game.window));
+        if (game.menuMapUmbraOverlayActive
+            && game.menuMapUmbraOverlayBounds.size.x > 0.f
+            && game.menuMapUmbraOverlayBounds.size.y > 0.f
+            && game.menuMapUmbraOverlayBounds.contains(mousePos)) {
+            game.mouseMapHover.reset();
+            return;
+        }
         game.mouseMapHover = locationAtPoint(game, mousePos);
     }
     else if (auto button = event.getIf<sf::Event::MouseButtonReleased>()) {
         if (button->button != sf::Mouse::Button::Left)
             return;
         sf::Vector2f clickPos = convertPixel(button->position);
+        if (game.menuMapUmbraOverlayActive
+            && game.menuMapUmbraOverlayBounds.size.x > 0.f
+            && game.menuMapUmbraOverlayBounds.size.y > 0.f
+            && game.menuMapUmbraOverlayBounds.contains(clickPos)) {
+            promptUmbraTravel(game);
+            return;
+        }
         auto target = locationAtPoint(game, clickPos);
         if (target && canTravelTo(game, *target))
             promptTravel(game, *target);

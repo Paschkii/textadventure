@@ -41,6 +41,14 @@ void EndSequenceController::update() {
     }
 }
 
+// Resets the controller so the end screen is no longer visible.
+void EndSequenceController::reset() {
+    active_ = false;
+    fadeOutActive_ = false;
+    fadeInActive_ = false;
+    screenVisible_ = false;
+}
+
 // Reports how opaque the overlay should be during the current phase.
 float EndSequenceController::overlayAlpha() const {
     if (!active_ && !screenVisible_)

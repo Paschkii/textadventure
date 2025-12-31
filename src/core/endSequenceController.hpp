@@ -14,6 +14,8 @@ public:
     void start();
     // Steps the fade timers and flips visibility flags; call every frame.
     void update();
+    // Clears the end screen so other overlays can take over.
+    void reset();
 
     bool isActive() const noexcept { return active_; }
     bool isScreenVisible() const noexcept { return screenVisible_; }

@@ -9,6 +9,7 @@
 #include "ui/confirmationUI.hpp"      // Shows the name-confirmation modal.
 #include "ui/quizUI.hpp"              // References quiz controls triggered mid-dialogue.
 #include "ui/brokenWeaponPreview.hpp"  // Controls the broken weapon popup shown during Perigonal dialogue.
+#include "ui/battleUI.hpp"            // Starts the battle UI from dialogue actions.
 #include "helper/healingPotion.hpp"    // Starts the potion timer that restores health.
 #include "mapTutorial.hpp"            // Defines Tory Tailor map tutorial steps.
 #include "story/quests.hpp"           // Knows which quest should fire at each dialogue line.
@@ -34,9 +35,9 @@ inline constexpr std::size_t kBlacksmithPlayerLineIndex = 21;
 inline constexpr std::size_t kMapAcquisitionLineIndex = 5;
 inline constexpr std::size_t kMapTutorialStartLineIndex = StoryIntro::MapTutorial::kStartIndex;
 inline constexpr std::size_t kMapTutorialEndLineIndex = StoryIntro::MapTutorial::kEndIndex;
-inline constexpr int kMenuMapTabIndex = 2;                     // Tab index used when opening the map through the menu.
-inline constexpr int kMenuUmbraTabIndex = 4;                   // Tab index dedicated to the Umbra Ossea chart.
+inline constexpr int kMenuMapTabIndex = 1;                     // Tab index used when opening the map through the menu.
 constexpr char kInventoryArrowLineText[] = "You can open your inventory through this menu button."; // StoryTeller line that introduces the menu button.
+constexpr char kUmbraMapRevealLineText[] = "The Umbra Ossea map is finally clear to me.";
 
 inline void removeBrokenWeaponIcons(Game& game) {
     auto& icons = game.itemController.icons();
@@ -119,7 +120,7 @@ inline void endMapTutorial(Game& game) {
     game.mapTutorialOkBounds = {};
     game.mapTutorialOkHovered = false;
     if (game.menuActive)
-        game.menuActive = false;
+        game.setMenuActive(false);
     game.menuHoveredTab = -1;
 }
 
@@ -145,8 +146,8 @@ inline void startMapTutorial(Game& game) {
         return;
     game.mapTutorialActive = true;
     game.mapTutorialAwaitingOk = true;
-    game.menuActive = true;
-    game.menuActiveTab = 2;
+    game.setMenuActive(true);
+    game.menuActiveTab = kMenuMapTabIndex;
     game.menuHoveredTab = -1;
     game.mouseMapHover.reset();
     game.keyboardMapHover.reset();
@@ -158,7 +159,7 @@ inline void startMapTutorial(Game& game) {
 
 
 inline void openMenuMapFromDialogue(Game& game) {
-    game.menuActive = true;
+    game.setMenuActive(true);
     game.menuActiveTab = kMenuMapTabIndex;
     game.menuHoveredTab = -1;
     game.mouseMapHover.reset();
@@ -169,23 +170,6 @@ inline void openMenuMapFromDialogue(Game& game) {
     game.menuButtonHovered = false;
     game.menuMapPopup.reset();
     game.mapInteractionUnlocked = true;
-}
-
-inline void openMenuUmbraMapFromDialogue(Game& game) {
-    game.menuActive = true;
-    game.menuActiveTab = kMenuUmbraTabIndex;
-    game.menuHoveredTab = -1;
-    game.mouseMapHover.reset();
-    game.keyboardMapHover.reset();
-    game.menuButtonUnlocked = true;
-    game.menuButtonAlpha = 1.f;
-    game.menuButtonFadeActive = false;
-    game.menuButtonHovered = false;
-    game.menuMapPopup.reset();
-    game.mapInteractionUnlocked = false;
-    game.pendingReturnToMenuMap = true;
-    game.umbraMapGlowActive = true;
-    game.umbraMapGlowClock.restart();
 }
 
 inline void triggerQuestAction(Game& game, const std::optional<std::string>& questName, bool start) {
@@ -208,13 +192,26 @@ inline void handleDialogueLineActions(Game& game, const DialogueLine& line) {
     if (dialogueLineHasAction(line.actions, Action::OpensMapFromMenu)) {
         openMenuMapFromDialogue(game);
         game.pendingReturnToMenuMap = true;
+        if (line.text == kUmbraMapRevealLineText && !game.menuMapUmbraOverlayActive) {
+            game.menuMapUmbraOverlayActive = true;
+            game.menuMapUmbraOverlayFadeInActive = true;
+            game.menuMapUmbraOverlayHold = true;
+            game.menuMapUmbraOverlayClock.restart();
+            game.holdMapDialogue = true;
+        }
     }
     if (dialogueLineHasAction(line.actions, Action::OpensUmbraMapFromMenu)) {
-        openMenuUmbraMapFromDialogue(game);
+        openMenuMapFromDialogue(game);
     }
     if (dialogueLineHasAction(line.actions, Action::StartsSeminiferousTeleport)) {
         game.pendingTeleportToSeminiferous = true;
         game.pendingTeleportToGonad = false;
+    }
+    if (dialogueLineHasAction(line.actions, Action::StartsBattle)) {
+        game.battleReturnToSeminiferous = true;
+        game.finalEncounterActive = false;
+        game.stopTypingSound();
+        ui::battle::startBattle(game);
     }
 }
 
@@ -700,6 +697,9 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
     if (!action.skipToEnd)
         handleDialogueLineActions(game, line);
 
+    if (game.state == GameState::BattleDemo)
+        return true;
+
     // If the player is still naming the weapon, stay in weapon-selection mode.
     if (game.currentDialogue == &weapon && game.selectedWeaponIndex < 0) {
         game.stopTypingSound();
@@ -724,19 +724,11 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
         return true;
     }
 
-    // During the final encounter, wait for dialogue to finish before launching end options.
-    if (game.finalEncounterActive && !action.nextLine && game.currentDialogue == &game.transientDialogue) {
-        game.stopTypingSound();
-        game.visibleText.clear();
-        game.charIndex = processed.size();
-        startFinalChoice(game);
-        return true;
-    }
-
     // Helper that starts the end-sequence fade once the final dialogue finishes.
     auto triggerEndSequence = [&]() {
         game.finalEndingPending = false;
-        game.recordSessionRanking();
+        game.creditsAfterEndPending = true;
+        game.creditsAfterEndTimerActive = false;
         game.uiFadeOutActive = true;
         game.uiFadeClock.restart();
         game.endSequenceController.start();
@@ -818,7 +810,7 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
             game.pendingTeleportToSeminiferous = false;
             game.transientReturnToMap = false;
             game.pendingReturnToMenuMap = false;
-            game.menuActive = false;
+            game.setMenuActive(false);
             game.menuActiveTab = -1;
             game.menuHoveredTab = -1;
             game.mapInteractionUnlocked = false;
@@ -830,7 +822,7 @@ inline bool waitForEnter(Game& game, const DialogueLine& line) {
             game.pendingTeleportToGonad = false;
             game.transientReturnToMap = false;
             game.pendingReturnToMenuMap = false;
-            game.menuActive = false;
+            game.setMenuActive(false);
             game.menuActiveTab = -1;
             game.menuHoveredTab = -1;
             game.mapInteractionUnlocked = false;
@@ -986,6 +978,7 @@ inline std::string injectSpeakerNames(const std::string& text, const Game& game)
     auto otherSiblingName = (otherGender == Game::DragonbornGender::Male) ? "Asha" : "Ember";
     auto ownPossessive = (otherGender == Game::DragonbornGender::Male) ? "her" : "his";
 
+    dragonbornSiblingDisplayName = otherSiblingName;
     StoryIntro::refreshDynamicDragonbornTokens(
         game.playerName,
         otherName,

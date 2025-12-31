@@ -76,6 +76,7 @@ namespace {
             case LocationId::Cladrenal: return &game.resources.portraitBackgroundCladrenal;
             case LocationId::Aerobronchi: return &game.resources.portraitBackgroundAerobronchi;
             case LocationId::Seminiferous: return &game.resources.portraitBackgroundSeminiferous;
+            case LocationId::UmbraOssea: return &game.resources.portraitBackgroundUmbraOssea;
         }
 
         return &game.resources.portraitBackgroundToryTailor;

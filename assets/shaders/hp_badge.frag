@@ -19,5 +19,5 @@ void main() {
     float fade = smoothstep(0.45, 0.85, blend);
     vec4 finalColor = mix(midpoint, colorC, fade);
 
-    gl_FragColor = vec4(finalColor.rgb, texColor.a);
+    gl_FragColor = vec4(finalColor.rgb, texColor.a * gl_Color.a);
 }

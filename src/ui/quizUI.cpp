@@ -2,6 +2,7 @@
 #include <algorithm>   // Uses std::equal and std::max when parsing command-line dialect requests.
 #include <array>       // Stores the fixed name/dialect lists referenced by CLI helpers.
 #include <cctype>      // Applies std::tolower when normalizing names and hotkeys.
+#include <cmath>       // Uses std::ceil when applying quiz penalty damage.
 #include <iostream>    // Prints dialect diagnostics when command-line parsing fails.
 #include <optional>    // Returns optional speaker/Location IDs from helper lookups.
 #include <random>      // Creates dice rolls when selecting silly names and quiz orders.
@@ -12,6 +13,7 @@
 #include "quizUI.hpp"             // Declares quiz UI functions implemented in this file.
 #include "confirmationUI.hpp"     // Uses the confirmation modal for quiz transitions.
 #include "core/game.hpp"          // Mutates Game quiz state, dialog flow, and resources.
+#include "core/itemActivation.hpp" // Activates inventory items awarded by dragons.
 #include "helper/colorHelper.hpp" // Applies palette colors for quiz text and prompts.
 #include "helper/textColorHelper.hpp" // Builds colored segments for wrapped quiz text.
 #include "helper/layoutHelpers.hpp" // Recalculates UI layout when the quiz pops up.
@@ -209,10 +211,9 @@ namespace {
     constexpr float kSelectionBlinkInterval = 0.5f;
     constexpr unsigned kQuizFontSize = 26;
     constexpr float kQuizLineSpacingMultiplier = 1.2f;
-    constexpr float kQuizWrongDamage = 100.f;
     constexpr float kHpDamageDuration = 0.6f;
     constexpr float kHpLossPopupDuration = 0.9f;
-    constexpr float kCriticalHpRatio = 0.01f;
+    constexpr float kCriticalHpMin = 1.f;
     constexpr float kCriticalNoticeDuration = 3.2f;
 
     inline float quizLineAdvance(const sf::Font& font) {
@@ -245,7 +246,7 @@ namespace {
         popup.duration = kHpLossPopupDuration;
         popup.clock.restart();
 
-        float criticalThreshold = game.playerHpMax * kCriticalHpRatio;
+        float criticalThreshold = kCriticalHpMin;
         if (pulse.endHp <= criticalThreshold) {
             pulse.endHp = criticalThreshold;
             pulse.pendingHealing = true;
@@ -295,7 +296,8 @@ namespace {
                 else if (game.quizIncorrectSound) {
                     game.quizIncorrectSound->stop();
                     game.quizIncorrectSound->play();
-                    startHpLoss(game, static_cast<int>(kQuizWrongDamage));
+                    int damage = std::max(0, static_cast<int>(std::ceil(game.playerHp)) - 1);
+                    startHpLoss(game, damage);
                 }
             }
             break;
@@ -903,8 +905,30 @@ void presentDragonstoneReward(Game& game) {
     game.lastCompletedLocation = location;
     game.locationCompleted[locIndex(location)] = true;
     ++game.dragonStoneCount;
-    if (game.dragonStoneCount >= 4)
+    if (game.dragonStoneCount >= 4) {
         game.finalEncounterPending = true;
+        game.boostToLevel(50);
+    }
+    switch (location) {
+        case LocationId::Aerobronchi:
+            core::itemActivation::activateItem(game, "dragoncup_air");
+            core::itemActivation::activateItem(game, "emblem_soul");
+            break;
+        case LocationId::Cladrenal:
+            core::itemActivation::activateItem(game, "dragoncup_earth");
+            core::itemActivation::activateItem(game, "emblem_body");
+            break;
+        case LocationId::Blyathyroid:
+            core::itemActivation::activateItem(game, "dragoncup_fire");
+            core::itemActivation::activateItem(game, "emblem_resolve");
+            break;
+        case LocationId::Lacrimere:
+            core::itemActivation::activateItem(game, "dragoncup_water");
+            core::itemActivation::activateItem(game, "emblem_mind");
+            break;
+        default:
+            break;
+    }
     game.pendingTeleportToGonad = true;
     game.transientDialogue.clear();
 
@@ -931,18 +955,6 @@ void presentDragonstoneReward(Game& game) {
         });
     }
 
-    if (game.umbraFragmentsCollectedCount == 1 && !questStarted(game, "Fragments of Home")) {
-        game.transientDialogue.push_back({
-            TextStyles::SpeakerId::StoryTeller,
-            "You just claimed the first Umbra Ossea map fragment. Noah Lott will want the rest.",
-            false,
-            false,
-            true,
-            DialogueLineAction::StartsQuest,
-            std::optional<std::string>{"Fragments of Home"},
-            std::nullopt
-        });
-    }
 
     if (auto trialQuest = trialQuestNameForLocation(location)) {
         if (!questCompleted(game, *trialQuest)) {
@@ -957,19 +969,6 @@ void presentDragonstoneReward(Game& game) {
                 std::optional<std::string>{*trialQuest}
             });
         }
-    }
-
-    if (game.umbraMapComplete && !questCompleted(game, "Fragments of Home")) {
-        game.transientDialogue.push_back({
-            TextStyles::SpeakerId::StoryTeller,
-            "All four Umbra Ossea fragments lock together into a complete map.",
-            false,
-            false,
-            true,
-            DialogueLineAction::CompletesQuest,
-            std::nullopt,
-            std::optional<std::string>{"Fragments of Home"}
-        });
     }
 
     game.currentDialogue = &game.transientDialogue;

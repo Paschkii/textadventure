@@ -85,9 +85,12 @@ struct Resources {
     sf::Texture portraitBackgroundLacrimere;
     sf::Texture portraitBackgroundPetrigonal;
     sf::Texture portraitBackgroundSeminiferous;
+    sf::Texture portraitBackgroundUmbraOssea;
     sf::Texture portraitBackgroundToryTailor;
     // Character Sprites (new)
     sf::Texture spriteDragonbornBack;
+    sf::Texture spriteDragonbornFemaleBack;
+    sf::Texture spriteDragonbornMaleBack;
     sf::Texture spriteDragonbornFemale;
     sf::Texture spriteDragonbornFemaleNoCape;
     sf::Texture spriteDragonbornMale;
@@ -104,6 +107,13 @@ struct Resources {
     sf::Texture spriteRowstedSheacane;
     sf::Texture spriteWandaRinn;
     sf::Texture spriteWillFigsid;
+    sf::Texture spriteWandaRinnBack;
+    sf::Texture spriteWillFigsidBack;
+    sf::Texture spriteNoahLottBack;
+    sf::Texture spriteRowstedSheacaneBack;
+    sf::Texture spriteFlawtinSeamenBack;
+    sf::Texture spriteGustavoWindimaessBack;
+    sf::Texture spriteGroundedClaymoreBack;
     // Character menu helpers
     sf::Texture charMenuLeftHand;
     sf::Texture charMenuRightHand;
@@ -151,6 +161,7 @@ struct Resources {
     sf::Texture menuMapCladrenal; // Cladrenal overlay
     sf::Texture menuMapAerobronchi; // Aerobronchi overlay
     sf::Texture menuMapPetrigonal; // Petrigonal overlay
+    sf::Texture menuMapUmbraOverlay; // Umbra Ossea overlay on the Glandular map
     sf::Texture backgroundAerobronchi; // Air Dragon area background
     sf::Texture backgroundBlacksmith; // Gonad blacksmith scene
     sf::Texture backgroundBlyathyroid; // Blyathyroid background
@@ -159,6 +170,7 @@ struct Resources {
     sf::Texture backgroundLacrimere; // Lacrimere background
     sf::Texture backgroundPetrigonal; // Perigonal area background
     sf::Texture backgroundSeminiferous; // Seminiferous background
+    sf::Texture backgroundUmbraOssea; // Umbra Ossea background
     sf::Texture backgroundToryTailor; // Tory Tailor narration background
     sf::Texture battleBackgroundLayer; // Battle background layer
     sf::Texture battleBeginsGlandular; // Battle intro badge
@@ -178,16 +190,46 @@ struct Resources {
     sf::Texture skillWeaponEarth;
     sf::Texture skillWeaponFire;
     sf::Texture skillWeaponWater;
+    sf::Texture skillMasterBatesPowerup;
+    sf::Texture skillMasterBatesMidnightRelease;
+    sf::Texture skillMasterBatesBadHabit;
+    sf::Texture skillMasterBatesShadowRoutine;
+    sf::Texture skillMasterBatesGuiltyEmber;
     sf::Shader   hpBadgeShader; // Shader applied to health badge fills
     sf::Texture treasureChestAir;
     sf::Texture treasureChestEarth;
     sf::Texture treasureChestFire;
     sf::Texture treasureChestWater;
+    sf::Texture trophyDragoncupAir;
+    sf::Texture trophyDragoncupEarth;
+    sf::Texture trophyDragoncupFire;
+    sf::Texture trophyDragoncupWater;
+    sf::Texture trophyDragoncupUmbra;
+    sf::Texture emblemSoul;
+    sf::Texture emblemBody;
+    sf::Texture emblemResolve;
+    sf::Texture emblemMind;
+    sf::Texture emblemAscension;
     sf::Texture umbraUsseaOne;
     sf::Texture umbraUsseaTwo;
     sf::Texture umbraUsseaThree;
     sf::Texture umbraUsseaFour;
     sf::Texture umbraUsseaComplete;
+    // Credits Textures
+    sf::Texture creditActAsha;
+    sf::Texture creditActEmber;
+    sf::Texture creditActBates;
+    sf::Texture creditActBatesDragon;
+    sf::Texture creditActNoah;
+    sf::Texture creditActWanda;
+    sf::Texture creditActWill;
+    sf::Texture creditActFlawtin;
+    sf::Texture creditActGrounded;
+    sf::Texture creditActGustavo;
+    sf::Texture creditActRowsted;
+    sf::Texture creditActTory;
+    sf::Texture creditActKensen;
+    sf::Texture creditBetaTesterAlex;
 
     // Sound Buffers
     sf::SoundBuffer acquire; // Sound played, when aquiring items
@@ -206,6 +248,14 @@ struct Resources {
     sf::SoundBuffer skillFire; // Fire element SFX
     sf::SoundBuffer skillWater; // Water element SFX
     sf::SoundBuffer skillFriendship; // Friendship skill SFX
+    sf::SoundBuffer skillPowerUp; // Master Bates powerup SFX
+    sf::SoundBuffer chickSound; // Master Bates evolution pre-sound
+    sf::SoundBuffer awwSound; // Master Bates dragon celebration SFX
+    sf::SoundBuffer masterBatesEvolution; // Master Bates evolution SFX
+    sf::SoundBuffer skillMidnightRelease; // Master Bates skill
+    sf::SoundBuffer skillBadHabit; // Master Bates skill
+    sf::SoundBuffer skillShadowRoutine; // Dragon version skill
+    sf::SoundBuffer skillGuiltyEmber; // Dragon version skill
     sf::SoundBuffer forgeSound; // Sound played during forging sleep timer
     sf::SoundBuffer levelUp; // Sound played when levelling up
     sf::SoundBuffer openMenu; // Sound when the menu opens
@@ -219,6 +269,7 @@ struct Resources {
     sf::SoundBuffer locationMusicCladrenal; // Sound played while in Cladrenal
     sf::SoundBuffer locationMusicAerobronchi; // Sound played while in Aerobronchi
     sf::SoundBuffer locationMusicSeminiferous; // Sound played while in Seminiferous
+    sf::SoundBuffer locationMusicUmbraOssea; // Sound played while in Umbra Ossea
     sf::SoundBuffer locationMusicBlacksmith; // Sound played while at Figsid's Forge
     sf::SoundBuffer introTitle; // Sound played while on the intro title
     sf::SoundBuffer introDialogue; // Sound played during the intro dialogue

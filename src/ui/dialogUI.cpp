@@ -1086,7 +1086,7 @@ namespace {
                     return "Is that how you play?! Damn, drink up!";
                 if (count == 4)
                     return "Bruh, what you doing?! You for real?! Drink up!!";
-                return "You *#$%, are you kidding me you §$%&*!!!!";
+                return "You *#$%, are you kidding me you $$%&*!!!!";
             }();
             sf::Text bubbleText{ game.resources.uiFont, bubbleMessage, kBubbleFontSize };
             bubbleText.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, alpha));
@@ -1366,7 +1366,20 @@ void drawDialogueUI(Game& game, sf::RenderTarget& target, bool skipConfirmation,
     ui::menu::draw(game, target);
 
     if (game.menuMapPopup) {
+        sf::View prev = target.getView();
+        auto panelBounds = game.menuPanel.getGlobalBounds();
+        auto winSize = target.getSize();
+        sf::View mapView(sf::FloatRect({ 0.f, 0.f }, { panelBounds.size.x, panelBounds.size.y }));
+        mapView.setCenter(sf::Vector2f{ panelBounds.size.x * 0.5f, panelBounds.size.y * 0.5f });
+        mapView.setViewport(sf::FloatRect(
+            { panelBounds.position.x / static_cast<float>(winSize.x),
+              panelBounds.position.y / static_cast<float>(winSize.y) },
+            { panelBounds.size.x / static_cast<float>(winSize.x),
+              panelBounds.size.y / static_cast<float>(winSize.y) }
+        ));
+        target.setView(mapView);
         drawMapSelectionPopup(game, target, *game.menuMapPopup);
+        target.setView(prev);
         game.menuMapPopup.reset();
     }
 

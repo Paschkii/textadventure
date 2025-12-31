@@ -22,6 +22,8 @@ namespace TextStyles {
 
         if (!playerDisplayName.empty() && equalsIgnoreCase(name, playerDisplayName))
             return SpeakerId::Player;
+        if (!dragonbornSiblingDisplayName.empty() && equalsIgnoreCase(name, dragonbornSiblingDisplayName))
+            return SpeakerId::DragonbornSibling;
 
         if (equalsIgnoreCase(name, "Tory Tailor"))
             return SpeakerId::StoryTeller;
@@ -72,6 +74,8 @@ namespace TextStyles {
                     return { "Noah Bates", ColorHelper::Palette::PurpleBlue };
                 case SpeakerId::Player:
                     return { playerDisplayName, ColorHelper::Palette::PlayerColor };
+                case SpeakerId::DragonbornSibling:
+                    return { dragonbornSiblingDisplayName, ColorHelper::Palette::SoftRed };
                 case SpeakerId::FireDragon:
                     return { "Rowsted Sheacane", ColorHelper::Palette::FireDragon };
                 case SpeakerId::WaterDragon:

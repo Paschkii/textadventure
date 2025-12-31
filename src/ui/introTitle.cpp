@@ -12,14 +12,10 @@
 #include "core/game.hpp"
 #include "helper/colorHelper.hpp"
 #include "ui/confirmationUI.hpp"
-#include "ui/rankingUI.hpp"
 
 namespace {
-    constexpr std::array<const char*, 5> kIntroOptionLabels = {
+    constexpr std::array<const char*, 2> kIntroOptionLabels = {
         "Start Game",
-        "Load Game",
-        "Settings",
-        "Rankings",
         "Quit"
     };
 
@@ -27,9 +23,6 @@ namespace {
 
     enum class IntroOption {
         Start,
-        Load,
-        Settings,
-        Rankings,
         Quit,
     };
 
@@ -58,13 +51,6 @@ namespace {
         switch (option) {
             case IntroOption::Start:
                 triggerIntroTitleExit(game);
-                break;
-            case IntroOption::Load:
-            case IntroOption::Settings:
-                break;
-            case IntroOption::Rankings:
-                game.rankingOverlay.playerRank = game.lastRecordedRank;
-                ui::ranking::activateOverlay(game.rankingOverlay, true);
                 break;
             case IntroOption::Quit:
                 showConfirmationPrompt(game, "Quit the game?", [](Game& g) {

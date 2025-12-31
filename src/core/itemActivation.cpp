@@ -18,6 +18,22 @@ constexpr std::array<const char*, 4> kElements = {
     "water"
 };
 
+constexpr std::array<const char*, 5> kEmblemKeys = {
+    "emblem_soul",
+    "emblem_body",
+    "emblem_resolve",
+    "emblem_mind",
+    "emblem_ascension"
+};
+
+constexpr std::array<const char*, 5> kTrophyKeys = {
+    "dragoncup_air",
+    "dragoncup_earth",
+    "dragoncup_fire",
+    "dragoncup_water",
+    "dragoncup_umbra"
+};
+
 std::optional<std::size_t> artifactTypeIndex(std::string_view key) {
     auto delim = key.find('_');
     if (delim == std::string_view::npos)
@@ -42,6 +58,18 @@ std::optional<std::size_t> artifactElementIndex(std::string_view key) {
     for (std::size_t index = 0; index < kElements.size(); ++index) {
         if (suffix == kElements[index])
             return index;
+    }
+    return std::nullopt;
+}
+
+template <std::size_t Count>
+std::optional<std::size_t> ceremonialIndex(
+    std::string_view key,
+    const std::array<const char*, Count>& keys
+) {
+    for (std::size_t idx = 0; idx < keys.size(); ++idx) {
+        if (key == keys[idx])
+            return idx;
     }
     return std::nullopt;
 }
@@ -99,6 +127,26 @@ const sf::Texture* textureForItemKeyImpl(const Game& game, std::string_view key)
         return &game.resources.equipmentRingWater;
     if (key == "ring_earth")
         return &game.resources.equipmentRingEarth;
+    if (key == "dragoncup_air")
+        return &game.resources.trophyDragoncupAir;
+    if (key == "dragoncup_earth")
+        return &game.resources.trophyDragoncupEarth;
+    if (key == "dragoncup_fire")
+        return &game.resources.trophyDragoncupFire;
+    if (key == "dragoncup_water")
+        return &game.resources.trophyDragoncupWater;
+    if (key == "dragoncup_umbra")
+        return &game.resources.trophyDragoncupUmbra;
+    if (key == "emblem_soul")
+        return &game.resources.emblemSoul;
+    if (key == "emblem_body")
+        return &game.resources.emblemBody;
+    if (key == "emblem_resolve")
+        return &game.resources.emblemResolve;
+    if (key == "emblem_mind")
+        return &game.resources.emblemMind;
+    if (key == "emblem_ascension")
+        return &game.resources.emblemAscension;
     if (key == "map_glandular")
         return &game.resources.mapGlandular;
     if (key == "umbra_ussea_one")
@@ -170,6 +218,22 @@ bool equipRingImpl(Game& game, const std::string& key) {
     return true;
 }
 
+bool equipCeremonialImpl(Game& game, std::string_view key) {
+    if (auto idx = ceremonialIndex(key, kEmblemKeys)) {
+        if (game.emblemSlots[*idx] && *game.emblemSlots[*idx] == key)
+            return false;
+        game.emblemSlots[*idx] = std::string(key);
+        return true;
+    }
+    if (auto idx = ceremonialIndex(key, kTrophyKeys)) {
+        if (game.trophySlots[*idx] && *game.trophySlots[*idx] == key)
+            return false;
+        game.trophySlots[*idx] = std::string(key);
+        return true;
+    }
+    return false;
+}
+
 } // namespace
 
 const sf::Texture* textureForItemKey(const Game& game, const std::string& key) noexcept {
@@ -183,6 +247,10 @@ bool activateItem(Game& game, const std::string& key) {
         return equipRingImpl(game, key);
     if (artifactTypeIndex(key) && artifactElementIndex(key))
         return equipArtifactImpl(game, key);
+    if (equipCeremonialImpl(game, key)) {
+        game.itemController.playAcquireSound();
+        return true;
+    }
     return equipWeaponImpl(game, key);
 }
 
