@@ -12,6 +12,7 @@
 #include "core/game.hpp"
 #include "helper/colorHelper.hpp"
 #include "ui/confirmationUI.hpp"
+#include "ui/battleUI.hpp"
 
 namespace {
     constexpr std::array<const char*, 2> kIntroOptionLabels = {

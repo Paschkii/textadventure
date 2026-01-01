@@ -230,6 +230,7 @@ struct BattleDemoState {
                 Combatant candidate;
                 const sf::Texture* backSprite = nullptr;
                 bool candidateIsDragonborn = false;
+                bool consumesTurn = true;
             };
             struct SwapAnimation {
                 enum class Stage {
@@ -245,6 +246,7 @@ struct BattleDemoState {
                 Combatant pendingCombatant;
                 const sf::Texture* pendingBackSprite = nullptr;
                 bool pendingIsDragonborn = false;
+                bool consumesTurn = true;
             };
             SwapPrompt swapPrompt;
             SwapAnimation swapAnimation;
@@ -283,9 +285,16 @@ struct BattleDemoState {
             int dragonbornLevel = 50;
             std::unordered_map<std::string, float> creatureHp;
             std::unordered_map<std::string, float> creatureMaxHp;
+            std::unordered_map<std::string, int> lastSkillSelection;
             std::mt19937 rng{ std::random_device{}() };
             std::unique_ptr<sf::Music> battleMusic;
             bool battleMusicPlaying = false;
+            bool swapMenusUnlocked = false;
+            bool runMessageActive = false;
+            bool wandaRescueActive = false;
+            bool wandaRescueAwaitingInput = false;
+            bool pendingForcedSwapMenu = false;
+            sf::Clock wandaRescueClock;
         };
 
 struct Game {
@@ -759,7 +768,7 @@ struct Game {
         float introTitleOptionsFadeDuration = 0.9f;
         float introTitleOptionsFadeProgress = 0.f;
         sf::Clock introTitleOptionsFadeClock;
-        std::array<sf::FloatRect, 2> introTitleOptionBounds{};
+        std::array<sf::FloatRect, 3> introTitleOptionBounds{};
         int introTitleHoveredOption = -1;
 
         bool genderSelectionActive = false;

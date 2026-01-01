@@ -433,6 +433,8 @@ void Game::run() {
             }
             else if (state == GameState::FinalChoice && !confirmationPrompt.active)
                 handleFinalChoiceEvent(*this, *event);
+            else if (state == GameState::Credits)
+                ui::credits::handleEvent(*this, *event);
         }
 
         // sf::Sprite returnSprite(returnSymbol);

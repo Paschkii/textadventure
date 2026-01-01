@@ -20,6 +20,7 @@
 //   {dragonbornOwnPossesive}    - uses her/his for the leftover Dragonborn (used if speaking of itself)
 //   {dragonbornPossessivePronoun}- uses his/hers for the leftover Dragonborn.
 //   {dragonbornSibling}         – uses brother/sister based on that Dragonborn's gender.
+//   {playerSibling}             – uses brother/sister based on the player's gender.
 //
 namespace StoryIntro {
 // Declares keywords that should glow in the intro text and their tinted colors.
@@ -79,7 +80,8 @@ inline void refreshDynamicDragonbornTokens(
     std::string dragonbornPossessivePronoun,
     std::string dragonbornOwnPossessive,
     std::string dragonbornSibling,
-    std::string dragonbornSiblingName
+    std::string dragonbornSiblingName,
+    std::string playerSibling
 ) {
     dynamicColorTokens.clear();
     auto add = [&](const std::string& value) {
@@ -96,6 +98,7 @@ inline void refreshDynamicDragonbornTokens(
     add(dragonbornOwnPossessive);
     add(dragonbornSibling);
     add(dragonbornSiblingName);
+    add(playerSibling);
 }
 
 // Represents scripted quiz prompts keyed by dragon speaker identity.
@@ -393,7 +396,7 @@ inline const std::vector<DialogueLine> seminiferous_part_two = {
     { Speaker::Blacksmith, "You handled that weapon real good!" },
     { Speaker::StoryTeller, "Together, the companions lift you up to cheer for your Glorious Victory!" },
     { Speaker::Player, "{dragonbornSiblingName}... you're back. I won't let you go again." },
-    { Speaker::DragonbornSibling, "Thank you, {dragonbornSibling} for saving me and our home!" },
+    { Speaker::DragonbornSibling, "Thank you, {playerSibling} for saving me and our home!" },
     { Speaker::StoryTeller, "{dragonbornSiblingName} smiles and takes your hand as the journey home begins." },
 };
 

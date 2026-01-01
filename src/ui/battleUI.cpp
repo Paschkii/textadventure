@@ -28,6 +28,7 @@
 #include "core/itemActivation.hpp"
 #include "helper/colorHelper.hpp"
 #include "story/storyIntro.hpp"
+#include "story/textStyles.hpp"
 #include "ui/popupStyle.hpp"
 
 namespace ui::battle {
@@ -78,17 +79,27 @@ namespace {
     constexpr float kSkillSlashBlinkInterval = 0.06f;
     constexpr int kSkillSlashBlinkCycles = 3;
     constexpr float kSkillWeaponFadeDuration = 0.25f;
-    constexpr float kMasterBatesSkillSpriteScale = 0.23f;
+    constexpr float kMasterBatesSkillSpriteScale = 0.138f;
     constexpr float kMasterBatesDragonMultiplier = 2.6f;
-    constexpr float kSkillEffectScaleFactor = 0.65f;
+    constexpr float kSkillEffectScaleFactor = 0.39f;
     constexpr float kFriendshipSpriteTargetFactor = 0.5f;
     constexpr float kSwapPhaseDuration = 1.f;
     constexpr float kSwapOverlayMaxAlpha = 220.f;
+    constexpr float kWandaRescueFadeIn = 0.35f;
+    constexpr float kWandaRescueVignetteAlpha = 0.45f;
+    constexpr char kWandaRescueMessage[] =
+        "Pheww, we made it just in time!\n"
+        "We take care of the fighting,\n"
+        "While you recover your strength!";
+    constexpr float kRecoveryBarHeight = 16.f;
+    constexpr float kRecoveryBarOutline = 2.f;
+    constexpr float kRecoveryBarMinWidth = 140.f;
+    constexpr float kRecoveryBarMaxWidthFactor = 0.7f;
+    constexpr float kRecoveryBarYOffset = -8.f;
+    constexpr unsigned int kRecoveryBarTextSize = 14;
     constexpr float kSwapPromptMargin = 32.f;
     constexpr float kSwapPromptWidth = 360.f;
     constexpr float kSwapPromptHeight = 180.f;
-    // TEMP: speedrun helper; remove this flag + skipBattleAnimations for cleanup.
-    constexpr bool kEnableBattleSkip = true;
 
     struct SwapPromptLayout {
         sf::FloatRect panel;
@@ -98,7 +109,6 @@ namespace {
 
     void openCreatureMenu(BattleDemoState& battle, BattleDemoState::CreatureMenuType type, bool allowCancel = true);
     float dragonbornMaxHpForLevel(int level);
-    float dragonbornSkillDamageForLevel(int level, int skillIndex);
     bool allTrackedCreaturesDefeated(const BattleDemoState& battle);
 
     SwapPromptLayout computeSwapPromptLayout(const sf::Vector2f& viewportSize) {
@@ -315,6 +325,17 @@ namespace {
         return true;
     }
 
+    float recoveryProgress(const BattleDemoState& battle) {
+        if (kTrackedCreatureNames.empty())
+            return 0.f;
+        int defeated = 0;
+        for (const auto& tracked : kTrackedCreatureNames) {
+            if (battle.defeatedCreatures.find(std::string(tracked)) != battle.defeatedCreatures.end())
+                ++defeated;
+        }
+        return std::clamp(static_cast<float>(defeated) / static_cast<float>(kTrackedCreatureNames.size()), 0.f, 1.f);
+    }
+
     sf::Color skillHighlightColor(std::string_view skillName) {
         if (skillName == "Air Slash")
             return sf::Color(120, 220, 180);
@@ -329,6 +350,26 @@ namespace {
         if (isMasterBatesSkill(skillName))
             return ColorHelper::Palette::DarkPurple;
         return sf::Color::White;
+    }
+
+    sf::Color combatantHighlightColor(std::string_view name) {
+        if (containsToken(name, "wanda"))
+            return ColorHelper::Palette::PurpleBlue;
+        if (containsToken(name, "will"))
+            return ColorHelper::Palette::PurpleBlue;
+        if (containsToken(name, "noah"))
+            return ColorHelper::Palette::PurpleBlue;
+        if (containsToken(name, "rowsted"))
+            return ColorHelper::Palette::FireDragon;
+        if (containsToken(name, "gustavo"))
+            return ColorHelper::Palette::AirDragon;
+        if (containsToken(name, "grounded"))
+            return ColorHelper::Palette::DarkBrown;
+        if (containsToken(name, "flawtin"))
+            return ColorHelper::Palette::WaterDragon;
+        if (containsToken(name, "master bates"))
+            return ColorHelper::Palette::DarkPurple;
+        return ColorHelper::Palette::SoftRed;
     }
 
     const sf::SoundBuffer* masterBatesSkillSound(const Game& game, std::string_view skillName) {
@@ -371,13 +412,25 @@ namespace {
                 return;
             tokens.emplace_back(std::move(token), color);
         };
-        addToken(displayPlayerName(game, battle), ColorHelper::Palette::SoftRed);
+        std::string activeName = displayPlayerName(game, battle);
+        addToken(activeName, combatantHighlightColor(activeName));
         if (!battle.enemy.name.empty()) {
             sf::Color enemyColor = isMasterBatesName(battle.enemy.name)
                 ? ColorHelper::Palette::DarkPurple
                 : ColorHelper::Palette::PurpleBlue;
             addToken(battle.enemy.name, enemyColor);
         }
+        addToken("Master Bates", ColorHelper::Palette::DarkPurple);
+        addToken("Master Bates (Dragon)", ColorHelper::Palette::DarkPurple);
+        addToken("MASTER BATES", ColorHelper::Palette::DarkPurple);
+        addToken("MASTER BATES (DRAGON)", ColorHelper::Palette::DarkPurple);
+        addToken("Wanda Rinn", ColorHelper::Palette::PurpleBlue);
+        addToken("Will Figsid", ColorHelper::Palette::PurpleBlue);
+        addToken("Noah Lott", ColorHelper::Palette::PurpleBlue);
+        addToken("Rowsted", ColorHelper::Palette::FireDragon);
+        addToken("Gustavo", ColorHelper::Palette::AirDragon);
+        addToken("Grounded", ColorHelper::Palette::DarkBrown);
+        addToken("Flawtin", ColorHelper::Palette::WaterDragon);
         auto addSkillToken = [&](const std::optional<std::string>& skill) {
             if (skill)
                 addToken(*skill, skillHighlightColor(*skill));
@@ -386,6 +439,9 @@ namespace {
             addSkillToken(skill);
         for (const auto& skill : battle.enemy.skills)
             addSkillToken(skill);
+        for (const char* skill : { "Midnight Release", "Bad Habit", "Shadow Routine", "Guilty Ember" }) {
+            addToken(skill, ColorHelper::Palette::DarkPurple);
+        }
         return tokens;
     }
 
@@ -500,6 +556,7 @@ namespace {
         auto& battle = game.battleDemo;
         if (!battle.forcedRetreat.awaitingSwap)
             return;
+        bool heroRetreat = battle.currentDragonbornActive;
         cacheActiveCreatureStats(battle);
         battle.forcedRetreat.awaitingSwap = false;
         battle.forcedRetreat.active = true;
@@ -514,7 +571,7 @@ namespace {
         battle.actionMenuVisible = false;
         battle.fightMenuVisible = false;
         battle.fightCancelHighlight = false;
-        if (battle.currentDragonbornActive) {
+        if (heroRetreat) {
             std::string heroName = heroDisplayName(game);
             battle.defeatedCreatures.insert(heroName);
             battle.creatureHp[heroName] = 0.f;
@@ -524,12 +581,21 @@ namespace {
                 heroLabel + " has miraculously survived!\n"
                     + "But " + heroLabel + " has to retreat for a while..."
             );
+            if (!battle.swapMenusUnlocked)
+                battle.swapMenusUnlocked = true;
+            battle.wandaRescueActive = true;
+            battle.wandaRescueAwaitingInput = true;
+            battle.wandaRescueClock.restart();
         } else {
             pushLog(game, battle.player.name + " has been defeated! Choose your next Glandumon.");
         }
         maybeRecallDragonborn(game, battle);
         battle.creatureMenuAllowCancel = false;
-        openCreatureMenu(battle, BattleDemoState::CreatureMenuType::Glandumon, false);
+        if (heroRetreat) {
+            battle.pendingForcedSwapMenu = true;
+        } else {
+            openCreatureMenu(battle, BattleDemoState::CreatureMenuType::Glandumon, false);
+        }
     }
 
     void maybeFinalizeForcedRetreat(Game& game) {
@@ -557,6 +623,7 @@ namespace {
         Game::DragonbornGender gender = Game::DragonbornGender::Male;
         bool showBothGenders = false;
         bool isDragonborn = false;
+        bool showGenderIcon = true;
         bool disabled = false;
         bool defeated = false;
     };
@@ -588,6 +655,15 @@ namespace {
             && !battle.masterBatesSkillEffect.active;
     }
 
+    float wandaRescueAlpha(const BattleDemoState& battle) {
+        if (!battle.wandaRescueActive)
+            return 0.f;
+        float elapsed = battle.wandaRescueClock.getElapsedTime().asSeconds();
+        if (kWandaRescueFadeIn <= 0.f)
+            return 1.f;
+        return std::clamp(elapsed / kWandaRescueFadeIn, 0.f, 1.f);
+    }
+
     void completeMasterBatesEvolution(Game& game, BattleDemoState& battle) {
         auto& evolution = battle.masterBatesEvolution;
         evolution.stage = BattleDemoState::MasterBatesEvolution::Stage::ChickSound;
@@ -603,7 +679,7 @@ namespace {
         battle.enemy.name = "Master Bates (Dragon)";
         battle.enemy.level = std::max(1, battle.enemy.level * 2);
         float newMaxHp = std::max(1.f, battle.enemy.maxHp * kMasterBatesDragonMultiplier);
-        newMaxHp += 2000.f;
+        newMaxHp += 2750.f;
         battle.enemy.maxHp = newMaxHp;
         battle.enemy.hp = newMaxHp;
         battle.enemyDisplayedHp = newMaxHp;
@@ -826,15 +902,147 @@ namespace {
         drawButton(layout.noBounds, "NO", battle.swapPrompt.selectedButton == 1, ColorHelper::Palette::Purple);
     }
 
+    void drawWandaRescue(Game& game, sf::RenderTarget& target,
+                         const sf::FloatRect& textBoxBounds,
+                         const sf::FloatRect& backgroundBounds,
+                         float alpha) {
+        if (alpha <= 0.f)
+            return;
+        if (game.resources.spriteWandaRinn.getSize().x == 0 || game.resources.spriteWandaRinn.getSize().y == 0)
+            return;
+
+        auto baseSize = game.resources.spriteWandaRinn.getSize();
+        sf::Vector2f targetSize{
+            static_cast<float>(baseSize.x) * kFriendshipSpriteTargetFactor,
+            static_cast<float>(baseSize.y) * kFriendshipSpriteTargetFactor
+        };
+
+        auto scaleForTexture = [&](const sf::Texture& texture) {
+            sf::Sprite sprite(texture);
+            auto bounds = sprite.getLocalBounds();
+            float scaleX = (bounds.size.x > 0.f) ? (targetSize.x / bounds.size.x) : 0.f;
+            float scaleY = (bounds.size.y > 0.f) ? (targetSize.y / bounds.size.y) : 0.f;
+            float scale = std::min(scaleX, scaleY);
+            return std::max(0.01f, scale * 0.5f);
+        };
+
+        auto drawSprite = [&](const sf::Texture* texture, const sf::Vector2f& position) -> float {
+            if (!texture)
+                return 0.f;
+            sf::Sprite sprite(*texture);
+            auto bounds = sprite.getLocalBounds();
+            if (bounds.size.x <= 0.f || bounds.size.y <= 0.f)
+                return 0.f;
+            float scale = scaleForTexture(*texture);
+            sprite.setOrigin({
+                bounds.position.x + (bounds.size.x * 0.5f),
+                bounds.position.y + (bounds.size.y * 0.5f)
+            });
+            sprite.setPosition(position);
+            sprite.setScale({ scale, scale });
+            sf::Color tint = sf::Color::White;
+            tint.a = static_cast<std::uint8_t>(255.f * alpha);
+            sprite.setColor(tint);
+            target.draw(sprite);
+            return bounds.size.y * scale;
+        };
+
+        float centerX = backgroundBounds.position.x + (backgroundBounds.size.x * 0.5f);
+        float baseCenterY = backgroundBounds.position.y + (backgroundBounds.size.y * 0.62f);
+        float minCenterY = backgroundBounds.position.y + (backgroundBounds.size.y * 0.3f);
+        float maxCenterY = textBoxBounds.position.y - 150.f;
+        if (maxCenterY < minCenterY)
+            maxCenterY = minCenterY;
+        float centerY = std::clamp(baseCenterY, minCenterY, maxCenterY);
+        float backRowY = centerY - 60.f;
+        float frontRowY = centerY + 70.f;
+
+        std::array<const sf::Texture*, 4> dragonTextures = {{
+            &game.resources.spriteRowstedSheacane,
+            &game.resources.spriteFlawtinSeamen,
+            &game.resources.spriteGustavoWindimaess,
+            &game.resources.spriteGroundedClaymore
+        }};
+        std::array<float, 4> dragonOffsets = { -210.f, -70.f, 70.f, 210.f };
+        float maxSpriteHeight = 0.f;
+        for (std::size_t i = 0; i < dragonTextures.size(); ++i) {
+            float height = drawSprite(dragonTextures[i], { centerX + dragonOffsets[i], backRowY });
+            maxSpriteHeight = std::max(maxSpriteHeight, height);
+        }
+
+        std::array<const sf::Texture*, 3> npcTextures = {{
+            &game.resources.spriteWillFigsid,
+            &game.resources.spriteWandaRinn,
+            &game.resources.spriteNoahLott
+        }};
+        std::array<float, 3> npcOffsets = { -140.f, 0.f, 140.f };
+        for (std::size_t i = 0; i < npcTextures.size(); ++i) {
+            float height = drawSprite(npcTextures[i], { centerX + npcOffsets[i], frontRowY });
+            maxSpriteHeight = std::max(maxSpriteHeight, height);
+        }
+
+        constexpr float kBubblePaddingX = 18.f;
+        constexpr float kBubblePaddingY = 12.f;
+        constexpr float kBubbleCorner = 18.f;
+        constexpr float kBubbleTailWidth = 26.f;
+        constexpr float kBubbleTailHeight = 20.f;
+        sf::Text bubbleText{ game.resources.uiFont, kWandaRescueMessage, 20 };
+        bubbleText.setFillColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, alpha));
+        bubbleText.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::FrameGoldLight, alpha));
+        bubbleText.setOutlineThickness(1.f);
+        auto bubbleBounds = bubbleText.getLocalBounds();
+        sf::Vector2f bubbleSize{
+            bubbleBounds.size.x + kBubblePaddingX * 2.f,
+            bubbleBounds.size.y + kBubblePaddingY * 2.f
+        };
+        float bubbleX = centerX - (bubbleSize.x * 0.5f);
+        float bubbleSpacing = 18.f;
+        float bubbleY = frontRowY - (maxSpriteHeight * 0.6f) - bubbleSpacing - bubbleSize.y;
+        float minBubbleY = backgroundBounds.position.y + 24.f;
+        if (bubbleY < minBubbleY)
+            bubbleY = minBubbleY;
+        if (bubbleX < backgroundBounds.position.x + 24.f)
+            bubbleX = backgroundBounds.position.x + 24.f;
+        float maxBubbleX = backgroundBounds.position.x + backgroundBounds.size.x - bubbleSize.x - 24.f;
+        if (bubbleX > maxBubbleX)
+            bubbleX = maxBubbleX;
+
+        RoundedRectangleShape bubbleFrame(bubbleSize, kBubbleCorner, 18);
+        bubbleFrame.setPosition({ bubbleX, bubbleY });
+        sf::Color bubbleFill = ColorHelper::applyAlphaFactor(ColorHelper::Palette::SoftYellow, alpha);
+        bubbleFrame.setFillColor(bubbleFill);
+        bubbleFrame.setOutlineThickness(2.f);
+        bubbleFrame.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::FrameGoldLight, alpha));
+        target.draw(bubbleFrame);
+
+        sf::ConvexShape bubbleTail;
+        bubbleTail.setPointCount(3);
+        bubbleTail.setPoint(0, { bubbleX + (bubbleSize.x * 0.5f) - (kBubbleTailWidth * 0.5f), bubbleY + bubbleSize.y });
+        bubbleTail.setPoint(1, { bubbleX + (bubbleSize.x * 0.5f) + (kBubbleTailWidth * 0.5f), bubbleY + bubbleSize.y });
+        bubbleTail.setPoint(2, { centerX, bubbleY + bubbleSize.y + kBubbleTailHeight });
+        bubbleTail.setFillColor(bubbleFill);
+        bubbleTail.setOutlineThickness(1.f);
+        bubbleTail.setOutlineColor(ColorHelper::applyAlphaFactor(ColorHelper::Palette::FrameGoldLight, alpha));
+        target.draw(bubbleTail);
+
+        bubbleText.setPosition({
+            bubbleX + kBubblePaddingX - bubbleBounds.position.x,
+            bubbleY + kBubblePaddingY - bubbleBounds.position.y
+        });
+        target.draw(bubbleText);
+    }
+
     void startSwapPrompt(BattleDemoState& battle,
                          BattleDemoState::Combatant candidate,
                          const sf::Texture* backSprite,
-                         bool isDragonborn) {
+                         bool isDragonborn,
+                         bool consumesTurn) {
         battle.swapPrompt.active = true;
         battle.swapPrompt.selectedButton = 0;
         battle.swapPrompt.candidate = std::move(candidate);
         battle.swapPrompt.backSprite = backSprite;
         battle.swapPrompt.candidateIsDragonborn = isDragonborn;
+        battle.swapPrompt.consumesTurn = consumesTurn;
     }
 
     void beginPlayerSwap(Game& game) {
@@ -842,6 +1050,25 @@ namespace {
         if (!battle.swapPrompt.active)
             return;
         cacheActiveCreatureStats(battle);
+        if (!battle.swapPrompt.consumesTurn) {
+            if (battle.skillEffect.slashSound)
+                battle.skillEffect.slashSound->stop();
+            if (battle.skillEffect.elementSound)
+                battle.skillEffect.elementSound->stop();
+            if (battle.friendshipEffect.sound)
+                battle.friendshipEffect.sound->stop();
+            if (battle.masterBatesSkillEffect.sound)
+                battle.masterBatesSkillEffect.sound->stop();
+            battle.skillEffect = BattleDemoState::SkillEffect();
+            battle.friendshipEffect = BattleDemoState::FriendshipEffect();
+            battle.masterBatesSkillEffect = BattleDemoState::MasterBatesSkillEffect();
+            battle.playerHpPulse.active = false;
+            battle.enemyHpPulse.active = false;
+            battle.playerDisplayedHp = battle.player.hp;
+            battle.enemyDisplayedHp = battle.enemy.hp;
+            battle.reopenMenuAfterPlayerPulse = false;
+            battle.actionTimer = 0.f;
+        }
         battle.creatureMenuVisible = false;
         battle.creatureMenuType = BattleDemoState::CreatureMenuType::None;
         battle.creatureMenuSelection = 0;
@@ -859,6 +1086,7 @@ namespace {
         battle.swapAnimation.pendingCombatant = battle.swapPrompt.candidate;
         battle.swapAnimation.pendingBackSprite = battle.swapPrompt.backSprite;
         battle.swapAnimation.pendingIsDragonborn = battle.swapPrompt.candidateIsDragonborn;
+        battle.swapAnimation.consumesTurn = battle.swapPrompt.consumesTurn;
         battle.swapPrompt.active = false;
     }
 
@@ -917,11 +1145,19 @@ namespace {
                     animation.pendingBackSprite = nullptr;
                     animation.pendingCombatant = BattleDemoState::Combatant();
                     animation.pendingIsDragonborn = false;
-                    battle.phase = BattleDemoState::Phase::EnemyAction;
-                    battle.actionTimer = 0.f;
-                    battle.actionMenuVisible = false;
-                    battle.reopenMenuAfterPlayerPulse = false;
+                    if (animation.consumesTurn) {
+                        battle.phase = BattleDemoState::Phase::EnemyAction;
+                        battle.actionTimer = 0.f;
+                        battle.actionMenuVisible = false;
+                        battle.reopenMenuAfterPlayerPulse = false;
+                    } else {
+                        battle.phase = BattleDemoState::Phase::PlayerChoice;
+                        battle.actionTimer = 0.f;
+                        battle.actionMenuVisible = true;
+                        battle.reopenMenuAfterPlayerPulse = false;
+                    }
                     animation.timer = 0.f;
+                    animation.consumesTurn = true;
                     break;
                 default:
                     animation.active = false;
@@ -1320,6 +1556,7 @@ namespace {
                 false,
                 false,
                 false,
+                false,
                 isDefeated(definition.name)
             };
             card.disabled = card.defeated || isBlocked(definition.name) || (battle.player.name == definition.name);
@@ -1367,6 +1604,7 @@ namespace {
                     game.playerGender,
                     false,
                     true,
+                    true,
                     false,
                     heroDefeated
                 };
@@ -1387,6 +1625,7 @@ namespace {
                     gender,
                     false,
                     false,
+                    true,
                     false,
                     false
                 };
@@ -1723,7 +1962,8 @@ namespace {
                     battle,
                     entries[index].combatant,
                     entries[index].backSprite,
-                    entries[index].isDragonborn
+                    entries[index].isDragonborn,
+                    battle.creatureMenuAllowCancel
                 );
                 return;
             }
@@ -1970,11 +2210,13 @@ namespace {
             });
             nameText.setPosition({ centeredX, nameY });
             target.draw(nameText);
-            auto largeIcons = gatherGenderIcons(entry.showBothGenders, entry.gender);
-            if (!largeIcons.empty()) {
-                float largeNameCenterY = nameY + (nameFontSize * 0.5f);
-                float largeStartX = centeredX + (nameBounds.size.x * 0.5f) + 12.f;
-                drawGenderRow(largeStartX, largeNameCenterY, largeIcons);
+            if (entry.showGenderIcon) {
+                auto largeIcons = gatherGenderIcons(entry.showBothGenders, entry.gender);
+                if (!largeIcons.empty()) {
+                    float largeNameCenterY = nameY + (nameFontSize * 0.5f);
+                    float largeStartX = centeredX + (nameBounds.size.x * 0.5f) + 12.f;
+                    drawGenderRow(largeStartX, largeNameCenterY, largeIcons);
+                }
             }
 
             sf::Text levelText{ game.resources.battleFont, "Lv." + std::to_string(entry.combatant.level), 32 };
@@ -2008,10 +2250,12 @@ namespace {
 
             float nameFontSizeSmall = static_cast<float>(nameText.getCharacterSize());
             float smallNameCenterY = nameY + (nameFontSizeSmall * 0.5f);
-            auto smallIcons = gatherGenderIcons(entry.showBothGenders, entry.gender);
-            if (!smallIcons.empty()) {
-                float smallNameRight = textX + nameText.getGlobalBounds().size.x;
-                drawGenderRow(smallNameRight + 12.f, smallNameCenterY, smallIcons);
+            if (entry.showGenderIcon) {
+                auto smallIcons = gatherGenderIcons(entry.showBothGenders, entry.gender);
+                if (!smallIcons.empty()) {
+                    float smallNameRight = textX + nameText.getGlobalBounds().size.x;
+                    drawGenderRow(smallNameRight + 12.f, smallNameCenterY, smallIcons);
+                }
             }
 
             sf::Text levelText{ game.resources.battleFont, "Lv." + std::to_string(entry.combatant.level), 24 };
@@ -2292,6 +2536,8 @@ namespace {
         if (!skillSlotAvailable(battle.player, skillIndex))
             return;
 
+        battle.lastSkillSelection[battle.player.name] = skillIndex;
+
         battle.phase = BattleDemoState::Phase::PlayerAction;
         battle.actionTimer = 0.f;
         battle.actionMenuVisible = false;
@@ -2334,8 +2580,9 @@ namespace {
                 }
             }
         }
-    }
 }
+
+} // namespace
 
 void update(Game& game, sf::Time dt) {
     if (game.state != GameState::BattleDemo)
@@ -2344,6 +2591,11 @@ void update(Game& game, sf::Time dt) {
     auto& battle = game.battleDemo;
     cacheActiveCreatureStats(battle);
     startBattleMusicIfNeeded(game);
+    // Wanda rescue stays visible until the player confirms.
+    if (battle.pendingForcedSwapMenu && !battle.wandaRescueActive && !battle.creatureMenuVisible) {
+        battle.pendingForcedSwapMenu = false;
+        openCreatureMenu(battle, BattleDemoState::CreatureMenuType::Glandumon, false);
+    }
     auto advanceIntroPhase = [&](sf::Time delta) -> bool {
         if (battle.introPhase == BattleDemoState::IntroPhase::Complete)
             return false;
@@ -2478,208 +2730,43 @@ void update(Game& game, sf::Time dt) {
     }
 }
 
-bool skipBattleAnimations(Game& game) {
-    auto& battle = game.battleDemo;
-    if (battle.swapPrompt.active || battle.creatureMenuVisible || battle.fightMenuVisible)
-        return false;
-
-    auto finalizePulse = [&](BattleDemoState::HpPulse& pulse, float& displayHp, float actualHp) {
-        if (!pulse.active)
-            return;
-        pulse.active = false;
-        displayHp = actualHp;
-    };
-
-    auto skipOnce = [&]() -> bool {
-        if (battle.introPhase != BattleDemoState::IntroPhase::Complete) {
-            battle.introPhase = BattleDemoState::IntroPhase::Complete;
-            battle.introBlinkTimer = 0.f;
-            battle.introBlinkCount = 0;
-            battle.introBlinkVisible = false;
-            battle.introShadeProgress = 1.f;
-            return true;
-        }
-
-        if (battle.masterBatesEvolution.active) {
-            auto& evolution = battle.masterBatesEvolution;
-            if (evolution.stage == BattleDemoState::MasterBatesEvolution::Stage::FirstSound) {
-                pushLog(game, "Master Bates is evolving!");
-            }
-            if (evolution.stage != BattleDemoState::MasterBatesEvolution::Stage::ChickSound
-                && evolution.stage != BattleDemoState::MasterBatesEvolution::Stage::AwwSound) {
-                if (evolution.sound)
-                    evolution.sound->stop();
-                evolution.sound.reset();
-                completeMasterBatesEvolution(game, battle);
-            }
-            if (evolution.sound)
-                evolution.sound->stop();
-            evolution.sound.reset();
-            evolution.active = false;
-            evolution.stage = BattleDemoState::MasterBatesEvolution::Stage::Idle;
-            battle.actionTimer = 0.f;
-            return true;
-        }
-
-        if (battle.masterBatesSkillEffect.active) {
-            auto& effect = battle.masterBatesSkillEffect;
-            if (effect.pendingDamage) {
-                effect.pendingDamage = false;
-                if (effect.target == BattleDemoState::MasterBatesSkillEffect::Target::Enemy) {
-                    battle.enemy.hp = effect.pendingHp;
-                    battle.enemyDisplayedHp = battle.enemy.hp;
-                    battle.enemyHpPulse.active = false;
-                    if (battle.enemy.hp <= 0.f)
-                        resolveEnemyDefeat(game, battle);
-                } else {
-                    battle.player.hp = effect.pendingHp;
-                    battle.playerDisplayedHp = battle.player.hp;
-                    battle.playerHpPulse.active = false;
-                    cacheActiveCreatureStats(battle);
-                    markActiveCreatureDefeated(battle);
-                    maybeFinalizeForcedRetreat(game);
-                }
-            }
-            if (effect.sound)
-                effect.sound->stop();
-            effect = BattleDemoState::MasterBatesSkillEffect();
-            return true;
-        }
-
-        if (battle.friendshipEffect.active) {
-            auto& effect = battle.friendshipEffect;
-            if (effect.pendingDamage && !effect.hpPulseTriggered) {
-                effect.pendingDamage = false;
-                effect.hpPulseTriggered = true;
-                if (effect.target == BattleDemoState::FriendshipEffect::Target::Enemy) {
-                    battle.enemy.hp = effect.pendingHp;
-                    battle.enemyDisplayedHp = battle.enemy.hp;
-                    battle.enemyHpPulse.active = false;
-                    resolveEnemyDefeat(game, battle);
-                } else if (effect.target == BattleDemoState::FriendshipEffect::Target::Player) {
-                    battle.player.hp = effect.pendingHp;
-                    battle.playerDisplayedHp = battle.player.hp;
-                    battle.playerHpPulse.active = false;
-                    cacheActiveCreatureStats(battle);
-                    markActiveCreatureDefeated(battle);
-                    maybeRecallDragonborn(game, battle);
-                    maybeFinalizeForcedRetreat(game);
-                }
-            }
-            if (effect.sound)
-                effect.sound->stop();
-            effect = BattleDemoState::FriendshipEffect();
-            return true;
-        }
-
-        if (battle.skillEffect.active) {
-            auto& effect = battle.skillEffect;
-            if (effect.pendingDamage) {
-                effect.pendingDamage = false;
-                if (effect.target == BattleDemoState::SkillEffect::Target::Enemy) {
-                    battle.enemy.hp = effect.pendingHp;
-                    battle.enemyDisplayedHp = battle.enemy.hp;
-                    battle.enemyHpPulse.active = false;
-                    resolveEnemyDefeat(game, battle);
-                } else if (effect.target == BattleDemoState::SkillEffect::Target::Player) {
-                    battle.player.hp = effect.pendingHp;
-                    battle.playerDisplayedHp = battle.player.hp;
-                    battle.playerHpPulse.active = false;
-                    cacheActiveCreatureStats(battle);
-                    markActiveCreatureDefeated(battle);
-                    maybeRecallDragonborn(game, battle);
-                    maybeFinalizeForcedRetreat(game);
-                }
-            }
-            if (effect.slashSound)
-                effect.slashSound->stop();
-            if (effect.elementSound)
-                effect.elementSound->stop();
-            effect = BattleDemoState::SkillEffect();
-            return true;
-        }
-
-        if (battle.swapAnimation.active) {
-            updateSwapAnimation(game, battle, kSwapPhaseDuration * 5.f);
-            return true;
-        }
-
-        bool pulseSkipped = false;
-        if (battle.playerHpPulse.active) {
-            finalizePulse(battle.playerHpPulse, battle.playerDisplayedHp, battle.player.hp);
-            pulseSkipped = true;
-        }
-        if (battle.enemyHpPulse.active) {
-            finalizePulse(battle.enemyHpPulse, battle.enemyDisplayedHp, battle.enemy.hp);
-            pulseSkipped = true;
-        }
-        if (pulseSkipped)
-            return true;
-
-        if (battle.forcedRetreat.awaitingSwap) {
-            maybeFinalizeForcedRetreat(game);
-            if (battle.creatureMenuVisible)
-                return true;
-        }
-
-        if (battle.phase == BattleDemoState::Phase::PlayerAction) {
-            if (!battle.skillEffect.active
-                && !battle.swapAnimation.active
-                && !battle.masterBatesEvolution.active) {
-                battle.phase = BattleDemoState::Phase::EnemyAction;
-                battle.actionTimer = 0.f;
-                battle.actionMenuVisible = false;
-                return true;
-            }
-        } else if (battle.phase == BattleDemoState::Phase::EnemyAction) {
-            if (!battle.friendshipEffect.active
-                && !battle.masterBatesEvolution.active) {
-                queueEnemyAttack(game);
-                battle.phase = BattleDemoState::Phase::PlayerChoice;
-                battle.actionTimer = 0.f;
-                battle.actionMenuVisible = false;
-                return true;
-            }
-        }
-
-        if (battle.reopenMenuAfterPlayerPulse
-            && battle.phase == BattleDemoState::Phase::PlayerChoice
-            && actionMenuReady(battle)) {
-            battle.actionMenuVisible = true;
-            battle.reopenMenuAfterPlayerPulse = false;
-            return true;
-        }
-
-        return false;
-    };
-
-    bool skipped = false;
-    for (int step = 0; step < 8; ++step) {
-        if (!skipOnce())
-            break;
-        skipped = true;
-        if (battle.swapPrompt.active || battle.creatureMenuVisible || battle.fightMenuVisible)
-            break;
-    }
-
-    return skipped;
-}
-
 bool handleEvent(Game& game, const sf::Event& event) {
     if (game.state != GameState::BattleDemo)
         return false;
 
     auto& battle = game.battleDemo;
-    // if (kEnableBattleSkip) {
-    //     if (auto key = event.getIf<sf::Event::KeyReleased>()) {
-    //         if (key->scancode == sf::Keyboard::Scan::Enter) {
-    //             if (skipBattleAnimations(game))
-    //                 return true;
-    //         }
-    //     }
-    // }
     if (battle.introPhase != BattleDemoState::IntroPhase::Complete)
         return false;
+    if (battle.wandaRescueAwaitingInput) {
+        if (auto key = event.getIf<sf::Event::KeyReleased>()) {
+            switch (key->scancode) {
+                case sf::Keyboard::Scan::Enter:
+                case sf::Keyboard::Scan::Space:
+                case sf::Keyboard::Scan::Z:
+                    battle.wandaRescueAwaitingInput = false;
+                    battle.wandaRescueActive = false;
+                    return true;
+                default:
+                    return true;
+            }
+        }
+        return true;
+    }
+    if (battle.runMessageActive) {
+        if (auto key = event.getIf<sf::Event::KeyReleased>()) {
+            switch (key->scancode) {
+                case sf::Keyboard::Scan::Enter:
+                case sf::Keyboard::Scan::Space:
+                case sf::Keyboard::Scan::Z:
+                    battle.runMessageActive = false;
+                    battle.actionMenuVisible = true;
+                    return true;
+                default:
+                    return true;
+            }
+        }
+        return true;
+    }
     if (battle.swapPrompt.active)
         return handleSwapPromptEvent(game, event);
     if (battle.creatureMenuVisible)
@@ -2691,7 +2778,11 @@ bool handleEvent(Game& game, const sf::Event& event) {
         int firstSkill = firstAvailableSkillIndex(battle.player);
         if (firstSkill < 0)
             return false;
-        battle.fightMenuSelection = firstSkill;
+        int preferredSkill = firstSkill;
+        auto it = battle.lastSkillSelection.find(battle.player.name);
+        if (it != battle.lastSkillSelection.end() && skillSlotAvailable(battle.player, it->second))
+            preferredSkill = it->second;
+        battle.fightMenuSelection = preferredSkill;
         battle.fightMenuVisible = true;
         battle.fightCancelHighlight = false;
         battle.actionMenuVisible = true;
@@ -2702,19 +2793,25 @@ bool handleEvent(Game& game, const sf::Event& event) {
         if (battle.selectedAction == 0)
             return openFightMenu();
         if (battle.selectedAction == 1) {
+            if (!battle.swapMenusUnlocked)
+                return true;
             openCreatureMenu(battle, BattleDemoState::CreatureMenuType::Dragons);
             return true;
         }
         if (battle.selectedAction == 2) {
+            if (!battle.swapMenusUnlocked)
+                return true;
             openCreatureMenu(battle, BattleDemoState::CreatureMenuType::Glandumon);
             return true;
         }
         if (battle.selectedAction == 3) {
             std::string runningName = displayPlayerName(game, battle);
             pushLog(game, runningName + " tried to run away!\nYou can't run away from a Boss Fight!");
-            battle.phase = BattleDemoState::Phase::EnemyAction;
+            battle.runMessageActive = true;
+            battle.phase = BattleDemoState::Phase::PlayerChoice;
             battle.actionTimer = 0.f;
             battle.actionMenuVisible = false;
+            battle.reopenMenuAfterPlayerPulse = false;
             return true;
         }
         return false;
@@ -2914,6 +3011,7 @@ void draw(Game& game, sf::RenderTarget& target) {
     auto& battle = game.battleDemo;
     auto& evolution = battle.masterBatesEvolution;
     auto stage = evolution.stage;
+    float rescueAlpha = wandaRescueAlpha(battle);
     bool shouldShakeView = (battle.introPhase == BattleDemoState::IntroPhase::Complete)
         && evolution.active
         && (stage == BattleDemoState::MasterBatesEvolution::Stage::FadeWhite
@@ -2938,6 +3036,12 @@ void draw(Game& game, sf::RenderTarget& target) {
         return;
     }
     target.draw(background);
+    if (rescueAlpha > 0.f) {
+        sf::RectangleShape vignette({ width, height });
+        sf::Color vignetteColor(0, 0, 0, static_cast<std::uint8_t>(255.f * rescueAlpha * kWandaRescueVignetteAlpha));
+        vignette.setFillColor(vignetteColor);
+        target.draw(vignette);
+    }
 
     if (battle.introPhase == BattleDemoState::IntroPhase::Shading) {
         drawShadeOverlay(target, width, height, battle.introShadeProgress);
@@ -3307,11 +3411,31 @@ void draw(Game& game, sf::RenderTarget& target) {
             constexpr float kTextOffset = 40.f;
             float availableWidth = std::max(0.f, textBoxContent.size.x - (kTextOffset * 2.f));
             auto wrapText = [&](const std::string& input) {
+                constexpr char kProtectedSpace = '\x1F';
+                std::string protectedInput = input;
+                if (!displayTokens.empty()) {
+                    std::vector<std::pair<std::string, sf::Color>> sortedTokens = displayTokens;
+                    std::sort(sortedTokens.begin(), sortedTokens.end(), [](const auto& a, const auto& b) {
+                        return a.first.size() > b.first.size();
+                    });
+                    for (const auto& token : sortedTokens) {
+                        if (token.first.find(' ') == std::string::npos)
+                            continue;
+                        std::string protectedToken = token.first;
+                        std::replace(protectedToken.begin(), protectedToken.end(), ' ', kProtectedSpace);
+                        size_t pos = 0;
+                        while ((pos = protectedInput.find(token.first, pos)) != std::string::npos) {
+                            protectedInput.replace(pos, token.first.size(), protectedToken);
+                            pos += protectedToken.size();
+                        }
+                    }
+                }
                 std::vector<std::string> lines;
-                std::istringstream tokens(input);
+                std::istringstream tokens(protectedInput);
                 std::string word;
                 std::string currentLine;
                 while (tokens >> word) {
+                    std::replace(word.begin(), word.end(), kProtectedSpace, ' ');
                     std::string candidate = currentLine.empty() ? word : (currentLine + " " + word);
                     logEntry.setString(candidate);
                     auto candidateBounds = logEntry.getGlobalBounds();
@@ -3381,6 +3505,13 @@ void draw(Game& game, sf::RenderTarget& target) {
                 for (const auto& segment : segments) {
                     logEntry.setString(segment.text);
                     logEntry.setFillColor(segment.color);
+                    if (segment.color == ColorHelper::Palette::DarkPurple) {
+                        logEntry.setOutlineColor(sf::Color::White);
+                        logEntry.setOutlineThickness(2.f);
+                    } else {
+                        logEntry.setOutlineThickness(0.f);
+                        logEntry.setOutlineColor(sf::Color::Transparent);
+                    }
                     logEntry.setPosition({ drawX, currentY });
                     target.draw(logEntry);
                     drawX += logEntry.getGlobalBounds().size.x;
@@ -3492,7 +3623,10 @@ void draw(Game& game, sf::RenderTarget& target) {
         } else {
             battle.actionOptionBoundsValid = true;
             for (std::size_t index = 0; index < kActionLabels.size(); ++index) {
-                sf::Text option{ game.resources.battleFont, kActionLabels[index], 48 };
+                std::string label = kActionLabels[index];
+                if ((!battle.swapMenusUnlocked || battle.wandaRescueAwaitingInput) && (index == 1 || index == 2))
+                    label = "???";
+                sf::Text option{ game.resources.battleFont, label, 48 };
                 option.setFillColor(sf::Color::White);
                 option.setStyle(sf::Text::Bold);
                 option.setLetterSpacing(option.getLetterSpacing() + 0.5f);
@@ -3539,14 +3673,72 @@ void draw(Game& game, sf::RenderTarget& target) {
         if (playerHealthBar)
             drawPlayerHpValue(*playerHealthBar, playerBoxBounds, battle.player, 10.f, battle.playerDisplayedHp);
         auto playerGender = genderFromName(battle.player.name);
-        const sf::Texture* playerIcon = playerGender
-            ? genderIconFor(game, *playerGender)
-            : genderIconFor(game, game.playerGender);
+        const sf::Texture* playerIcon = nullptr;
+        if (!isDragonName(battle.player.name)) {
+            playerIcon = playerGender
+                ? genderIconFor(game, *playerGender)
+                : genderIconFor(game, game.playerGender);
+        }
         auto enemyGender = genderFromName(battle.enemy.name);
         const sf::Texture* enemyIcon = enemyGender ? genderIconFor(game, *enemyGender) : nullptr;
         std::string playerLabel = displayPlayerName(game, battle);
         drawNameField(playerBoxBounds, playerLabel, 50.f, 30.f, playerIcon);
         drawNameField(enemyBoxBounds, "Master Bates", 50.f, 15.f, enemyIcon);
+
+        if (!battle.currentDragonbornActive || battle.forcedRetreat.active || battle.forcedRetreat.awaitingSwap) {
+            if (playerBoxBounds.size.x > 0.f && playerBoxBounds.size.y > 0.f
+                && actionBoxBounds.size.x > 0.f && actionBoxBounds.size.y > 0.f) {
+                float gapTop = playerBoxBounds.position.y + playerBoxBounds.size.y;
+                float gapBottom = actionBoxBounds.position.y;
+                float availableGap = gapBottom - gapTop;
+                float maxWidth = std::min(playerBoxBounds.size.x, actionBoxBounds.size.x) * kRecoveryBarMaxWidthFactor;
+                float barWidth = std::max(0.f, maxWidth);
+                if (barWidth < kRecoveryBarMinWidth)
+                    barWidth = maxWidth;
+                if (barWidth > 0.f) {
+                    float barX = playerBoxBounds.position.x + (playerBoxBounds.size.x - barWidth) * 0.5f;
+                    float barY = 0.f;
+                    if (availableGap > kRecoveryBarHeight + 6.f) {
+                        barY = gapTop + (availableGap - kRecoveryBarHeight) * 0.5f;
+                    } else {
+                        barY = actionBoxBounds.position.y - kRecoveryBarHeight - 8.f;
+                    }
+                    float minBarY = gapTop + 4.f;
+                    float maxBarY = gapBottom - kRecoveryBarHeight - 4.f;
+                    if (maxBarY < minBarY)
+                        maxBarY = minBarY;
+                    barY = std::clamp(barY + kRecoveryBarYOffset, minBarY, maxBarY);
+                    RoundedRectangleShape barBackground({ barWidth, kRecoveryBarHeight }, kRecoveryBarHeight * 0.5f, 16);
+                    barBackground.setPosition({ barX, barY });
+                    barBackground.setFillColor(ColorHelper::Palette::BlueDark);
+                    barBackground.setOutlineThickness(kRecoveryBarOutline);
+                    barBackground.setOutlineColor(ColorHelper::Palette::Dim);
+                    target.draw(barBackground);
+
+                    float ratio = recoveryProgress(battle);
+                    if (ratio > 0.f) {
+                        float fillWidth = barWidth * std::clamp(ratio, 0.f, 1.f);
+                        RoundedRectangleShape barFill({ fillWidth, kRecoveryBarHeight }, kRecoveryBarHeight * 0.5f, 16);
+                        barFill.setPosition({ barX, barY });
+                        barFill.setFillColor(ColorHelper::Palette::PurpleBlue);
+                        target.draw(barFill);
+                    }
+                    int percent = static_cast<int>(std::round(std::clamp(ratio, 0.f, 1.f) * 100.f));
+                    std::string progressLabel = "Recovery Progress: " + std::to_string(percent) + "%";
+                    sf::Text progressText{ game.resources.uiFont, progressLabel, kRecoveryBarTextSize };
+                    progressText.setFillColor(sf::Color::White);
+                    progressText.setOutlineColor(TextStyles::UI::PanelDark);
+                    progressText.setOutlineThickness(1.f);
+                    auto textBounds = progressText.getLocalBounds();
+                    progressText.setOrigin({
+                        textBounds.position.x + textBounds.size.x * 0.5f,
+                        textBounds.position.y + textBounds.size.y * 0.5f
+                    });
+                    progressText.setPosition({ barX + (barWidth * 0.5f), barY + (kRecoveryBarHeight * 0.5f) });
+                    target.draw(progressText);
+                }
+            }
+        }
     }
 
     const sf::Texture* enemyTexture = battle.masterBatesDragonActive
@@ -3599,6 +3791,8 @@ void draw(Game& game, sf::RenderTarget& target) {
     drawMasterBatesSkillEffect(game, battle, target);
     if (battle.swapPrompt.active)
         drawSwapPrompt(game, target, { width, height }, battle);
+    if (rescueAlpha > 0.f)
+        drawWandaRescue(game, target, textBoxBounds, backgroundBounds, rescueAlpha);
     restoreView();
 }
 

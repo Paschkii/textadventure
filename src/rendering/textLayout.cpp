@@ -4,6 +4,7 @@
 #include <string>     // Holds segments, tokens, and intermediate substrings during drawing.
 // === Header Files ===
 #include "textLayout.hpp"  // Declares drawColoredSegments implemented below.
+#include "helper/colorHelper.hpp"  // Applies special outlines for dark-purple segments.
 
 // Handles word-wrapping and line breaks while drawing each colored segment.
 sf::Vector2f drawColoredSegments(
@@ -47,6 +48,14 @@ sf::Vector2f drawColoredSegments(
                 sf::Color drawableColor = segment.color;
                 drawableColor.a = static_cast<std::uint8_t>(static_cast<float>(drawableColor.a) * alphaFactor);
                 drawable.setFillColor(drawableColor);
+                if (segment.color == ColorHelper::Palette::DarkPurple) {
+                    sf::Color outlineColor = sf::Color::White;
+                    outlineColor.a = drawableColor.a;
+                    drawable.setOutlineColor(outlineColor);
+                    drawable.setOutlineThickness(2.f);
+                } else {
+                    drawable.setOutlineThickness(0.f);
+                }
 
                 std::size_t partIndex = 0;
                 // Group the substring into runs of spaces or words for proper wrapping.

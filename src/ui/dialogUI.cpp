@@ -793,8 +793,13 @@ namespace {
 
             sf::Text labelText{ game.resources.uiFont, label, kLabelTextSize };
             labelText.setFillColor(ColorHelper::applyAlphaFactor(outlineColor, panelAlpha));
-            labelText.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, panelAlpha));
-            labelText.setOutlineThickness(1.f);
+            if (outlineColor == ColorHelper::Palette::DarkPurple) {
+                labelText.setOutlineColor(ColorHelper::applyAlphaFactor(sf::Color::White, panelAlpha));
+                labelText.setOutlineThickness(2.f);
+            } else {
+                labelText.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, panelAlpha));
+                labelText.setOutlineThickness(1.f);
+            }
             labelText.setStyle(sf::Text::Bold);
             auto labelBoundsLocal = labelText.getLocalBounds();
             labelText.setOrigin({
@@ -1153,9 +1158,15 @@ void drawLocationBox(Game& game, sf::RenderTarget& target, float uiAlphaFactor, 
     auto boxSize = game.locationBox.getSize();
 
     sf::Text locationName{ game.resources.uiFont, game.currentLocation->name, kLocationTextSize };
-    locationName.setFillColor(ColorHelper::applyAlphaFactor(game.currentLocation->color, uiAlphaFactor));
-    locationName.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor));
-    locationName.setOutlineThickness(1.f);
+    sf::Color locationColor = game.currentLocation->color;
+    locationName.setFillColor(ColorHelper::applyAlphaFactor(locationColor, uiAlphaFactor));
+    if (locationColor == ColorHelper::Palette::DarkPurple) {
+        locationName.setOutlineColor(ColorHelper::applyAlphaFactor(sf::Color::White, uiAlphaFactor));
+        locationName.setOutlineThickness(2.f);
+    } else {
+        locationName.setOutlineColor(ColorHelper::applyAlphaFactor(TextStyles::UI::PanelDark, uiAlphaFactor));
+        locationName.setOutlineThickness(1.f);
+    }
 
     auto localBounds = locationName.getLocalBounds();
     locationName.setOrigin({

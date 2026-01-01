@@ -8,6 +8,7 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Clock.hpp>
+#include <SFML/Window/Event.hpp>
 
 class Game;
 
@@ -33,6 +34,7 @@ struct State {
         EntryDisplay,
         PanelFadeOut,
         BetaDisplay,
+        AwaitExit,
         Complete
     };
 
@@ -52,5 +54,6 @@ struct State {
 void start(Game& game);
 void update(Game& game);
 void draw(Game& game, sf::RenderTarget& target);
+bool handleEvent(Game& game, const sf::Event& event);
 
 } // namespace ui::credits

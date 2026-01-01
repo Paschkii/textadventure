@@ -977,6 +977,7 @@ inline std::string injectSpeakerNames(const std::string& text, const Game& game)
     auto otherSibling = (otherGender == Game::DragonbornGender::Male) ? "brother" : "sister";
     auto otherSiblingName = (otherGender == Game::DragonbornGender::Male) ? "Asha" : "Ember";
     auto ownPossessive = (otherGender == Game::DragonbornGender::Male) ? "her" : "his";
+    auto playerSibling = (game.playerGender == Game::DragonbornGender::Male) ? "brother" : "sister";
 
     dragonbornSiblingDisplayName = otherSiblingName;
     StoryIntro::refreshDynamicDragonbornTokens(
@@ -988,7 +989,8 @@ inline std::string injectSpeakerNames(const std::string& text, const Game& game)
         otherPossessivePronoun,
         otherSibling,
         otherSiblingName,
-        ownPossessive
+        ownPossessive,
+        playerSibling
     );
     replaceToken("{dragonbornName}", otherName);
     replaceToken("{dragonbornSubject}", otherSubject);
@@ -998,5 +1000,6 @@ inline std::string injectSpeakerNames(const std::string& text, const Game& game)
     replaceToken("{dragonbornSibling}", otherSibling);
     replaceToken("{dragonbornSiblingName}", otherSiblingName);
     replaceToken("{dragonbornOwnPossessive}", ownPossessive);
+    replaceToken("{playerSibling}", playerSibling);
     return out;
 }

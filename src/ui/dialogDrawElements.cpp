@@ -22,6 +22,21 @@ namespace {
     constexpr float kPortraitSpriteOffset = 3.f;
     constexpr float kDialogueLineSpacingMultiplier = 1.2f;
 
+    const sf::Texture* siblingPortrait(const Game& game) {
+        bool useCape = game.cloakEquipped;
+        auto siblingGender = (game.playerGender == Game::DragonbornGender::Female)
+            ? Game::DragonbornGender::Male
+            : Game::DragonbornGender::Female;
+        if (siblingGender == Game::DragonbornGender::Female) {
+            return useCape
+                ? &game.resources.portraitDragonbornFemaleCape
+                : &game.resources.portraitDragonbornFemaleNoCape;
+        }
+        return useCape
+            ? &game.resources.portraitDragonbornMaleCape
+            : &game.resources.portraitDragonbornMaleNoCape;
+    }
+
     const sf::Texture* portraitForSpeaker(const Game& game, const std::string& speakerName) {
         using TextStyles::SpeakerId;
 
@@ -57,6 +72,8 @@ namespace {
                 return &game.resources.portraitAirDragon;
             case SpeakerId::EarthDragon:
                 return &game.resources.portraitEarthDragon;
+            case SpeakerId::DragonbornSibling:
+                return siblingPortrait(game);
             case SpeakerId::Unknown:
             default:
                 return nullptr;
@@ -209,6 +226,13 @@ namespace dialogDraw {
             for (const auto& part : parts) {
                 sf::Text t{ game.resources.uiFont, part.first, kNameCharacterSize };
                 t.setFillColor(ColorHelper::applyAlphaFactor(part.second, uiAlphaFactor));
+                if (part.second == ColorHelper::Palette::DarkPurple) {
+                    t.setOutlineColor(sf::Color::White);
+                    t.setOutlineThickness(2.f);
+                } else {
+                    t.setOutlineThickness(0.f);
+                    t.setOutlineColor(sf::Color::Transparent);
+                }
                 auto b = t.getLocalBounds();
                 totalWidth += b.size.x;
                 texts.push_back(std::move(t));
@@ -229,6 +253,13 @@ namespace dialogDraw {
         };
 
         nameText.setFillColor(ColorHelper::applyAlphaFactor(info.color, uiAlphaFactor));
+        if (info.color == ColorHelper::Palette::DarkPurple) {
+            nameText.setOutlineColor(sf::Color::White);
+            nameText.setOutlineThickness(2.f);
+        } else {
+            nameText.setOutlineThickness(0.f);
+            nameText.setOutlineColor(sf::Color::Transparent);
+        }
         nameText.setString(info.name);
 
         auto namePos = game.nameBox.getPosition();

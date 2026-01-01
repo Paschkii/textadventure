@@ -1606,7 +1606,10 @@ namespace {
 
             float xpLineY = std::max(cursorY + cardHeight - 28.f, textY);
             sf::Text xpText{ game.resources.uiFont, "XP Reward: " + std::to_string(entry.xpReward), 18 };
-            xpText.setFillColor(detailColorize(ColorHelper::Palette::DarkPurple));
+            sf::Color xpColor = detailColorize(ColorHelper::Palette::DarkPurple);
+            xpText.setFillColor(xpColor);
+            xpText.setOutlineColor(ColorHelper::applyAlphaFactor(sf::Color::White, alphaFactor * detailAlpha));
+            xpText.setOutlineThickness(2.f);
             xpText.setPosition({ textX, xpLineY });
             target.draw(xpText);
 

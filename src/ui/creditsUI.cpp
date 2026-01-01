@@ -7,6 +7,7 @@
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
+#include <SFML/Window/Keyboard.hpp>
 
 // === Header Files ===
 #include "creditsUI.hpp"
@@ -159,13 +160,14 @@ void update(Game& game) {
                 state.betaAlpha = 1.f;
             }
             if (elapsed >= kBetaFadeInDuration + kBetaHoldDuration) {
-                state.phase = State::Phase::Complete;
-                state.active = false;
-                state.initialized = false;
-                game.window.close();
+                state.phase = State::Phase::AwaitExit;
+                state.betaAlpha = 1.f;
             }
             break;
         }
+        case State::Phase::AwaitExit:
+            state.betaAlpha = 1.f;
+            break;
         case State::Phase::Complete:
             break;
     }
@@ -244,23 +246,55 @@ void draw(Game& game, sf::RenderTarget& target) {
         float textSize = 24.f;
         float lineSpacing = textSize * 1.35f;
         sf::Text line1{ game.resources.uiFont, entry.line1, static_cast<unsigned int>(textSize) };
-        sf::Text line2{ game.resources.uiFont, entry.line2, static_cast<unsigned int>(textSize) };
-        sf::Color textColor = ColorHelper::Palette::SoftYellow;
-        textColor.a = static_cast<std::uint8_t>(255.f * contentAlpha);
-        line1.setFillColor(textColor);
-        line2.setFillColor(textColor);
+        sf::Color line1Color = (entry.line1 == "Special thanks to my artist:")
+            ? ColorHelper::Palette::SoftYellow
+            : ColorHelper::Palette::SoftRed;
+        line1Color.a = static_cast<std::uint8_t>(255.f * contentAlpha);
+        line1.setFillColor(line1Color);
         auto line1Bounds = line1.getLocalBounds();
-        auto line2Bounds = line2.getLocalBounds();
         float textStartY = squarePos.y + squareSize + 18.f;
         line1.setOrigin({ line1Bounds.position.x + line1Bounds.size.x * 0.5f, line1Bounds.position.y });
-        line2.setOrigin({ line2Bounds.position.x + line2Bounds.size.x * 0.5f, line2Bounds.position.y });
         line1.setPosition({ squarePos.x + squareSize * 0.5f, textStartY });
-        line2.setPosition({ squarePos.x + squareSize * 0.5f, textStartY + lineSpacing });
         target.draw(line1);
-        target.draw(line2);
+
+        float line2Y = textStartY + lineSpacing;
+        const std::string prefix = "portrayed by ";
+        if (entry.line2.rfind(prefix, 0) == 0) {
+            std::string actorName = entry.line2.substr(prefix.size());
+            sf::Text prefixText{ game.resources.uiFont, prefix, static_cast<unsigned int>(textSize) };
+            sf::Text nameText{ game.resources.uiFont, actorName, static_cast<unsigned int>(textSize) };
+            sf::Color prefixColor = ColorHelper::Palette::SoftYellow;
+            prefixColor.a = static_cast<std::uint8_t>(255.f * contentAlpha);
+            sf::Color nameColor = ColorHelper::Palette::SoftRed;
+            nameColor.a = static_cast<std::uint8_t>(255.f * contentAlpha);
+            prefixText.setFillColor(prefixColor);
+            nameText.setFillColor(nameColor);
+            auto prefixBounds = prefixText.getLocalBounds();
+            auto nameBounds = nameText.getLocalBounds();
+            float prefixWidth = prefixBounds.size.x;
+            float nameWidth = nameBounds.size.x;
+            float totalWidth = prefixWidth + nameWidth;
+            float startX = squarePos.x + (squareSize * 0.5f) - (totalWidth * 0.5f);
+            prefixText.setOrigin({ prefixBounds.position.x, prefixBounds.position.y });
+            nameText.setOrigin({ nameBounds.position.x, nameBounds.position.y });
+            prefixText.setPosition({ startX, line2Y });
+            nameText.setPosition({ startX + prefixWidth, line2Y });
+            target.draw(prefixText);
+            target.draw(nameText);
+        } else {
+            sf::Text line2{ game.resources.uiFont, entry.line2, static_cast<unsigned int>(textSize) };
+            sf::Color line2Color = ColorHelper::Palette::SoftRed;
+            line2Color.a = static_cast<std::uint8_t>(255.f * contentAlpha);
+            line2.setFillColor(line2Color);
+            auto line2Bounds = line2.getLocalBounds();
+            line2.setOrigin({ line2Bounds.position.x + line2Bounds.size.x * 0.5f, line2Bounds.position.y });
+            line2.setPosition({ squarePos.x + squareSize * 0.5f, line2Y });
+            target.draw(line2);
+        }
     }
 
-    if (state.phase == State::Phase::BetaDisplay && state.betaTexture && state.betaAlpha > 0.f) {
+    if ((state.phase == State::Phase::BetaDisplay || state.phase == State::Phase::AwaitExit)
+        && state.betaTexture && state.betaAlpha > 0.f) {
         sf::Sprite sprite(*state.betaTexture);
         auto texSize = state.betaTexture->getSize();
         float maxWidth = windowWidth * 0.7f;
@@ -278,15 +312,59 @@ void draw(Game& game, sf::RenderTarget& target) {
         sprite.setColor(sf::Color(255, 255, 255, static_cast<std::uint8_t>(255.f * state.betaAlpha)));
         target.draw(sprite);
 
-        sf::Text thanks{ game.resources.uiFont, "And another special thanks to my Beta Tester Alex!", 24 };
-        auto thanksBounds = thanks.getLocalBounds();
-        thanks.setOrigin({ thanksBounds.position.x + thanksBounds.size.x * 0.5f, thanksBounds.position.y + thanksBounds.size.y * 0.5f });
-        thanks.setPosition({ centerX, centerY + (bounds.size.y * scale * 0.5f) + 32.f });
-        sf::Color thanksColor = ColorHelper::Palette::SoftYellow;
-        thanksColor.a = static_cast<std::uint8_t>(255.f * state.betaAlpha);
-        thanks.setFillColor(thanksColor);
-        target.draw(thanks);
+        const std::string betaPrefix = "And another special thanks to my Beta Tester ";
+        const std::string betaName = "Alex!";
+        sf::Text thanksPrefix{ game.resources.uiFont, betaPrefix, 24 };
+        sf::Text thanksName{ game.resources.uiFont, betaName, 24 };
+        sf::Color prefixColor = ColorHelper::Palette::SoftYellow;
+        prefixColor.a = static_cast<std::uint8_t>(255.f * state.betaAlpha);
+        sf::Color nameColor = ColorHelper::Palette::SoftRed;
+        nameColor.a = static_cast<std::uint8_t>(255.f * state.betaAlpha);
+        thanksPrefix.setFillColor(prefixColor);
+        thanksName.setFillColor(nameColor);
+        auto prefixBounds = thanksPrefix.getLocalBounds();
+        auto nameBounds = thanksName.getLocalBounds();
+        float prefixWidth = prefixBounds.size.x;
+        float nameWidth = nameBounds.size.x;
+        float totalWidth = prefixWidth + nameWidth;
+        float startX = centerX - (totalWidth * 0.5f);
+        float thanksY = centerY + (bounds.size.y * scale * 0.5f) + 32.f;
+        thanksPrefix.setOrigin({ prefixBounds.position.x, prefixBounds.position.y + (prefixBounds.size.y * 0.5f) });
+        thanksName.setOrigin({ nameBounds.position.x, nameBounds.position.y + (nameBounds.size.y * 0.5f) });
+        thanksPrefix.setPosition({ startX, thanksY });
+        thanksName.setPosition({ startX + prefixWidth, thanksY });
+        target.draw(thanksPrefix);
+        target.draw(thanksName);
     }
+
+    if (state.phase == State::Phase::AwaitExit) {
+        sf::Text prompt{ game.resources.uiFont, "Press Enter to exit", 24 };
+        auto promptBounds = prompt.getLocalBounds();
+        prompt.setOrigin({
+            promptBounds.position.x + (promptBounds.size.x * 0.5f),
+            promptBounds.position.y + (promptBounds.size.y * 0.5f)
+        });
+        prompt.setPosition({ windowWidth * 0.5f, windowHeight - 48.f });
+        prompt.setFillColor(ColorHelper::Palette::SoftYellow);
+        prompt.setOutlineColor(TextStyles::UI::PanelDark);
+        prompt.setOutlineThickness(2.f);
+        target.draw(prompt);
+    }
+}
+
+bool handleEvent(Game& game, const sf::Event& event) {
+    if (game.state != GameState::Credits)
+        return false;
+    auto& state = game.creditsState;
+    if (state.phase != State::Phase::AwaitExit)
+        return false;
+    if (auto key = event.getIf<sf::Event::KeyReleased>()) {
+        if (key->scancode == sf::Keyboard::Scan::Enter) {
+            game.window.close();
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace ui::credits

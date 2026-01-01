@@ -76,7 +76,7 @@ namespace {
         locations.push_back(makeLocation(
             LocationId::UmbraOssea,
             "Umbra Ossea",
-            ColorHelper::Palette::DarkPurple
+            ColorHelper::Palette::SoftRed
         ));
 
         return locations;
