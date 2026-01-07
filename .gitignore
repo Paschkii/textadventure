@@ -10,6 +10,8 @@ dist/
 *.app
 *.exe
 
+third_party/
+
 # Compiler/Objektkram
 *.o
 *.a

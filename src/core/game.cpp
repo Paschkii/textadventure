@@ -298,7 +298,7 @@ int Game::recordSessionRanking() {
 
     std::time_t startTime = std::chrono::system_clock::to_time_t(rankingSession.startTime);
     std::tm timeBuffer{};
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     localtime_s(&timeBuffer, &startTime);
 #else
     localtime_r(&startTime, &timeBuffer);
