@@ -18,10 +18,7 @@ MINGW_TRIPLE="${MINGW_TRIPLE:-x86_64-w64-mingw32}"
 MINGW_TOOLCHAIN_ROOT="${MINGW_TOOLCHAIN_ROOT:-/opt/homebrew/opt/mingw-w64/toolchain-x86_64}"
 MINGW_SYSROOT="${MINGW_SYSROOT:-${MINGW_TOOLCHAIN_ROOT}/${MINGW_TRIPLE}}"
 MINGW_BIN_DIR="${MINGW_BIN_DIR:-${MINGW_TOOLCHAIN_ROOT}/bin}"
-
-if [[ ! -d "$MINGW_BIN_DIR" && -d "$MINGW_SYSROOT/bin" ]]; then
-  MINGW_BIN_DIR="$MINGW_SYSROOT/bin"
-fi
+MINGW_SYSROOT_BIN="${MINGW_SYSROOT}/bin"
 
 SFML_WIN_PREFIX_DEFAULT="/Users/pascalscholz/Documents/Coding/Github/C++/sfmltest/textadventure/third_party/SFML-3.0.2"
 SFML_WIN_PREFIX="${SFML_WIN_PREFIX:-$SFML_WIN_PREFIX_DEFAULT}"
@@ -93,20 +90,47 @@ else
 fi
 
 echo "== Copy MinGW runtime DLLs (if found) =="
-if [[ -d "$MINGW_BIN_DIR" ]]; then
-  missing=()
-  for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
-    if [[ -f "$MINGW_BIN_DIR/$dll" ]]; then
-      cp "$MINGW_BIN_DIR/$dll" "$STAGE_DIR/"
-    else
-      missing+=("$dll")
-    fi
-  done
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    echo "WARN: Missing MinGW runtime DLLs in $MINGW_BIN_DIR: ${missing[*]}"
+runtime_dlls=(libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll)
+
+resolve_runtime_dll() {
+  local name="$1"
+  local gcc_path=""
+
+  if command -v "${MINGW_TRIPLE}-g++" >/dev/null; then
+    gcc_path="$("${MINGW_TRIPLE}-g++" -print-file-name="$name" 2>/dev/null || true)"
   fi
-else
-  echo "WARN: MINGW_BIN_DIR not found: $MINGW_BIN_DIR"
+
+  if [[ -n "$gcc_path" && "$gcc_path" != "$name" && -f "$gcc_path" ]]; then
+    echo "$gcc_path"
+    return 0
+  fi
+
+  if [[ -n "$MINGW_BIN_DIR" && -f "$MINGW_BIN_DIR/$name" ]]; then
+    echo "$MINGW_BIN_DIR/$name"
+    return 0
+  fi
+
+  if [[ -n "$MINGW_SYSROOT_BIN" && -f "$MINGW_SYSROOT_BIN/$name" ]]; then
+    echo "$MINGW_SYSROOT_BIN/$name"
+    return 0
+  fi
+
+  return 1
+}
+
+missing=()
+for dll in "${runtime_dlls[@]}"; do
+  if dll_path="$(resolve_runtime_dll "$dll")"; then
+    cp "$dll_path" "$STAGE_DIR/"
+  else
+    missing+=("$dll")
+  fi
+done
+
+if [[ ${#missing[@]} -gt 0 ]]; then
+  echo "ERROR: Missing MinGW runtime DLLs: ${missing[*]}"
+  echo "       Ensure mingw-w64 is installed and ${MINGW_TRIPLE}-g++ is on PATH."
+  exit 1
 fi
 
 echo "== Zip for distribution =="
