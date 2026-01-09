@@ -15,8 +15,13 @@ DIST_DIR="${DIST_DIR_ROOT}/windows/x86_64"
 VERSION="${1:-1.0.0}"
 
 MINGW_TRIPLE="${MINGW_TRIPLE:-x86_64-w64-mingw32}"
-MINGW_SYSROOT="${MINGW_SYSROOT:-/opt/homebrew/opt/mingw-w64/toolchain-x86_64/${MINGW_TRIPLE}}"
-MINGW_BIN_DIR="${MINGW_BIN_DIR:-${MINGW_SYSROOT}/bin}"
+MINGW_TOOLCHAIN_ROOT="${MINGW_TOOLCHAIN_ROOT:-/opt/homebrew/opt/mingw-w64/toolchain-x86_64}"
+MINGW_SYSROOT="${MINGW_SYSROOT:-${MINGW_TOOLCHAIN_ROOT}/${MINGW_TRIPLE}}"
+MINGW_BIN_DIR="${MINGW_BIN_DIR:-${MINGW_TOOLCHAIN_ROOT}/bin}"
+
+if [[ ! -d "$MINGW_BIN_DIR" && -d "$MINGW_SYSROOT/bin" ]]; then
+  MINGW_BIN_DIR="$MINGW_SYSROOT/bin"
+fi
 
 SFML_WIN_PREFIX_DEFAULT="/Users/pascalscholz/Documents/Coding/Github/C++/sfmltest/textadventure/third_party/SFML-3.0.2"
 SFML_WIN_PREFIX="${SFML_WIN_PREFIX:-$SFML_WIN_PREFIX_DEFAULT}"
@@ -89,16 +94,26 @@ fi
 
 echo "== Copy MinGW runtime DLLs (if found) =="
 if [[ -d "$MINGW_BIN_DIR" ]]; then
+  missing=()
   for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
     if [[ -f "$MINGW_BIN_DIR/$dll" ]]; then
       cp "$MINGW_BIN_DIR/$dll" "$STAGE_DIR/"
+    else
+      missing+=("$dll")
     fi
   done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "WARN: Missing MinGW runtime DLLs in $MINGW_BIN_DIR: ${missing[*]}"
+  fi
 else
   echo "WARN: MINGW_BIN_DIR not found: $MINGW_BIN_DIR"
 fi
 
 echo "== Zip for distribution =="
 ZIP_NAME="${APP_NAME}-Windows-x86_64-${VERSION}.zip"
-ditto -c -k --keepParent "$STAGE_DIR" "$DIST_DIR/$ZIP_NAME"
+if command -v zip >/dev/null; then
+  (cd "$DIST_DIR" && zip -r -X "$ZIP_NAME" "$(basename "$STAGE_DIR")")
+else
+  ditto -c -k --keepParent "$STAGE_DIR" "$DIST_DIR/$ZIP_NAME"
+fi
 echo "DONE: $DIST_DIR/$ZIP_NAME"
